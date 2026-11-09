@@ -13,7 +13,7 @@ document.addEventListener('click',async e=>{
   const pt=T.closest('[data-padtrend]');if(pt){openPadTrend(pt.dataset.padtrend);return;}
   const cl=T.closest('[data-cal]');if(cl){const p=VP.progress,k=+cl.dataset.cal;if(!k){const t=new Date();p.calY=t.getFullYear();p.calM=t.getMonth();}else{p.calM+=k;if(p.calM<0){p.calM=11;p.calY--;}if(p.calM>11){p.calM=0;p.calY++;}}render();return;}
   const dy=T.closest('[data-day]');if(dy){const d=pdate(dy.dataset.day);if(cur==='progress'&&VP.progress.mode==='calendar'){VP.progress.day=VP.progress.day===dy.dataset.day?null:dy.dataset.day;render();}else go('progress',{mode:'calendar',calY:d.getFullYear(),calM:d.getMonth(),day:dy.dataset.day});return;}
-  const lv=T.closest('[data-lvl]');if(lv){go('lessons',{lv:+lv.dataset.lvl,sd:null,id:null},{keep:true});return;}
+  const lv=T.closest('[data-lvl]');if(lv){closeSheets();go('lessons',{lv:+lv.dataset.lvl,sd:null,id:null},{keep:true});return;}
   const ce=T.closest('[data-cell]');if(ce){const [a,b]=ce.dataset.cell.split('.').map(Number);go('lessons',{lv:a,sd:b,id:null},{keep:true});return;}
   const pr=T.closest('[data-preset]');if(pr){Object.assign(VP.compare,JSON.parse(pr.dataset.preset));render();return;}
   const rn=T.closest('[data-run]');if(rn){openRun(rn.dataset.run);return;}
@@ -68,6 +68,7 @@ document.addEventListener('click',async e=>{
   if(a==='drivesync'){await syncNow({force:true});render();toast(DS.status==='synced'?'Synced with Drive':'Drive: '+(DS.lastErr||DS.status));return;}
   if(a==='drivedisconnect'){if(await confirmBox('Stop syncing this device with Google Drive? Your Drive files and the progress on this device both stay as they are.')){driveDisconnect();render();}return;}
   if(a==='drivetest'){const el=$('#drvtests');el.innerHTML='Running…';const t=await driveTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
+  if(a==='cmptest'){const t=compareTests();render();const el=$('#cmptests');if(el)el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
   if(a==='stortest'){const el=$('#stortests');el.innerHTML='Running…';const t=await storageTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
