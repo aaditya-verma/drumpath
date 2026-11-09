@@ -36,13 +36,18 @@ function renderHome(){
   const days=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({l:'SMTWTFS'[d.getDay()],v:(state.days[dkey(d)]||0)/60000,k:'D'+dkey(d),t:periodName('D'+dkey(d))+': '+Math.round((state.days[dkey(d)]||0)/60000)+' min'});}
   const notes=coachNotes();
   const recent=[...state.sessions].reverse().filter(s=>LBY[s.id]).slice(0,8);
-  view.innerHTML=`<div class="hero"><div class="line">${st?`<b>${st}-day</b> streak`:state.sessions.length?'Back on the <b>kit</b>':'Welcome to <b>DrumPath</b>'}</div>
-    <div class="sub">${Math.round(wk)} min this week (Sun–Sat) · ${doneN} of ${LESSONS.length} lessons done · ${state.sessions.length} runs logged</div></div>
-  <div class="grid">
-    <div class="card stat tap" data-nav="progress" data-p='{"mode":"calendar"}'><div class="k">Streak</div><div class="v">${st}<small>days</small></div><div class="d">Longest ${longestStreak()}</div></div>
-    <div class="card stat tap" data-nav="progress" data-p='{"mode":"timeline"}'><div class="k">This week</div><div class="v">${Math.round(wk)}<small>min</small></div><div class="d">${r7.runs} runs in the last 7 days</div></div>
-    <div class="card stat tap" data-nav="lessons"><div class="k">Lessons done</div><div class="v">${doneN}<small>/ ${LESSONS.length}</small></div><div class="bar" style="margin-top:6px"><i style="width:${100*doneN/LESSONS.length}%"></i></div></div>
-    <div class="card stat tap" data-nav="progress" data-p='{"mode":"pads"}'><div class="k">Timing, last 7 days</div><div class="v">${fmtN(r7.timing)}<small>%</small></div><div class="d">${r7.dyn!=null?'Dynamics '+Math.round(r7.dyn)+'%':'on time within ±'+state.set.tol+' ms'}</div></div>
+  const firstTs=(state.sessions.find(x=>LBY[x.id])||{}).ts, totalMin=dayMinutes(), lastBk=state.lastBackup;
+  const ago=ts=>{if(!ts)return 'never';const d=Math.floor((Date.now()-ts)/864e5);return d<1?'today':d+'d ago';};
+  const pl=(n,w)=>n+' '+w+(n===1?'':'s');
+  view.innerHTML=`<div class="fresh"><span class="chip" data-nav="kit"><span class="dot ${inputs.length?'ok':''}"></span>Kit: ${inputs.length?'connected':'not connected'}</span><span class="chip" data-nav="kit"><span class="dot ok"></span>Latency ${state.lat} ms</span><span class="chip" data-nav="settings"><span class="dot ${lastBk&&Date.now()-lastBk<14*864e5?'ok':''}"></span>Backup: ${ago(lastBk)}</span></div>
+  <h1>Overview</h1>
+  <p class="hero line">${state.sessions.length?`Every run you’ve played since ${new Date(firstTs||Date.now()).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}: ${pl(state.sessions.length,'run')} over ${Math.round(totalMin)} minutes, ${doneN} of ${LESSONS.length} lessons done.`:`Your drum logbook. Connect the kit, set up in Level 0, and every run you play is scored and kept here.`}</p>
+  <div class="hero-stats">
+    <div class="card tap stat" data-nav="progress" data-p='{"mode":"calendar"}'><div class="k">Current streak</div><div class="v">${st}<small>${st===1?'day':'days'}</small></div><div class="d">longest ${pl(longestStreak(),'day')}</div></div>
+    <div class="card tap stat" data-nav="progress" data-p='{"mode":"timeline"}'><div class="k">This week</div><div class="v">${Math.round(wk)}<small>min</small></div><div class="d">${pl(r7.runs,'run')} in 7 days</div></div>
+    <div class="card tap stat" data-nav="lessons"><div class="k">Lessons done</div><div class="v">${doneN}<small>/ ${LESSONS.length}</small></div><div class="bar" style="margin-top:8px"><i style="width:${100*doneN/LESSONS.length}%"></i></div></div>
+    <div class="card tap stat" data-nav="progress" data-p='{"mode":"pads"}'><div class="k">Timing · 7 days</div><div class="v">${fmtN(r7.timing)}<small>%</small></div><div class="d">${r7.dyn!=null?'dynamics '+Math.round(r7.dyn)+'%':'within ±'+state.set.tol+' ms'}</div></div>
+    <div class="card tap stat" data-nav="progress" data-p='{"mode":"records"}'><div class="k">Total practice</div><div class="v">${Math.round(totalMin)}<small>min</small></div><div class="d">${pl(state.sessions.length,'run')}</div></div>
   </div>
   <h2>Up next</h2>
   <div class="card row"><div style="flex:1;min-width:200px"><span class="idx">${nx.id}</span> <b style="font-size:18px">${esc(nx.t)}</b><div class="mut">Level ${nx.lv}: ${LEVELS[nx.lv]} · ${STRANDS[nx.sd]}</div></div>

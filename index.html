@@ -8,19 +8,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/css/app.css?v=5">
+<link rel="stylesheet" href="src/css/app.css?v=6">
 </head>
 <body>
 <header class="top"><div class="top-in">
-  <button class="backb ghost" id="backb" data-act="back"></button>
-  <div class="brand" data-act="home">Drum<b>Path</b></div>
-  <span class="sp"></span>
-  <div class="kitchip" data-nav="kit" title="Kit connection"><span class="dot" id="mdot"></span><span class="kt" id="mtxt">Kit not connected</span></div>
-  <button class="icon ghost" id="searchbtn" data-act="search" title="Search"></button>
-  <button class="icon ghost" id="themebtn" data-act="theme" title="Theme"></button>
+  <div class="brand-row">
+    <div class="brand" data-act="home">DrumPath</div>
+    <span class="sync" data-nav="kit" title="Kit connection"><span class="dot" id="mdot"></span><span id="mtxt">Kit not connected</span></span>
+    <span class="sp"></span>
+    <button class="pbtn" id="themebtn" data-act="theme" title="Theme"></button>
+    <button class="pbtn" id="searchbtn" data-act="search" title="Search"></button>
+  </div>
+  <nav class="tabs" id="tabs" aria-label="Sections"></nav>
 </div></header>
-<nav class="rail" id="rail" aria-label="Sections"></nav>
 <nav class="bnav" id="bnav" aria-label="Sections"></nav>
+<div class="dock"><button class="dk-b dk-back" id="backb" data-act="back" title="Back"></button><button class="dk-b dk-nav" data-act="more" title="All sections"></button></div>
 <div class="scrim hidden" id="scrim" data-act="more"></div>
 <div class="msheet hidden" id="msheet" role="dialog" aria-label="All sections"></div>
 <main id="view"></main>
@@ -40,21 +42,21 @@
   <div id="pads"></div>
 </div>
 
-<script src="lessons/lib.js?v=5"></script>
-<script src="lessons/L0-2.js?v=5"></script>
-<script src="lessons/L3.js?v=5"></script>
-<script src="src/js/01-data.js?v=5"></script>
-<script src="src/js/02-state.js?v=5"></script>
-<script src="src/js/03-midi.js?v=5"></script>
-<script src="src/js/04-engine.js?v=5"></script>
-<script src="src/js/05-shell.js?v=5"></script>
-<script src="src/js/06-charts-agg.js?v=5"></script>
-<script src="src/js/07-home.js?v=5"></script>
-<script src="src/js/08-lessons.js?v=5"></script>
-<script src="src/js/09-progress.js?v=5"></script>
-<script src="src/js/10-compare.js?v=5"></script>
-<script src="src/js/11-songs.js?v=5"></script>
-<script src="src/js/12-kit-settings.js?v=5"></script>
-<script src="src/js/99-events.js?v=5"></script>
+<script src="lessons/lib.js?v=6"></script>
+<script src="lessons/L0-2.js?v=6"></script>
+<script src="lessons/L3.js?v=6"></script>
+<script src="src/js/01-data.js?v=6"></script>
+<script src="src/js/02-state.js?v=6"></script>
+<script src="src/js/03-midi.js?v=6"></script>
+<script src="src/js/04-engine.js?v=6"></script>
+<script src="src/js/05-shell.js?v=6"></script>
+<script src="src/js/06-charts-agg.js?v=6"></script>
+<script src="src/js/07-home.js?v=6"></script>
+<script src="src/js/08-lessons.js?v=6"></script>
+<script src="src/js/09-progress.js?v=6"></script>
+<script src="src/js/10-compare.js?v=6"></script>
+<script src="src/js/11-songs.js?v=6"></script>
+<script src="src/js/12-kit-settings.js?v=6"></script>
+<script src="src/js/99-events.js?v=6"></script>
 </body>
 </html>

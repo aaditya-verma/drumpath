@@ -76,6 +76,7 @@ function confirmBox(msg){return new Promise(res=>{const m=document.createElement
   m.innerHTML=`<div class="card sheet" style="max-width:480px"><p style="font-size:17px">${esc(msg)}</p><div class="row"><button class="pri" id="cy">Yes</button><button id="cn">Cancel</button></div></div>`;
   document.body.appendChild(m);$('#cy',m).onclick=()=>{m.remove();res(true);};$('#cn',m).onclick=()=>{m.remove();res(false);};});}
 function exportData(){
+  state.lastBackup=Date.now();save();
   const json=JSON.stringify(state);const name='drumpath-backup-'+today()+'.json';
   const framed=window.self!==window.top;
   if(!framed){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast('Backup downloaded');return;}

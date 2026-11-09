@@ -12,10 +12,10 @@ function applyTheme(){
     lane1:g('--lane1'),lane2:g('--lane2'),grid:g('--grid'),gridBar:g('--grid-bar'),hitline:g('--hitline'),missed:g('--missed'),
     body:'"Figtree",system-ui,sans-serif',display:'"Big Shoulders Display","Arial Narrow",sans-serif',dark});
   LANES.forEach(v=>{VOICES[v].c=g('--p-'+v)||VOICES[v].c;});
-  const b=$('#themebtn');if(b)b.innerHTML=icon(m==='dark'?'moon':m==='light'?'sun':'auto');
+  const b=$('#themebtn');if(b)b.innerHTML=icon(dark?'sun':'moon',16)+'<span class="lb">'+(dark?'Light':'Dark')+'</span>';
   if(b)b.title='Theme: '+({system:'follow device',light:'light',dark:'dark'}[m]);
 }
-function cycleTheme(){const order=['system','light','dark'];const m=themeMode();try{localStorage.setItem(THEME_KEY,order[(order.indexOf(m)+1)%3]);}catch(e){}applyTheme();toast('Theme: '+({system:'follow device',light:'light',dark:'dark'}[themeMode()]));render();if(typeof draw==='function'&&L)draw();}
+function cycleTheme(){const dark=document.documentElement.dataset.theme==='dark';try{localStorage.setItem(THEME_KEY,dark?'light':'dark');}catch(e){}applyTheme();render();if(typeof draw==='function'&&L)draw();}
 try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themeMode()==='system'){applyTheme();render();}});}catch(e){}
 
 /* ---------- icons ---------- */
@@ -81,16 +81,16 @@ function openLesson(id){if(!LBY[id])return;const l=LBY[id];go('lessons',{lv:l.lv
 
 /* ---------- shell DOM ---------- */
 function buildShell(){
-  const rail=$('#rail');
-  rail.innerHTML=`<div class="rlogo">D<b>P</b></div>`+ALLNAV.map((k,i)=>(i===5?'<hr>':'')+`<button class="rbtn" data-nav="${k}" title="${NAVI[k][1]}"><span class="nic">${icon(k)}</span>${NAVI[k][0]}</button>`).join('')+`<hr><button class="rbtn" data-act="search"><span class="nic">${icon('search')}</span>Search</button>`;
+  $('#tabs').innerHTML=ALLNAV.map(k=>`<button class="tab" data-nav="${k}" title="${NAVI[k][1]}">${NAVI[k][0]}</button>`).join('');
   $('#bnav').innerHTML=PRIMARY.map(k=>`<button class="bbtn" data-nav="${k}"><span class="nic">${icon(k)}</span>${NAVI[k][0]}</button>`).join('')+`<button class="bbtn" id="morebtn" data-act="more"><span class="nic">${icon('more')}</span>More</button>`;
-  $('#themebtn').innerHTML=icon('auto');$('#searchbtn').innerHTML=icon('search');
+  $('#searchbtn').innerHTML=icon('search',16)+'<span class="lb">Search</span>';
+  document.querySelector('.dk-nav').innerHTML=icon('more',22);
 }
 function syncNav(){
-  document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('on',b.dataset.nav===cur));
+  document.querySelectorAll('[data-nav]').forEach(b=>{if(b.classList.contains('tab')||b.classList.contains('bbtn'))b.classList.toggle('on',b.dataset.nav===cur);});
   const m=$('#morebtn');if(m)m.classList.toggle('on',!PRIMARY.includes(cur));
   const bb=$('#backb'),top=NAV.stack[NAV.stack.length-1];
-  bb.innerHTML=icon('back',18)+'<span>'+esc(top?top.label:'Home')+'</span>';bb.classList.toggle('dim',!top&&cur==='home');
+  bb.innerHTML=icon('back',22);bb.title=top?'Back to '+top.label:'Home';bb.classList.toggle('dim',!top&&cur==='home');
 }
 function openMore(){
   const s=$('#msheet');s.innerHTML=`<div class="grip"><span></span></div><div class="h2" style="margin:0 0 12px">All sections</div><div class="mgrid">${[...ALLNAV.map(k=>`<button class="mtile" data-nav="${k}">${icon(k)}<b>${NAVI[k][0]}</b><span>${NAVI[k][1]}</span></button>`),`<button class="mtile" data-act="search">${icon('search')}<b>Search</b><span>Lessons, rudiments, songs</span></button>`].join('')}</div>`;
