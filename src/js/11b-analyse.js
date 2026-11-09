@@ -3,7 +3,7 @@
    · 3 DrumPath Studio (import link with songId). Apply merges tags; it never silently overwrites tags set by hand.
    Full MIDI files stay on this device (IndexedDB "files"); songs keep only the analysis summary + short groove patterns. */
 'use strict';
-const STUDIO_URL=null;              // set once DrumPath Studio is published; until then route 3 shows "Studio not set up yet"
+const STUDIO_URL='https://claude.ai/artifact/F7ud2c2UJMVNYU4C9Pp67B';   // DrumPath Studio (published 10 Nov 2026; source in studio/)
 const GM_OUT={K:36,S:38,'S:rim':37,HH:42,'HH:open':46,HP:44,T1:48,T2:45,T3:43,C:49,R:51};
 const METERS=['4/4','3/4','6/8','12/8','5/4','7/8'];
 const knownTag=id=>!!tagLesson(id);
@@ -17,14 +17,14 @@ function analyseSheet(songId){
    <div class="list">
     <div class="lrow" style="cursor:pointer" id="an_midi"><span class="idx">1</span><div style="flex:1"><b>From a MIDI file</b><div class="mut" style="font-size:13px">Most accurate. Analysed on this tablet; the file stays here. <a href="#" id="an_help">Free ways to get MIDI</a></div></div><span>›</span></div>
     <div class="lrow" style="cursor:pointer" id="an_play"><span class="idx">2</span><div style="flex:1"><b>From my playing</b><div class="mut" style="font-size:13px">Play the song once on the kit with the click; the app records and analyses your notes.</div></div><span>›</span></div>
-    <div class="lrow dim" id="an_studio" ${STUDIO_URL?'style="cursor:pointer"':''}><span class="idx">3</span><div style="flex:1"><b>Analyse with Studio</b><div class="mut" style="font-size:13px">${STUDIO_URL?'Opens DrumPath Studio with this song filled in; the result comes back to this song.':'Studio not set up yet.'}</div></div><span>${STUDIO_URL?'›':''}</span></div>
+    <div class="lrow dim" id="an_studio" ${STUDIO_URL?'style="cursor:pointer"':''}><span class="idx">3</span><div style="flex:1"><b>Analyse with Studio</b><div class="mut" style="font-size:13px">${STUDIO_URL?'Copies a code and opens DrumPath Studio: paste the code there. The result comes back to this song.':'Studio not set up yet.'}</div></div><span>${STUDIO_URL?'›':''}</span></div>
    </div>
    <div id="an_body"></div>`);
   const body=$('#an_body',m);
   $('#an_midi',m).onclick=()=>midiRoute(s,body);
   $('#an_play',m).onclick=()=>playRoute(s,body);
   $('#an_help',m).onclick=e=>{e.preventDefault();e.stopPropagation();body.innerHTML=midiHelpHtml();};
-  if(STUDIO_URL)$('#an_studio',m).onclick=async()=>{window.open(await studioLink(s),'_blank','noopener');};
+  if(STUDIO_URL)$('#an_studio',m).onclick=()=>sendToStudio(studioRequest(s));
 }
 function midiHelpHtml(){return `<div class="card" style="margin-top:10px"><b>Free ways to tag a song</b><ul style="margin:6px 0 0;padding-left:20px;line-height:1.5">
   <li><b>No file needed:</b> use <b>From my playing</b> (route 2). Play along to the song on the kit for 8 bars or more; the app tags it from your notes.</li>
@@ -99,21 +99,35 @@ async function packCode(obj){const raw=new TextEncoder().encode(JSON.stringify(o
 async function unpackCode(code){code=String(code).trim().replace(/^.*#import=/,'');const kind=code[0],b=unb64u(code.slice(1));
   if(kind==='z'){const out=await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).text();return JSON.parse(out);}
   if(kind==='j')return JSON.parse(new TextDecoder().decode(b));throw new Error('Not a DrumPath import code');}
-async function studioLink(s){const p={songId:s.id,title:s.title,artist:s.artist,link:(s.cat?(state.songExtra[s.id]||{}).link:s.link)||'',bpm:songBpm(s)||null,meter:s.meter||'4/4'};
-  return STUDIO_URL+'#analyse='+b64u(new TextEncoder().encode(JSON.stringify(p)));}
+// Studio request: a claude.ai artifact can't read its URL hash, so the request travels as a code the owner pastes in Studio.
+function studioRequest(s){return {songId:s.id,title:s.title,artist:s.artist,link:(s.cat?(state.songExtra[s.id]||{}).link:s.link)||'',bpm:songBpm(s)||null,meter:s.meter||'4/4'};}
+const requestCode=obj=>b64u(new TextEncoder().encode(JSON.stringify(obj)));
+async function sendToStudio(obj){
+  const code=requestCode(obj);
+  try{await navigator.clipboard.writeText(code);closeSheets();toast('Code copied — paste it in Studio',4000);window.open(STUDIO_URL,'_blank','noopener');}
+  catch(_){closeSheets();const m=openSheet('Analyse with Studio',`<p class="mut" style="margin-top:0">Copy this code, open Studio, and paste it under <b>From DrumPath: paste the code it copied</b>.</p>
+     <textarea id="sc_t" rows="5" style="width:100%" readonly>${esc(code)}</textarea>
+     <div class="row" style="margin-top:10px"><button class="pri" id="sc_c">Copy</button><button id="sc_o">Open Studio ↗</button></div>`);
+    $('#sc_o',m).onclick=()=>window.open(STUDIO_URL,'_blank','noopener');
+    $('#sc_c',m).onclick=async()=>{try{await navigator.clipboard.writeText(code);toast('Code copied — paste it in Studio');}catch(e){$('#sc_t',m).select();toast('Select all and copy');}};}
+  return code;
+}
 // incoming: {v:1, songs:[{songId?, title, artist, genre, bpm, bpmSource, meter, feel, tags:[{id,weight,reason,confidence}], grooves?, sections?}]}
 function importTarget(x){if(x.songId&&songById(x.songId))return songById(x.songId);
   return allSongs().find(s=>normT(s.title)===normT(x.title)&&(!x.artist||normT(s.artist)===normT(x.artist)))||null;}
 async function handleImport(code,opts={}){
   let p;try{p=await unpackCode(code);}catch(e){if(!opts.quiet)toast('That import code didn’t open: '+e.message);throw e;}
   const list=Array.isArray(p.songs)?p.songs:[p];const done=[];
-  for(const x of list){let s=importTarget(x);
+  for(let i=0;i<list.length;i++){const x=list[i];let s=importTarget(x),created=null;
     if(!s){const u={id:'u'+Date.now().toString(36)+done.length,catId:'',title:x.title||'Untitled',artist:x.artist||'',genre:x.genre||'Other',bpm:x.bpm||'',bpmSure:false,meter:x.meter||'4/4',link:x.link||'',notes:'',core:[],support:[],tags:[],updatedAt:Date.now()};
-      state.songs.push(u);s=songById(u.id);}
+      state.songs.push(u);s=songById(u.id);created=u.id;}
     const R={src:'studio',bpm:x.bpm||0,bpmNote:x.bpmSource||'estimated (Studio can’t hear audio)',bpmConf:x.bpmSource==='midi'?0.95:0.5,meter:x.meter||'',meterConf:0.6,feel:x.feel||'',genre:x.genre||'',
       tags:(x.tags||[]).map(t=>typeof t==='string'?{id:t,weight:1,reason:'',confidence:0.6}:t),patterns:x.grooves||null,sections:x.sections||null};
-    if(opts.apply)applyReview(s.id,R,opts.apply);else{reviewSheet(s.id,R);}
+    if(opts.apply)applyReview(s.id,R,opts.apply);
+    else{const res=await reviewSheet(s.id,R,list.length>1?` (${i+1} of ${list.length})`:'');
+      if(res!=='applied'&&created){const k=state.songs.findIndex(y=>y.id===created);if(k>=0)state.songs.splice(k,1);continue;}}
     done.push(s.id);}
+  if(!opts.apply&&done.length===1)go('songs',{id:done[0]},{keep:true});
   return done;
 }
 function checkImportHash(){const h=location.hash;if(!/^#import=/.test(h))return;history.replaceState(null,'',location.pathname+location.search);
@@ -122,8 +136,8 @@ function pasteImportSheet(){const m=openSheet('Paste import code',`<p class="mut
   $('#pi_go',m).onclick=async()=>{const v=$('#pi_t',m).value;closeSheets();try{await handleImport(v);}catch(_){}};}
 
 /* ---------- review card (shared by every route) ---------- */
-function reviewSheet(songId,R){
-  const s=songById(songId);if(!s)return;
+function reviewSheet(songId,R,suffix){
+  const s=songById(songId);if(!s)return Promise.resolve('missing');let outcome='cancelled';
   const have=Object.fromEntries(songTags(s).map(t=>[t.id,t.core?'core':'support']));
   R.tags=R.tags.filter(t=>{if(!knownTag(t.id)){(R.rejected=R.rejected||[]).push(t.id);return false;}return true;});
   const genres=[...new Set(allSongs().map(x=>x.genre))].sort();
@@ -134,7 +148,7 @@ function reviewSheet(songId,R){
       <td><select data-rt="${t.id}">${[['2','Core'],['1','Support'],['0','Skip']].map(([v,n])=>`<option value="${v}" ${String(t.weight)===v?'selected':''}>${n}</option>`).join('')}</select></td>
       <td style="font-size:13px">${esc(t.reason||'')}</td><td class="n">${conf(t.confidence)}</td></tr>`;}).join('');
   const pat=R.patterns&&(R.patterns.main||R.patterns.fill);
-  const m=openSheet('Review · '+esc(s.title),`<p class="mut" style="margin-top:0">Suggestions ${srcTxt}. Nothing changes until you tap <b>Apply</b>. Tags you set yourself are never replaced without asking.</p>
+  const m=openSheet('Review · '+esc(s.title)+(suffix||''),`<p class="mut" style="margin-top:0">Suggestions ${srcTxt}. Nothing changes until you tap <b>Apply</b>. Tags you set yourself are never replaced without asking.</p>
    <div class="grid">
     <div><label class="f"><input type="checkbox" id="rv_b" ${R.bpm&&(!songBpm(s)||bpmUnsure(s))?'checked':''}> Tempo ${conf(R.bpmConf)}</label><input type="number" id="rv_bv" value="${R.bpm||''}"><div class="mut" style="font-size:12px">${esc(R.bpmNote||'')}${songBpm(s)?' · now '+songBpm(s):''}</div></div>
     <div><label class="f"><input type="checkbox" id="rv_m" ${R.meter&&R.meter!==(s.meter||'4/4')?'checked':''}> Meter ${conf(R.meterConf)}</label><input id="rv_mv" value="${esc(R.meter||'')}"><div class="mut" style="font-size:12px">${R.feel?'feel: '+esc(R.feel):''}${s.meter?' · now '+esc(s.meter):''}</div></div>
@@ -153,8 +167,9 @@ function reviewSheet(songId,R){
     const conflicts=R.tags.filter(t=>t.weight&&have[t.id]&&have[t.id]!==(t.weight===2?'core':'support'));
     let policy='keep';
     if(conflicts.length)policy=await confirmBox('You already tagged '+conflicts.map(t=>t.id+' as '+have[t.id]).join(', ')+'. Use the suggested weight'+(conflicts.length>1?'s':'')+' instead? (Cancel keeps yours; new lessons are still added.)')?'replace':'keep';
-    closeSheets();applyReview(songId,R,{policy,pick});
+    outcome='applied';closeSheets();applyReview(songId,R,{policy,pick});
   };
+  return new Promise(res=>{const ob=new MutationObserver(()=>{if(!m.isConnected){ob.disconnect();res(outcome);}});ob.observe(document.body,{childList:true,subtree:true});});
 }
 // merge into the song. Hand-set tags are never removed; their weight changes only with policy 'replace'.
 function applyReview(songId,R,o){
@@ -215,7 +230,16 @@ async function analyseTests(){
     const cat=CAT_SONGS.find(x=>x.id==='s003'),c0=cat.core.join();
     applyReview('s003',{src:'midi',tags:[{id:'3.2.07',weight:1,reason:'',confidence:0.5}]},{policy:'keep',pick:{},quiet:true});
     T('Catalog songs keep their catalog tags; additions go to an override',cat.core.join()===c0&&songById('s003').support.includes('3.2.07'),'');
-    // 7. existing saved data unchanged by loading this module
+    // 7. Studio request code round trip, and a batch import shows one review card at a time
+    const rq=studioRequest(songById('utest'));const back=JSON.parse(new TextDecoder().decode(unb64u(requestCode(rq))));
+    T('Studio request code carries songId, title and artist',back.songId==='utest'&&back.title==='Love Me Again'&&back.artist==='John Newman','');
+    const bcode=await packCode({v:1,songs:[{songId:'utest',title:'Love Me Again',tags:[{id:'3.2.05',weight:1}]},{title:'Brand New Song',artist:'Nobody',tags:[{id:'1.5.03',weight:2}]}]});
+    const n0=state.songs.length;const pr=handleImport(bcode);await new Promise(r=>setTimeout(r,60));
+    const first=document.querySelectorAll('.modal').length;closeSheets();await new Promise(r=>setTimeout(r,60));
+    const second=document.querySelectorAll('.modal').length,title2=(document.querySelector('.modal h2,.modal h3,.modal .sheet b')||{}).textContent||'';closeSheets();await pr;
+    T('A batch import opens review cards one after another, not stacked',first===1&&second===1,first+' then '+second+' open · '+title2.trim().slice(0,40));
+    T('Cancelling the review of a new imported song adds nothing',state.songs.length===n0,state.songs.length+' songs');
+    // 8. existing saved data unchanged by loading this module
     T('Saved songs load unchanged (fields only added)',JSON.parse(keep).songs.every(x=>state.songs.some(y=>y.id===x.id)),'');
   }catch(e){T('Analyse & tag tests',false,e.message);}
   finally{state=JSON.parse(keep);VP.songs=JSON.parse(vp);window.storeSave=keepSave;window.drivePushSoon=keepPush;}

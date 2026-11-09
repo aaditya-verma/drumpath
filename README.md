@@ -76,3 +76,12 @@ Needed only if you ever recreate it. Use the **personal** Google account that ow
 6. Put the Client ID, the restricted API key and the **project number** (Picker app id) in `src/js/02c-drive.js` (`GCP`). These three are safe in a public repo. **The client secret is not used and must never be committed.**
 
 While the app is in Testing mode only listed test users can sign in, and Google may ask you to re-approve access about once a week. That's expected for a personal app.
+
+## Analyse & tag and DrumPath Studio
+
+Every song page has **Analyse & tag**: (1) **From a MIDI file**, analysed on the tablet with `src/js/midi-analyse.js` (the file stays on the device);
+(2) **From my playing**, which records the kit along to the song and runs the same analyser; (3) **Analyse with Studio**, a claude.ai artifact
+(https://claude.ai/artifact/F7ud2c2UJMVNYU4C9Pp67B, source in `studio/`). Free sources only: From my playing, Lakh MIDI, Groove MIDI Dataset,
+MuseScore Studio (free app) exports, TuxGuitar (free) exports.
+
+**Credits:** Groove MIDI Dataset by Google Magenta (Gillick, Roberts, Engel, Eck, Bamman, "Learning to Groove with Inverse Sequence Transformations", ICML 2019), CC BY 4.0, used at build time for analyser calibration (1,150 / 1,150 files parse; BPM within ±2: 100%; meter: 100%; beat/fill: 93%).
