@@ -45,23 +45,34 @@ Progress lives in **IndexedDB** (database `drumpath`, stores `state`, `runs`, `f
 - The app asks Chrome to keep the data (`navigator.storage.persist()`) once you have a passed run. Settings › Storage shows space used, the run count and whether it's protected.
 - Export / Import backup work as before (one JSON file with everything).
 
-## Google Drive sync (S2): one-time Google Cloud setup
+## Google Drive sync (S2, 10 Nov 2026)
 
-DrumPath syncs to a folder in **your own** Google Drive. Google needs a free "OAuth client" for that. About 15 minutes, once. Use your **personal** Google account (the one that owns My Drive › Projects › DrumPath).
+Progress is backed up to, and synced through, a folder in **your own** Google Drive: My Drive › Projects › **DrumPath**. The tablet stays the main copy; practice and saving never wait for Drive.
 
-1. **Create a project.** Open https://console.cloud.google.com, signed in with the personal account. Top bar → project picker → **New project** → name it `DrumPath` → **Create**, then select it.
-2. **Turn on the two APIs.** Menu → **APIs & Services → Library**. Search **Google Drive API** → **Enable**. Back to Library, search **Google Picker API** → **Enable**.
-3. **Consent screen.** Menu → **APIs & Services → OAuth consent screen** (may be called **Google Auth Platform → Branding / Audience**).
-   - User type **External**. App name `DrumPath`, support email and developer email = your personal address. Save.
-   - Under **Audience** (or **Test users**), leave publishing status as **Testing** and **Add users** → your personal address.
-   - Scopes: you can skip this page; the app asks only for `drive.file` (files it creates or that you pick).
-4. **OAuth client id.** **APIs & Services → Credentials → Create credentials → OAuth client ID**.
-   - Application type **Web application**, name `DrumPath web`.
-   - **Authorized JavaScript origins** → Add URI → `https://aaditya-verma.github.io` (exactly that: no path, no trailing slash).
-   - Leave redirect URIs empty. **Create**, then copy the **Client ID** (ends in `.apps.googleusercontent.com`).
-5. **Picker API key.** **Credentials → Create credentials → API key**. Then **Edit API key**:
-   - Application restrictions → **Websites** → add `https://aaditya-verma.github.io/*`.
-   - API restrictions → **Restrict key** → tick **Google Picker API** only. Save, and copy the key.
-6. **Send both to the build chat:** the Client ID and the restricted Picker API key. Both are safe in a public repo: the client id is public by design, and the key only works for the Picker on this site. Also note the **project number** (Dashboard → Project info); the Picker needs it as the app id.
+**Connect (once per device):** Settings › Google Drive › **Connect Google Drive** → sign in with the personal account → **Choose Drive folder** → pick Projects › DrumPath. The app creates:
 
-Testing mode is fine for a personal app: only listed test users can sign in. Google may ask you to re-approve access about once a week while the app stays in Testing; that's expected.
+```
+DrumPath/
+  backup/drumpath-state.json        everything (settings, lessons, runs, songs); overwritten on each sync
+  backup/snapshots/YYYY-MM-DD.json  one per day, last 30 kept
+  midi/  songs/                     for the Drive library (S3)
+```
+
+- **Scope:** `drive.file` only: the app sees files it created and files you pick, nothing else in your Drive.
+- **When it syncs:** 30 s after any change (e.g. a run), when the app goes to the background, when it comes back online, and with **Sync now**. On start it pulls if Drive is newer.
+- **Merging two devices:** runs are combined (never deleted by a sync); for each lesson the higher progress wins (mastered beats in progress, then higher tempo), best score/BPM are the max; checklists done on either device stay done; settings and song edits: newer wins; deleted songs stay deleted.
+- **Header chip:** "Synced 2 min ago" · "Offline, will sync" · "Reconnect Drive". Google tokens last about an hour and the app gets no refresh token, so after a while the chip may ask you to tap **Reconnect Drive** (one tap, no password if you're signed in to Chrome). Nothing is lost meanwhile; it syncs after the tap.
+- **Disconnect** stops syncing on this device; your Drive files and local progress both stay.
+
+### One-time Google Cloud setup (done 10 Nov 2026)
+
+Needed only if you ever recreate it. Use the **personal** Google account that owns the DrumPath folder.
+
+1. https://console.cloud.google.com → **New project** `DrumPath` → select it.
+2. **APIs & Services → Library**: enable **Google Drive API** and **Google Picker API**.
+3. **OAuth consent screen** (Google Auth Platform → Branding / Audience): External; app name `DrumPath`; support + developer email = personal address; publishing status **Testing**; add the personal address under **Test users**; no scopes needed.
+4. **Credentials → Create credentials → OAuth client ID**: Web application `DrumPath web`; **Authorized JavaScript origins** `https://aaditya-verma.github.io` (no path, no trailing slash); no redirect URIs.
+5. **Credentials → Create credentials → API key** → edit: Application restrictions **Websites** `https://aaditya-verma.github.io/*`; API restrictions **Google Picker API** only.
+6. Put the Client ID, the restricted API key and the **project number** (Picker app id) in `src/js/02c-drive.js` (`GCP`). These three are safe in a public repo. **The client secret is not used and must never be committed.**
+
+While the app is in Testing mode only listed test users can sign in, and Google may ask you to re-approve access about once a week. That's expected for a personal app.

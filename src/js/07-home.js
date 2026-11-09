@@ -40,7 +40,7 @@ function renderHome(){
   const ago=ts=>{if(!ts)return 'never';const d=Math.floor((Date.now()-ts)/864e5);return d<1?'today':d+'d ago';};
   const pl=(n,w)=>n+' '+w+(n===1?'':'s');
   const sst=allSongStats(songCtx()),slib=libraryStats(sst),su=slib.unlocks[0];
-  view.innerHTML=`<div class="fresh"><span class="chip" data-nav="kit"><span class="dot ${inputs.length?'ok':''}"></span>Kit: ${inputs.length?'connected':'not connected'}</span><span class="chip" data-nav="kit"><span class="dot ok"></span>Latency ${state.lat} ms</span><span class="chip" data-nav="settings"><span class="dot ${lastBk&&Date.now()-lastBk<14*864e5?'ok':''}"></span>Backup: ${ago(lastBk)}</span></div>
+  view.innerHTML=`<div class="fresh"><span class="chip" data-nav="kit"><span class="dot ${inputs.length?'ok':''}"></span>Kit: ${inputs.length?'connected':'not connected'}</span><span class="chip" data-nav="kit"><span class="dot ok"></span>Latency ${state.lat} ms</span>${driveOn()?`<span class="chip" data-nav="settings"><span class="dot ${DRV.lastSync&&Date.now()-DRV.lastSync<3*864e5?'ok':''}"></span>Drive backup: ${ago(DRV.lastSync)}</span>`:`<span class="chip" data-nav="settings"><span class="dot ${lastBk&&Date.now()-lastBk<14*864e5?'ok':''}"></span>Backup: ${ago(lastBk)}</span>`}</div>
   <h1>Overview</h1>
   <p class="hero line">${state.sessions.length?`Every run you’ve played since ${new Date(firstTs||Date.now()).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}: ${pl(state.sessions.length,'run')} over ${Math.round(totalMin)} minutes, ${doneN} of ${LESSONS.length} lessons done.`:`Your drum logbook. Connect the kit, set up in Level 0, and every run you play is scored and kept here.`}</p>
   <div class="hero-stats">

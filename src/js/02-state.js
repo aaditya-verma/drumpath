@@ -17,6 +17,7 @@ function save(){
   state.savedAt=Date.now();state.rev=(state.rev||0)+1;
   if(STORE.mode==='idb')storeSave();
   else try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+  if(typeof drivePushSoon==='function')drivePushSoon();
   if(cloud){clearTimeout(saveT);saveT=setTimeout(pushCloud,2500);}
 }
 async function pushCloud(){

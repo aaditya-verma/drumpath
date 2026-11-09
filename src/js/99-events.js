@@ -29,7 +29,7 @@ document.addEventListener('click',async e=>{
   const rt=T.closest('[data-rate]');if(rt){rt.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===rt));return;}
   const lp=T.closest('[data-logplay]');if(lp){const id=lp.dataset.logplay,mn=Math.max(1,+($('#lgm')||{}).value||4),r=+(($('#lgr .on')||{}).dataset||{}).rate||3;(state.songLog[id]=state.songLog[id]||[]).push([today(),mn,r]);save();render();toast('Play logged');return;}
   const se=T.closest('[data-songedit]');if(se){songForm(se.dataset.songedit||null);return;}
-  const sdl=T.closest('[data-songdel]');if(sdl){if(await confirmBox('Delete this song?')){const i=state.songs.findIndex(x=>x.id===sdl.dataset.songdel);if(i>=0)state.songs.splice(i,1);save();VP.songs.id=null;render();}return;}
+  const sdl=T.closest('[data-songdel]');if(sdl){if(await confirmBox('Delete this song?')){const i=state.songs.findIndex(x=>x.id===sdl.dataset.songdel);if(i>=0)state.songs.splice(i,1);state.songDel[sdl.dataset.songdel]=Date.now();save();VP.songs.id=null;render();}return;}
   const spl=T.closest('[data-splay]');if(spl){const id=spl.dataset.splay,b=+spl.dataset.sbpm,l=LBY[id];closeSheets();openPractice(id);if(b>l.bpm[1]&&canStretch(id)){stretchMode=true;}else{stretchMode=false;}bpm=Math.max(30,Math.min(300,b));$('#bpmv').textContent=bpm;renderPracBar();makePreview();draw();return;}
   const nv=T.closest('[data-nav]');if(nv){const p=nv.dataset.p?JSON.parse(nv.dataset.p):undefined;closeSheets();go(nv.dataset.nav,p);return;}
   const t=T.closest('[data-open],[data-play],[data-act],[data-done],[data-learn],[data-unmap],[data-reset],[data-close]');
@@ -62,6 +62,12 @@ document.addEventListener('click',async e=>{
   if(a==='lat-'||a==='lat+'){state.lat+=a==='lat+'?5:-5;save();render();return;}
   if(a==='resetmap'){state.map={...DEFAULT_MAP};state.art={...DEFAULT_ART};save();render();return;}
   if(a==='export'){exportData();return;}
+  if(a==='drivechip'){if(DS.status==='reconnect'||DS.status==='off')driveConnect();else if(DS.status==='error'||DS.status==='offline')syncNow();else go('settings');return;}
+  if(a==='driveconnect'){await driveConnect();render();return;}
+  if(a==='drivefolder'){await driveChooseFolder();return;}
+  if(a==='drivesync'){await syncNow({force:true});render();toast(DS.status==='synced'?'Synced with Drive':'Drive: '+(DS.lastErr||DS.status));return;}
+  if(a==='drivedisconnect'){if(await confirmBox('Stop syncing this device with Google Drive? Your Drive files and the progress on this device both stay as they are.')){driveDisconnect();render();}return;}
+  if(a==='drivetest'){const el=$('#drvtests');el.innerHTML='Running…';const t=await driveTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
   if(a==='stortest'){const el=$('#stortests');el.innerHTML='Running…';const t=await storageTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
@@ -105,7 +111,7 @@ function importData(){
 }
 /* ---------- boot ---------- */
 buildShell();applyTheme();view.innerHTML='<p class="mut">Loading your logbook…</p>';
-storageInit().catch(e=>{STORE.err=String(e&&e.message||e);}).finally(()=>{bootReady=true;if(bootPending){bootPending=false;save();}render();});
+storageInit().catch(e=>{STORE.err=String(e&&e.message||e);}).finally(()=>{bootReady=true;if(bootPending){bootPending=false;save();}render();driveStart();});
 addEventListener('pagehide',()=>{if(STORE.mode==='idb')storeSave();});
 if(navigator.permissions&&navigator.requestMIDIAccess){navigator.permissions.query({name:'midi'}).then(p=>{if(p.state==='granted')connectMidi();}).catch(()=>{});}
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(L)draw();});

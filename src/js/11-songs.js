@@ -140,6 +140,6 @@ function songForm(id){
   $('#s_save',m).onclick=()=>{const t=$('#s_t',m).value.trim();if(!t){toast('Add a title');return;}
     const core=Object.keys(pick).filter(k=>pick[k]==='core'),sup=Object.keys(pick).filter(k=>pick[k]==='support');
     let l=$('#s_l',m).value.trim();if(l&&!/^https?:\/\//.test(l))l='https://'+l;
-    const o=Object.assign(s?u:{id:'u'+Date.now().toString(36),catId:''},{title:t,artist:$('#s_a',m).value.trim(),genre:$('#s_g',m).value.trim()||'Other',bpm:$('#s_b',m).value,bpmSure:!!+$('#s_b',m).value,meter:$('#s_m',m).value.trim()||'4/4',link:l,notes:$('#s_n',m).value.trim(),core,support:sup,tags:[...core,...sup]});
+    const o=Object.assign(s?u:{id:'u'+Date.now().toString(36),catId:''},{updatedAt:Date.now(),title:t,artist:$('#s_a',m).value.trim(),genre:$('#s_g',m).value.trim()||'Other',bpm:$('#s_b',m).value,bpmSure:!!+$('#s_b',m).value,meter:$('#s_m',m).value.trim()||'4/4',link:l,notes:$('#s_n',m).value.trim(),core,support:sup,tags:[...core,...sup]});
     if(!s)state.songs.push(o);save();m.remove();updateSongHist();if(!s)go('songs',{id:o.id},{keep:true});else render();};
 }
