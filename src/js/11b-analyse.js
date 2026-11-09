@@ -15,7 +15,7 @@ function analyseSheet(songId){
   const s=songById(songId);if(!s)return;
   const m=openSheet('Analyse &amp; tag · '+esc(s.title),`<p class="mut" style="margin-top:0">Find which lessons <b>${esc(s.title)}</b> uses. Pick a route; you review everything before it’s applied.</p>
    <div class="list">
-    <div class="lrow" style="cursor:pointer" id="an_midi"><span class="idx">1</span><div style="flex:1"><b>From a MIDI file</b><div class="mut" style="font-size:13px">Most accurate. Analysed on this tablet; the file stays here. <a href="#" id="an_help">Where to get MIDI</a></div></div><span>›</span></div>
+    <div class="lrow" style="cursor:pointer" id="an_midi"><span class="idx">1</span><div style="flex:1"><b>From a MIDI file</b><div class="mut" style="font-size:13px">Most accurate. Analysed on this tablet; the file stays here. <a href="#" id="an_help">Free ways to get MIDI</a></div></div><span>›</span></div>
     <div class="lrow" style="cursor:pointer" id="an_play"><span class="idx">2</span><div style="flex:1"><b>From my playing</b><div class="mut" style="font-size:13px">Play the song once on the kit with the click; the app records and analyses your notes.</div></div><span>›</span></div>
     <div class="lrow dim" id="an_studio" ${STUDIO_URL?'style="cursor:pointer"':''}><span class="idx">3</span><div style="flex:1"><b>Analyse with Studio</b><div class="mut" style="font-size:13px">${STUDIO_URL?'Opens DrumPath Studio with this song filled in; the result comes back to this song.':'Studio not set up yet.'}</div></div><span>${STUDIO_URL?'›':''}</span></div>
    </div>
@@ -26,17 +26,17 @@ function analyseSheet(songId){
   $('#an_help',m).onclick=e=>{e.preventDefault();e.stopPropagation();body.innerHTML=midiHelpHtml();};
   if(STUDIO_URL)$('#an_studio',m).onclick=async()=>{window.open(await studioLink(s),'_blank','noopener');};
 }
-function midiHelpHtml(){return `<div class="card" style="margin-top:10px"><b>Where to get a MIDI file</b><ul style="margin:6px 0 0;padding-left:20px;line-height:1.5">
-  <li><b>Songsterr:</b> sign in → open the song → edit → download the Guitar Pro file → convert it to MIDI in TuxGuitar (free) or a browser Guitar Pro → MIDI converter.</li>
-  <li><b>MuseScore:</b> open the score → export the drum part as MIDI.</li>
-  <li><b>Lakh MIDI “clean_midi”:</b> files named by artist and title. Fan-made, so quality varies.</li>
-  <li><b>Groove MIDI Dataset:</b> short grooves by real drummers (Google Magenta, CC BY 4.0).</li></ul>
-  <p class="mut" style="margin-bottom:0;font-size:13px">Don’t use tools that scrape Songsterr. Song files are for your own practice.</p></div>`;}
-
+function midiHelpHtml(){return `<div class="card" style="margin-top:10px"><b>Free ways to tag a song</b><ul style="margin:6px 0 0;padding-left:20px;line-height:1.5">
+  <li><b>No file needed:</b> use <b>From my playing</b> (route 2). Play along to the song on the kit for 8 bars or more; the app tags it from your notes.</li>
+  <li><b>Lakh MIDI Dataset</b> (free, research dataset): fan-made MIDI files of real songs, named by artist and title. Quality varies. It’s a large download, so get it on a computer and copy just the songs you want to Drive › DrumPath › midi.</li>
+  <li><b>Groove MIDI Dataset</b> (free, Google Magenta, CC BY 4.0): short grooves by real drummers, good for style practice.</li>
+  <li><b>Make your own:</b> write the drum part in <b>MuseScore Studio</b> (free desktop app) and export it as MIDI.</li>
+  <li><b>Already have a Guitar Pro file</b> (.gp, .gp5…)? Open it in <b>TuxGuitar</b> (free) and export MIDI.</li></ul>
+  <p class="mut" style="margin-bottom:0;font-size:13px">DrumPath only points to free sources. Song files are for your own practice and stay on this tablet.</p></div>`;}
 /* ---------- route 1: MIDI file ---------- */
 function midiRoute(s,body){
   body.innerHTML=`<div class="card" style="margin-top:10px"><div class="grid"><div><label class="f">MIDI file (.mid)</label><input type="file" id="an_file" accept=".mid,.midi,audio/midi,audio/x-midi"></div>
-    <div><label class="f">Where it’s from</label><select id="an_src">${['Songsterr','MuseScore','Lakh','Groove MIDI','Other'].map(x=>`<option>${x}</option>`).join('')}</select></div></div>
+    <div><label class="f">Where it’s from</label><select id="an_src">${['Lakh MIDI','Groove MIDI','Made it myself (MuseScore Studio)','TuxGuitar export','Other'].map(x=>`<option>${x}</option>`).join('')}</select></div></div>
     <p class="mut" id="an_msg" style="font-size:13px;margin-bottom:0">The whole file stays on this tablet. Only the result (tags, tempo, short groove patterns) is saved with the song.</p></div>`;
   $('#an_file',body).onchange=async ev=>{const f=ev.target.files[0];if(!f)return;const msg=$('#an_msg',body);msg.textContent='Analysing…';
     try{const buf=new Uint8Array(await f.arrayBuffer());const a=MidiAnalyse.analyse(buf,{lessons:LESSONS.filter(l=>l.ex),title:s.title});
