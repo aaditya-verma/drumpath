@@ -1,0 +1,40 @@
+{
+ "files": 1150,
+ "parsed": 1150,
+ "errors": [],
+ "bpmWithin2": 100,
+ "meterCorrect": 100,
+ "beatFill": 93,
+ "styleGenre": 18.6,
+ "confusion": {
+  "beat": {
+   "beat": 430,
+   "fill": 73
+  },
+  "fill": {
+   "beat": 7,
+   "fill": 640
+  }
+ },
+ "byGenre": {
+  "Funk & Soul": "8% of 295",
+  "Hip-hop & R&B": "26% of 95",
+  "Pop": "0% of 27",
+  "Rock": "27% of 341",
+  "Jazz": "26% of 101",
+  "Disco": "29% of 7",
+  "Latin & Caribbean": "19% of 172",
+  "Reggae": "25% of 20",
+  "Country": "0% of 29",
+  "Punk": "9% of 58",
+  "Blues": "75% of 4",
+  "Prog & Odd time": "0% of 1"
+ },
+ "targets": {
+  "bpmWithin2": 95,
+  "meterCorrect": 98,
+  "beatFill": 85
+ },
+ "analyser": "1.1",
+ "date": "2026-11-09"
+}
