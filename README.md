@@ -4,7 +4,8 @@ Drum practice app for the Alesis Nitro kit (Web MIDI), with scored lessons, prog
 Live: https://aaditya-verma.github.io/drumpath/
 
 ## Files
-- `index.html`: the app (styles, engine, views).
+See `docs/ARCHITECTURE.md` for the file map; `docs/DECISIONS.md` and `docs/RULES.md` for decisions and rules.
+- `index.html` + `src/css/app.css` + `src/js/*.js`: the app.
 - `lessons/lib.js`: pattern helpers; `lessons/L0-2.js`, `lessons/L3.js`: lesson data.
 - Progress is stored in the browser (`localStorage` key `drumpath.v1`). Use **Kit & Settings → Export backup**.
 
