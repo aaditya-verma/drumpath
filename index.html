@@ -110,6 +110,8 @@ label.f{display:block;margin:10px 0 4px;font-size:14px;color:var(--mut)}
   <div id="pads"></div>
 </div>
 
+<script src="lessons/lib.js?v=3"></script>
+<script src="lessons/L0-2.js?v=3"></script>
 <script>
 'use strict';
 /* ============ DATA ============ */
@@ -125,76 +127,7 @@ const DEFAULT_MAP={36:'K',35:'K',38:'S',40:'S',42:'HH',46:'HH',22:'HH',26:'HH',4
 const LEVELS=['Setup','First beats & time','Reading, core rudiments & independence','The motions of drumming','Moeller & essential grooves','Rhythmic groupings & funk','Odd time & finger control','Foot technique & combinations','Texture, articulation & chart reading','Advanced styles & soloing','Go anywhere'];
 const STRANDS={1:'Theory / Reading',2:'Technique',3:'Rudiments',4:'Independence',5:'Grooves / Styles',6:'Fills / Rhythm',7:'Time / Ears',8:'Songs'};
 
-const X=(n,sub,v,o={})=>Object.assign({n,sub,bars:1,v},o);
-const rep=(s,k)=>s.repeat(k);
-function withFill(sub,base,fill,name){
-  const n=4*sub, out={};
-  const vs=new Set([...Object.keys(base),'C',...fill.filter(Boolean)]);
-  vs.forEach(v=>{
-    const b1=(base[v]||rep('.',n)).split(''), b2=(base[v]||rep('.',n)).split('');
-    if(v==='HH'||v==='R') b1[0]='.';
-    if(v==='C') b1[0]='x';
-    for(let k=0;k<fill.length;k++){const i=n-fill.length+k; b2[i]=fill[k]===v?'x':'.';}
-    const s=b1.join('')+b2.join(''); if(s.includes('x')) out[v]=s;
-  });
-  return {n:name,sub,bars:2,v:out};
-}
-const B8={HH:'xxxxxxxx',K:'x...x...',S:'..x...x.'};
-const B8_16={HH:'x.x.x.x.x.x.x.x.',K:'x.......x.......',S:'....x.......x...'};
-
-const LESSONS=[
-/* ---- Level 0 ---- */
-{id:'0.2.01',t:'Throne height & distance',type:'info',d:'Sit so your thighs are level or slope slightly down toward the knees. Both feet rest flat on the pedals without stretching.',check:['Thighs level or slightly downward','Feet flat on both pedals','Back straight, shoulders relaxed','Sticks reach the snare centre with relaxed elbows']},
-{id:'0.2.02',t:'Pedal placement',type:'info',d:'Kick pedal under the right foot, hi-hat pedal under the left. Both reachable without twisting your hips.',check:['Kick pedal in line with right leg','Hi-hat pedal in line with left leg','Snare roughly between your knees']},
-{id:'0.2.03',t:'Pad & cymbal positions',type:'info',d:'Snare between the knees and slightly above them. Hi-hat to the left, toms in an arc, crash and ride reachable without stretching.',check:['Hi-hat a few cm above snare height','Toms 1–2 angled toward you above the snare','Tom 3 (floor) at the right, near snare height','Crash and ride reachable with a relaxed arm','Tablet mounted where you can see it without turning your head']},
-{id:'0.1.01',t:'Kit map & notation key',type:'info',d:'Every pad has a lane in the practice screen, top to bottom: Crash, Ride, Hi-hat, Tom 1, Tom 2, Snare, Tom 3, Kick, Hi-hat pedal. On a drum staff, cymbals are written as x above the staff, kick on the bottom space, snare on the third space, toms from high (top) to low.',check:['I know which lane is which pad','I know where kick, snare and hi-hat sit on the staff']},
-{id:'0.2.04',t:'Connect & calibrate the kit',type:'tool',tool:'kit',d:'Connect the Nitro module’s USB port to the tablet with a USB-B to USB-C (OTG) cable. Then open Kit & Settings, tap Connect, and use Learn to confirm every pad.',check:['Kit connected (green dot)','Every pad shows the right name when hit']},
-{id:'0.7.01',t:'Latency check',type:'tool',tool:'latency',d:'Play quarter notes on the snare with the click for 4 bars. The app measures the delay between the click and your hits and removes it from all scores.',check:['Latency test done']},
-/* ---- Level 1 ---- */
-{id:'1.2.01',t:'Matched grip',type:'info',d:'Hold each stick about one third from the butt end. The fulcrum is between thumb and the first joint of the index finger; the other fingers wrap loosely. Let the stick bounce back after each hit.',check:['Fulcrum at thumb and index finger','Other fingers loose, not squeezing','Stick rebounds freely off the snare','Both hands look the same']},
-{id:'1.2.02',t:'Full strokes',bpm:[60,90],d:'Quarter notes on the snare, alternating hands. Start each stroke high and let the stick bounce back to the same height.',ex:[X('Quarter notes',1,{S:'xxxx'},{st:'RLRL'})]},
-{id:'1.2.03',t:'Kick: heel-down',bpm:[60,90],d:'Heel stays on the pedal plate; the ankle does the work. Quarter notes on the kick.',ex:[X('Quarter notes',1,{K:'xxxx'})]},
-{id:'1.2.04',t:'Kick: heel-up',bpm:[60,90],d:'Heel lifts; the leg drives the pedal. Start with quarters, then 8ths.',ex:[X('Quarter notes',1,{K:'xxxx'}),X('8th notes',2,{K:'xxxxxxxx'})]},
-{id:'1.2.05',t:'Hi-hat foot “chick”',bpm:[60,90],d:'Close the hi-hat with the left foot on every beat. Keep the motion small and even.',ex:[X('Quarter notes',1,{HP:'xxxx'})]},
-{id:'1.2.06',t:'Hitting cymbals',bpm:[60,80],d:'Hi-hat with the tip on top, ride on the bow (middle), crash on the edge with a glancing stroke.',ex:[X('Hi-hat → Ride → Crash',1,{HH:'xxxx........',R:'....xxxx....',C:'........x...'},{bars:3})]},
-{id:'1.7.01',t:'Playing with the click',bpm:[60,100],d:'Quarter notes on the snare, exactly with the click. The goal is hits that land on the click, neither ahead nor behind.',ex:[X('Quarter notes',1,{S:'xxxx'},{st:'RLRL'})]},
-{id:'1.5.01',t:'First beat',bpm:[60,90],d:'Hi-hat on every beat, kick on 1 and 3, snare on 2 and 4. This is the backbone of rock and pop.',ex:[X('Basic beat',1,{HH:'xxxx',K:'x.x.',S:'.x.x'})]},
-{id:'1.5.02',t:'Unison work',bpm:[60,90],d:'Two limbs hitting at exactly the same time. They should sound as one note.',ex:[X('Kick + snare together',1,{K:'xxxx',S:'xxxx'}),X('Four on the floor',1,{HH:'xxxx',K:'xxxx',S:'.x.x'})]},
-{id:'1.6.01',t:'First fill',bpm:[60,90],d:'One bar of beat, then 4 quarter notes on the snare, landing on the crash with the kick on beat 1.',ex:[X('Beat + snare fill',1,{C:'x.......',HH:'.xxx....',K:'x.x.....',S:'.x.xxxxx'},{bars:2})]},
-{id:'1.6.02',t:'Beat + fill cycle',bpm:[60,90],d:'Three bars of beat, one bar of fill, repeat. This is how songs are built.',ex:[X('3 + 1',1,{C:'x...............',HH:'.xxxxxxxxxxx....',K:'x.x.x.x.x.x.....',S:'.x.x.x.x.x.xxxxx'},{bars:4})]},
-{id:'1.5.03',t:'8th-note beat',bpm:[60,100],d:'Hi-hat 8ths (“1 & 2 & 3 & 4 &”), kick on 1 and 3, snare on 2 and 4.',ex:[X('8th-note rock beat',2,B8)]},
-{id:'1.6.03',t:'8th-note fill around the toms',bpm:[60,100],d:'Snare, Tom 1, Tom 2, Tom 3 in pairs of 8ths, back to the crash.',ex:[withFill(2,B8,['S','S','T1','T1','T2','T2','T3','T3'],'Pairs around the kit')]},
-{id:'1.6.04',t:'Start & end a song',bpm:[70,100],loop:1,d:'Count-in, three bars of beat, then end with crash + kick on beat 1 and stop.',ex:[X('Intro → ending',2,{C:'x.......'+rep('.',16)+'x.......',HH:'.xxxxxxx'+rep('xxxxxxxx',2)+'........',K:rep('x...x...',3)+'x.......',S:rep('..x...x.',3)+'........'},{bars:4})]},
-{id:'1.8.01',t:'Song checkpoint',type:'song',d:'Pick a song tagged with 1.5.03 and 1.6.03 in Songs and play along to your own audio.'},
-/* ---- Level 2 ---- */
-{id:'2.1.01',t:'Drum notation key',type:'info',d:'Drum staff, top to bottom: crash/ride/hi-hat written as x above the top line; toms in the top spaces; snare on the third space; floor tom below it; kick on the bottom space; hi-hat pedal as x below the staff.',check:['I can name each position on the staff']},
-{id:'2.1.02',t:'Quarter notes',bpm:[70,100],d:'Read the rhythm and play it on the snare. A dot is a rest.',ex:[X('Read 1',1,{S:'xxxx'}),X('Read 2',1,{S:'x.x.'}),X('Read 3',1,{S:'xx.x'}),X('Read 4',1,{S:'.xxx'})]},
-{id:'2.1.03',t:'8th notes',bpm:[70,100],d:'Count “1 & 2 & 3 & 4 &”. Play only the notes shown.',ex:[X('Read 1',2,{S:'xxxxxxxx'}),X('Read 2',2,{S:'x.xxx.xx'}),X('Read 3',2,{S:'xx.xxx.x'}),X('Read 4',2,{S:'.x.x.x.x'})]},
-{id:'2.1.04',t:'16th notes',bpm:[60,90],d:'Count “1 e & a 2 e & a…”.',ex:[X('Read 1',4,{S:rep('x',16)}),X('Read 2',4,{S:'x.xxx.xxx.xxx.xx'}),X('Read 3',4,{S:'xxx.xxx.xxx.xxx.'}),X('Read 4',4,{S:'x..xx..xx..xx..x'})]},
-{id:'2.1.05',t:'Time signatures & 4/4',type:'info',d:'4/4 means 4 beats per bar, each beat a quarter note. Bars are separated by bar lines; count “1 2 3 4” and restart.',check:['I can count bars of 4/4 out loud while playing']},
-{id:'2.1.06',t:'Tempo & BPM',bpm:[60,100],step:20,d:'The same beat at 60, 80 and 100 BPM. Pass 3 runs to move up 20 BPM.',ex:[X('8th-note beat',2,B8)]},
-{id:'2.1.07',t:'Reading drills',bpm:[60,90],d:'Two-bar syncopated rhythms on the snare. Count out loud.',ex:[X('Drill 1',2,{S:'x..x..x.x.x..x..'},{bars:2}),X('Drill 2',2,{S:'.xx..xx.x.x.xx..'},{bars:2}),X('Drill 3',2,{S:'x.x..x.x.x..x.xx'},{bars:2}),X('Drill 4',2,{S:'xx.x.xx.x..xx.x.'},{bars:2})]},
-{id:'2.2.01',t:'Hand & foot warm-ups',type:'info',d:'Five minutes before every session.',check:['Wrist circles, 30 s each direction','Finger stretches, 30 s','Slow singles on the snare, 1 min','Heel-down kick, 1 min','Hi-hat foot quarters, 1 min']},
-{id:'2.2.02',t:'Sticking combinations',bpm:[60,100],d:'8th notes on the snare with set stickings. Make the weaker hand match the stronger one.',ex:['RLRLRLRL','LRLRLRLR','RRLLRRLL','LLRRLLRR','RLRRLRLL','RLLRLRRL','RRLRRRLR','LLRLLLRL'].map((s,i)=>X('Pattern '+(i+1),2,{S:'xxxxxxxx'},{st:s}))},
-{id:'2.3.01',t:'Single stroke roll',bpm:[60,100],d:'Alternate hands: R L R L. Even volume and spacing. Practise slow → fast → slow.',ex:[X('8ths',2,{S:'xxxxxxxx'},{st:'RLRLRLRL'}),X('Triplets',3,{S:rep('x',12)},{st:'RLRLRLRLRLRL'}),X('16ths',4,{S:rep('x',16)},{st:rep('RL',8)})]},
-{id:'2.3.02',t:'Singles: applications',bpm:[60,100],d:'Single strokes moving around the kit: snare → Tom 1 → Tom 2 → Tom 3.',ex:[X('8ths around',2,{S:'xx......',T1:'..xx....',T2:'....xx..',T3:'......xx'},{st:'RLRLRLRL'}),X('16ths around',4,{S:'xxxx'+rep('.',12),T1:'....xxxx'+rep('.',8),T2:rep('.',8)+'xxxx....',T3:rep('.',12)+'xxxx'},{st:rep('RL',8)})]},
-{id:'2.3.03',t:'Double stroke roll',bpm:[60,90],d:'Two strokes per hand: R R L L. The second stroke should be as loud as the first.',ex:[X('8ths',2,{S:'xxxxxxxx'},{st:'RRLLRRLL'}),X('16ths',4,{S:rep('x',16)},{st:rep('RRLL',4)})]},
-{id:'2.3.04',t:'Doubles: applications',bpm:[60,90],d:'Right-hand doubles on the snare, left-hand doubles moving around the toms.',ex:[X('Snare + toms',4,{S:'xx..xx..xx..xx..',T1:'..xx............',T2:'......xx........',T3:'..........xx..xx'},{st:rep('RRLL',4)})]},
-{id:'2.3.05',t:'Single paradiddle',bpm:[60,90],d:'R L R R  L R L L. Accent the first note of each group.',ex:[X('8ths',2,{S:'XxxxXxxx'},{st:'RLRRLRLL'}),X('16ths',4,{S:rep('Xxxx',4)},{st:'RLRRLRLLRLRRLRLL'})]},
-{id:'2.3.06',t:'Paradiddle: applications',bpm:[60,90],d:'Paradiddle split between hands: right hand on the hi-hat, left hand on the snare, kick on 1 and 3.',ex:[X('Paradiddle groove',4,{HH:'x.xx.x..x.xx.x..',S:'.x..x.xx.x..x.xx',K:'x.......x.......'},{st:'RLRRLRLLRLRRLRLL'})]},
-{id:'2.4.01',t:'Two limbs: right hand + kick',bpm:[60,100],d:'Hi-hat 8ths stay steady while the kick pattern changes.',ex:['x...x...','x.x.x.x.','x..xx...','x...x.x.'].map((k,i)=>X('Kick '+(i+1),2,{HH:'xxxxxxxx',K:k}))},
-{id:'2.4.02',t:'Two limbs: right hand + left hand',bpm:[60,100],d:'Hi-hat 8ths with the snare in different places.',ex:[X('Backbeat',2,{HH:'xxxxxxxx',S:'..x...x.'}),X('Off-beats',2,{HH:'xxxxxxxx',S:'.x.x.x.x'}),X('Mixed',2,{HH:'xxxxxxxx',S:'..x..xx.'})]},
-{id:'2.4.03',t:'Right hand fixed',bpm:[60,100],d:'The hi-hat never changes; kick and snare move underneath it.',ex:[X('Var 1',2,{HH:'xxxxxxxx',K:'x...x...',S:'..x...x.'}),X('Var 2',2,{HH:'xxxxxxxx',K:'x.x...x.',S:'..x...x.'}),X('Var 3',2,{HH:'xxxxxxxx',K:'x...xx..',S:'..x...x.'}),X('Var 4',2,{HH:'xxxxxxxx',K:'xx..x...',S:'..x...x.'})]},
-{id:'2.4.04',t:'Left hand moves',bpm:[60,100],d:'Hi-hat and kick fixed; snare placements change.',ex:['..x...x.','..x..x.x','..xx..x.','..x...xx'].map((s,i)=>X('Snare '+(i+1),2,{HH:'xxxxxxxx',K:'x...x...',S:s}))},
-{id:'2.4.05',t:'Bass drum moves (on the “&”)',bpm:[60,100],d:'Kick notes on the off-beats under a fixed beat.',ex:['x..xx...','x...x..x','xx..x...','x..x.x..'].map((k,i)=>X('Kick '+(i+1),2,{HH:'xxxxxxxx',K:k,S:'..x...x.'}))},
-{id:'2.4.06',t:'Hi-hat foot added',bpm:[60,90],d:'Right hand moves to the ride; the left foot closes the hi-hat on 2 and 4. All four limbs.',ex:[X('Four limbs',2,{R:'xxxxxxxx',K:'x...x...',S:'..x...x.',HP:'..x...x.'})]},
-{id:'2.5.01',t:'Essential 8th-note rock beats',bpm:[70,110],d:'Eight common kick variations under hi-hat 8ths and a 2 & 4 backbeat.',ex:['x...x...','x...x.x.','x.x.x...','x..xx...','x...x..x','x...xx..','xx..x...','x..x.x..'].map((k,i)=>X('Beat '+(i+1),2,{HH:'xxxxxxxx',K:k,S:'..x...x.'}))},
-{id:'2.5.02',t:'16th-note rock beats',bpm:[60,90],d:'Two-handed 16ths on the hi-hat (R L R L); the right hand moves to the snare on 2 and 4.',ex:[X('Beat 1',4,{HH:'xxxx.xxxxxxx.xxx',K:'x.......x.......',S:'....x.......x...'},{st:rep('RLRL',4)}),X('Beat 2',4,{HH:'xxxx.xxxxxxx.xxx',K:'x.....x.x.......',S:'....x.......x...'},{st:rep('RLRL',4)}),X('Beat 3',4,{HH:'xxxx.xxxxxxx.xxx',K:'x.......x.x.....',S:'....x.......x...'},{st:rep('RLRL',4)})]},
-{id:'2.6.01',t:'8th-note rock fills',bpm:[70,110],d:'One bar of beat, then a 1-, 2- or 4-beat fill, landing on the crash.',ex:[withFill(2,B8,['S','S'],'1-beat fill'),withFill(2,B8,['S','S','T2','T3'],'2-beat fill'),withFill(2,B8,['S','S','T1','T1','T2','T2','T3','T3'],'4-beat fill')]},
-{id:'2.6.02',t:'16th-note rock fills',bpm:[60,90],d:'16th-note fills around snare and the three toms, landing on the crash.',ex:[withFill(4,B8_16,['S','S','S','S'],'1-beat fill'),withFill(4,B8_16,['S','S','S','S','T1','T1','T3','T3'],'2-beat fill'),withFill(4,B8_16,['S','S','S','S','T1','T1','T1','T1','T2','T2','T2','T2','T3','T3','T3','T3'],'4-beat fill')]},
-{id:'2.7.01',t:'Listen & copy',bpm:[70,100],call:true,d:'The app plays one bar; you play it back in the next bar from memory (the notes are hidden).',ex:[X('Copy 1',2,B8),X('Copy 2',2,{HH:'xxxxxxxx',K:'x.x.x...',S:'..x...x.'}),X('Copy 3',2,{HH:'xxxxxxxx',K:'x..xx...',S:'..x...x.'}),X('Copy 4',1,{HH:'xxxx',K:'x.x.',S:'.x.x'})]},
-{id:'2.8.01',t:'Song checkpoint',type:'song',d:'Pick a song tagged with 2.5.01 and 2.6.01 in Songs and play along to your own audio.'}
-];
+const LESSONS=DP_LESSONS;
 LESSONS.forEach(l=>{l.type=l.type||'play'; l.lv=+l.id.split('.')[0]; l.sd=+l.id.split('.')[1]; if(l.bpm&&!l.step)l.step=5;});
 const LBY=Object.fromEntries(LESSONS.map(l=>[l.id,l]));
 
@@ -389,7 +322,7 @@ const LATER=`3.1.01|Whole & half notes
 10.6.03|Polymeters
 10.6.04|Metric modulation
 10.6.05|Soloing over an ostinato / open solo / trading
-10.8.01|Song checkpoints`.split('\n').map(s=>{const[id,t]=s.split('|');return{id,t,lv:+id.split('.')[0],sd:+id.split('.')[1],later:true};});
+10.8.01|Song checkpoints`.split('\n').map(s=>{const[id,t]=s.split('|');return{id,t,lv:+id.split('.')[0],sd:+id.split('.')[1],later:true};}).filter(l=>!LBY[l.id]);
 
 const SUGGEST=[
  {title:'We Will Rock You',artist:'Queen',bpm:81,tags:['1.2.03','1.5.02'],notes:'Stomp-stomp-clap idea: kick, kick, snare.'},
@@ -403,7 +336,7 @@ const SUGGEST=[
 
 /* ============ STATE ============ */
 const KEY='drumpath.v1';
-const DEF_SET={tol:30,win:120,pass:90,bars:4,vol:0.7,subclick:false,countin:1,pads:true};
+const DEF_SET={tol:30,win:120,pass:90,dynPass:80,bars:4,vol:0.7,subclick:false,countin:1,pads:true};
 let state;
 function freshState(){return{v:1,map:{...DEFAULT_MAP},lat:0,set:{...DEF_SET},prog:{},done:{},sessions:[],days:{},songs:[],savedAt:0};}
 function loadLocal(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}return null;}
@@ -469,9 +402,24 @@ function bindInputs(){
   if(cur==='kit')render();
 }
 function setMidiStatus(ok,txt){$('#mdot').classList.toggle('ok',ok);$('#mtxt').textContent=txt;}
+let kitLog=[], kitLast=0, hhCC=null;
+function logMidi(st,n,vel,t){
+  const typ=st&0xf0; if(typ===0x80||(typ===0x90&&!vel))return; // skip note-offs
+  if(typ===0xB0&&n===4)hhCC=vel;
+  const gap=kitLast?Math.round(t-kitLast):0; kitLast=t;
+  const kind=typ===0x90?'Note':typ===0xB0?'CC':typ===0xA0?'Aftertouch':'0x'+st.toString(16);
+  kitLog.unshift({gap,kind,n,vel,v:typ===0x90?state.map[n]:null,mark:kitMark});kitMark='';
+  if(kitLog.length>400)kitLog.length=400;
+  const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);const hc=$('#hhcc');if(hc&&hhCC!=null)hc.textContent=hhCC;
+}
+let kitMark='';
+function kitLogHtml(k){return kitLog.slice(0,k).map(x=>`${x.mark?`<div style="color:var(--warn);margin-top:6px">— ${esc(x.mark)} —</div>`:''}<div>${String('+'+x.gap+' ms').padStart(9)}  ${x.kind.padEnd(10)} ${String(x.n).padStart(3)}  ${x.kind==='Note'?'vel':'val'} ${String(x.vel).padStart(3)}${x.v?'  '+VOICES[x.v].n:x.kind==='Note'?'  (unmapped)':x.kind==='CC'&&x.n===4?'  hi-hat pedal':''}</div>`).join('')||'<span class="mut">Nothing yet: hit a pad.</span>';}
+function kitLogText(){return kitLog.slice().reverse().map(x=>(x.mark?'--- '+x.mark+' ---\n':'')+`+${x.gap}ms ${x.kind} ${x.n} ${x.kind==='Note'?'vel':'val'} ${x.vel}${x.v?' '+VOICES[x.v].n:''}`).join('\n');}
 function onMidi(e){
-  const [st,n,vel]=e.data; if((st&0xf0)!==0x90||!vel)return;
+  const [st,n,vel]=e.data;
   const t=e.timeStamp||performance.now();
+  logMidi(st,n,vel,t);
+  if((st&0xf0)!==0x90||!vel)return;
   const v=state.map[n];
   monitor.unshift({n,vel,v});monitor=monitor.slice(0,8);
   const m=$('#mon');if(m)m.textContent=monitor.map(x=>`${x.v?VOICES[x.v].n:'?'} (note ${x.n}, vel ${x.vel})`).join('  ·  ');
@@ -529,7 +477,7 @@ function buildRun(lesson,ex,bpmv,base,opts={}){
     for(const v in ex.v){const s=ex.v[v];
       for(let i=0;i<patSteps;i++){const c=s[i];if(!c||c==='.')continue;
         const step=r*patSteps+i;
-        evs.push({v,t:base+cin*beatMs+step*stepMs,acc:c==='X',ghost:c==='g',st:ex.st?ex.st[i%ex.st.length]:'',listen,hide:lesson.call&&!listen,step,bar:Math.floor(step/spb)});
+        evs.push({v,ch:c,t:base+cin*beatMs+step*stepMs,acc:c==='X',ghost:c==='g',st:ex.st?ex.st[i%ex.st.length]:'',listen,hide:lesson.call&&!listen,step,bar:Math.floor(step/spb)});
       }}
   }
   evs.sort((a,b)=>a.t-b.t);
@@ -595,13 +543,32 @@ function hit(v,vel,tp){
   if(run.lesson.call){const repMs=run.stepMs*run.spb*run.ex.bars;const r=Math.floor((t-start)/repMs);if(r%2===0&&t<start+(r+1)*repMs-state.set.win)return;} // listening bars
   let best=null,bd=1e9;
   for(const e of run.evs){if(e.listen||e.v!==v||e.hitT!=null)continue;const d=Math.abs(t-e.t);if(d<bd&&d<=state.set.win){bd=d;best=e;}}
-  if(best){best.hitT=t;best.dt=t-best.t;best.vel=vel;feed(best.dt);}
+  if(best){best.hitT=t;best.dt=t-best.t;best.vel=vel;
+    let extra='';
+    if(isDyn(run.ex)&&run.ex.dyn!=='even')extra=dynVerdict(best,laneBase(run.evs,v));
+    feed(best.dt,extra);}
   else{run.extras.push({v,t});feedTxt('Extra '+VOICES[v].n,'#ef6b6b');}
 }
-function feed(dt){
+function isDyn(ex){if(!ex||ex.dyn===false)return false;if(ex.dyn)return true;return Object.values(ex.v).some(s=>/[Xg]/.test(s));}
+function median(a){if(!a.length)return null;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+function laneBase(evs,v){
+  const h=evs.filter(e=>e.v===v&&!e.listen&&e.hitT!=null&&e.vel!=null);
+  const mx=median(h.filter(e=>e.ch==='x').map(e=>e.vel)); if(mx!=null)return mx;
+  const mX=median(h.filter(e=>e.ch==='X').map(e=>e.vel)), mg=median(h.filter(e=>e.ch==='g').map(e=>e.vel));
+  return mX!=null&&mg!=null?(mX+mg)/2:null;
+}
+const isLoud=(vel,b)=>vel>=Math.max(b*1.2,b+10), isSoft=(vel,b)=>vel<=b*0.6;
+function dynVerdict(e,b){ // returns '' if correct, else a message
+  if(b==null)return '';
+  if(e.ch==='X')return isLoud(e.vel,b)?'':'accent not loud enough';
+  if(e.ch==='g')return isSoft(e.vel,b)?'':'ghost too loud';
+  return isLoud(e.vel,b)?'too loud':isSoft(e.vel,b)?'too soft':'';
+}
+function feed(dt,extra){
   const a=Math.abs(dt),tol=state.set.tol;
-  if(a<=tol)feedTxt('On time '+(dt>=0?'+':'')+Math.round(dt)+' ms','#5ad1a0');
-  else feedTxt((dt<0?'Early ':'Late ')+Math.round(a)+' ms',dt<0?'#6aa8ff':'#f0a35a');
+  const x=extra?' · '+extra:'';
+  if(a<=tol)feedTxt('On time '+(dt>=0?'+':'')+Math.round(dt)+' ms'+x,extra?'#f0a35a':'#5ad1a0');
+  else feedTxt((dt<0?'Early ':'Late ')+Math.round(a)+' ms'+x,dt<0?'#6aa8ff':'#f0a35a');
 }
 function feedTxt(t,c){const f=$('#pfeed');f.textContent=t;f.style.color=c;lastFeed=performance.now();}
 
@@ -666,10 +633,26 @@ function finish(){
   const avg=hits.length?hits.reduce((a,e)=>a+e.dt,0)/hits.length:0;
   const per={};sc.forEach(e=>{const p=per[e.v]||(per[e.v]={n:0,on:0,hit:0,sum:0});p.n++;if(e.hitT!=null){p.hit++;p.sum+=e.dt;if(Math.abs(e.dt)<=tol)p.on++;}});
   R.extras.forEach(x=>{const p=per[x.v]||(per[x.v]={n:0,on:0,hit:0,sum:0});p.ext=(p.ext||0)+1;});
+  // ---- dynamics (step A) ----
+  const dynOn=isDyn(R.ex); let dynScore=null;
+  if(dynOn){
+    let ok=0,tot=0;
+    if(R.ex.dyn==='even'){
+      const seq=hits.filter(e=>e.st&&e.st!=='.').sort((a,b)=>a.t-b.t);
+      for(let i=0;i+1<seq.length;){const a=seq[i],b=seq[i+1];
+        if(a.st===b.st&&a.vel&&Math.abs(b.step-a.step)===1){tot++;const good=Math.abs(b.vel-a.vel)/a.vel<=0.2;if(good)ok++;
+          [a,b].forEach(e=>{e.dynOk=good;const q=per[e.v];q.dn=(q.dn||0)+1;if(good)q.dok=(q.dok||0)+1;});i+=2;}else i++;}
+    }else{
+      const base={};LANES.forEach(v=>base[v]=laneBase(sc,v));
+      hits.forEach(e=>{const b=base[e.v];if(b==null)return;tot++;const good=!dynVerdict(e,b);if(good)ok++;e.dynOk=good;
+        const q=per[e.v];q.dn=(q.dn||0)+1;if(good)q.dok=(q.dok||0)+1;});
+    }
+    dynScore=tot?Math.round(100*ok/tot):null;
+  }
   const p=P(L.id); p.attempts++; p.last=Date.now(); p.ex=exI; addTime(L.id,elapsed);
   if(p.status==='new')p.status='progress';
   let msg='';
-  const passed=score>=state.set.pass;
+  const passed=score>=state.set.pass&&(dynScore==null||dynScore>=state.set.dynPass);
   if(passed){p.bestBpm=Math.max(p.bestBpm,R.bpm);
     if(R.bpm>=p.bpm){p.streak++;
       if(p.streak>=3){p.streak=0;
@@ -677,17 +660,19 @@ function finish(){
         else{p.bpm=Math.min(L.bpm[1],p.bpm+L.step);msg='Tempo up! Next target: '+p.bpm+' BPM';bpm=p.bpm;}
       }else msg='Pass '+p.streak+' of 3 at '+p.bpm+' BPM';
     }else msg='Passed, but below your current target ('+p.bpm+' BPM), so it doesn’t count toward the streak.';
-  }else{if(R.bpm>=p.bpm)p.streak=0;msg='Need '+state.set.pass+'% to pass. Streak reset.';}
+  }else{if(R.bpm>=p.bpm)p.streak=0;msg=(score<state.set.pass?'Need '+state.set.pass+'% timing':'Need '+state.set.dynPass+'% dynamics')+' to pass. Streak reset.';}
   p.best=Math.max(p.best,score);
-  state.sessions.push({ts:Date.now(),id:L.id,ex:exI,bpm:R.bpm,score,on:on.length,n:sc.length,ext,miss,avg:Math.round(avg)});
+  state.sessions.push(Object.assign({ts:Date.now(),id:L.id,ex:exI,bpm:R.bpm,score,on:on.length,n:sc.length,ext,miss,avg:Math.round(avg)},dynScore!=null?{dyn:dynScore}:{}));
   if(state.sessions.length>3000)state.sessions=state.sessions.slice(-3000);
   save(); renderPracBar();
   const tend=Math.abs(avg)<8?'Centred on the beat':avg<0?'Rushing: '+Math.round(-avg)+' ms ahead on average':'Dragging: '+Math.round(avg)+' ms behind on average';
   const rows=LANES.filter(v=>per[v]).map(v=>{const q=per[v];const a=q.hit?Math.round(q.sum/q.hit):0;
-    return `<tr><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td>${q.n?Math.round(100*q.on/q.n)+'%':'–'}</td><td>${q.on}/${q.n}</td><td>${q.n-q.hit}</td><td>${q.ext||0}</td><td>${q.hit?(a>0?'+':'')+a+' ms':'–'}</td></tr>`;}).join('');
-  showResult(`<div class="row"><div class="score" style="color:${passed?'#5ad1a0':'#f0a35a'}">${score}%</div><div><div style="font-weight:700;font-size:20px">${passed?'Pass':'Not yet'}</div><div class="mut">${esc(msg)}</div></div></div>
+    return `<tr><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td>${q.n?Math.round(100*q.on/q.n)+'%':'–'}</td><td>${q.on}/${q.n}</td><td>${q.n-q.hit}</td><td>${q.ext||0}</td><td>${q.hit?(a>0?'+':'')+a+' ms':'–'}</td>${dynOn?`<td>${q.dn?Math.round(100*(q.dok||0)/q.dn)+'%':'–'}</td>`:''}</tr>`;}).join('');
+  const dynBlock=dynScore!=null?`<div style="margin-left:18px"><div class="score" style="font-size:44px;color:${dynScore>=state.set.dynPass?'#5ad1a0':'#f0a35a'}">${dynScore}%</div><div class="mut">Dynamics (need ${state.set.dynPass}%)</div></div>`:'';
+  showResult(`<div class="row"><div><div class="score" style="color:${score>=state.set.pass?'#5ad1a0':'#f0a35a'}">${score}%</div>${dynScore!=null?`<div class="mut">Timing (need ${state.set.pass}%)</div>`:''}</div>${dynBlock}<div style="margin-left:18px"><div style="font-weight:700;font-size:20px">${passed?'Pass':'Not yet'}</div><div class="mut">${esc(msg)}</div></div></div>
    <p>${on.length} of ${sc.length} notes on time (±${tol} ms) · ${miss} missed · ${ext} extra · ${tend}</p>
-   <table><tr><th>Pad</th><th>On time</th><th>Hits</th><th>Missed</th><th>Extra</th><th>Avg timing</th></tr>${rows}</table>`);
+   <table><tr><th>Pad</th><th>On time</th><th>Hits</th><th>Missed</th><th>Extra</th><th>Avg timing</th>${dynOn?'<th>Dynamics</th>':''}</tr>${rows}</table>
+   ${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}`);
 }
 function showResult(html,calib){
   const r=$('#result');r.classList.remove('hidden');
@@ -827,6 +812,11 @@ function renderKit(){
   <div class="card"><div class="row"><b>MIDI</b><span class="mut">${inputs.length?esc(inputs.map(i=>i.name).join(', ')):'Not connected'}</span><span class="sp"></span><button class="pri" data-act="midi">${inputs.length?'Reconnect':'Connect kit'}</button></div>
    <p class="mut" style="margin:8px 0 0">Plug the Nitro’s USB port into the tablet (USB-B to USB-C OTG cable), switch the module on, then tap Connect and allow MIDI access.</p>
    <div class="mon" id="mon" style="margin-top:8px">${monitor.length?'':'Hit a pad to see it here.'}</div></div>
+  <h2>Kit check</h2>
+  <div class="card"><p class="mut" style="margin-top:0">Every message the kit sends, newest first, with the gap since the one before. Tap a step button, play what it says, then tap the next. When done, tap <b>Copy log</b> and paste it to Claude.</p>
+   <div class="row" style="margin-bottom:8px">${['HH pedal UP: hit hi-hat 4×','HH pedal DOWN: hit hi-hat 4×','HH half open: hit 4×','Press & lift HH pedal slowly','Snare head 4×','Snare rim / cross-stick 4×','Flams on snare 4× (slow)','Drags on snare 4×'].map((m,i)=>`<button class="sm" data-kitmark="${esc(m)}">${i+1}. ${esc(m)}</button>`).join('')}</div>
+   <div class="row" style="margin-bottom:8px"><button class="sm pri" data-act="kitcopy">Copy log</button><button class="sm ghost" data-act="kitclear">Clear</button><span class="mut">Hi-hat pedal (CC 4): <b id="hhcc">${hhCC==null?'not seen yet':hhCC}</b></span></div>
+   <div id="kitlog" class="pat" style="max-height:320px;overflow:auto;white-space:pre">${kitLogHtml(40)}</div></div>
   <h2>Pad mapping</h2>
   <div class="card"><p class="mut" style="margin-top:0">Defaults follow the General MIDI layout the Nitro uses. To confirm, tap Learn and hit that pad. Hi-hat can hold several notes (open / closed): learn it twice, once each way.</p>
    <table>${LANES.map(v=>`<tr class="${learnVoice===v?'learn':''}"><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td class="mut">${(byV[v]||[]).map(n=>'note '+n).join(', ')||'–'}</td><td style="text-align:right"><button class="sm" data-learn="${v}">${learnVoice===v?'Hit the pad…':'Learn'}</button> <button class="sm ghost" data-unmap="${v}">Clear</button></td></tr>`).join('')}</table>
@@ -836,7 +826,8 @@ function renderKit(){
   <h2>Practice settings</h2>
   <div class="card grid">
    <div><label class="f">On-time window (± ms)</label><input type="number" data-set="tol" value="${st.tol}"></div>
-   <div><label class="f">Pass score (%)</label><input type="number" data-set="pass" value="${st.pass}"></div>
+   <div><label class="f">Pass score: timing (%)</label><input type="number" data-set="pass" value="${st.pass}"></div>
+   <div><label class="f">Pass score: dynamics (%)</label><input type="number" data-set="dynPass" value="${st.dynPass}"></div>
    <div><label class="f">Bars per run</label><select data-set="bars">${[2,4,8,16].map(b=>`<option ${b===st.bars?'selected':''}>${b}</option>`).join('')}</select></div>
    <div><label class="f">Count-in bars</label><select data-set="countin">${[1,2].map(b=>`<option ${b===st.countin?'selected':''}>${b}</option>`).join('')}</select></div>
    <div><label class="f">Click volume</label><input type="range" min="0" max="1" step="0.05" data-set="vol" value="${st.vol}"></div>
@@ -851,6 +842,7 @@ function renderKit(){
 
 /* ============ EVENTS ============ */
 document.addEventListener('click',async e=>{
+  const km=e.target.closest('[data-kitmark]');if(km){kitMark=km.dataset.kitmark;toast('Now: '+kitMark);if(!midi)connectMidi();return;}
   const t=e.target.closest('[data-go],[data-open],[data-play],[data-act],[data-lv],[data-back],[data-done],[data-learn],[data-unmap],[data-edit],[data-del],[data-addsug],[data-reset],[data-ex]');
   if(!t)return; const d=t.dataset;
   if(d.go){go(d.go);return;}
@@ -869,7 +861,7 @@ document.addEventListener('click',async e=>{
   if(a==='ex'){if(run)return;exI=+d.i;P(L.id).ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
   if(a==='go'){if(run)stopRun();else startRun();return;}
   if(a==='again'){$('#result').classList.add('hidden');startRun();return;}
-  if(a==='pexit'){stopRun();$('#prac').classList.add('hidden');try{wake&&wake.release();}catch(_){}wake=null;const back=L&&L.calib?null:L&&L.id;L=null;if(back){openL=back;}render();return;}
+  if(a==='pexit'){stopRun();$('#prac').classList.add('hidden');try{wake&&wake.release();}catch(_){}wake=null;const back=L&&!L.calib&&LBY[L.id]?L.id:null;L=null;if(back){openL=back;}render();return;}
   if(a==='bpm-'||a==='bpm+'){if(run)return;bpm=Math.max(30,Math.min(300,bpm+(a==='bpm+'?5:-5)));$('#bpmv').textContent=bpm;makePreview();draw();return;}
   if(a==='midi'){connectMidi();return;}
   if(a==='latency'){L={id:'latency',t:'Latency test',calib:true,bpm:[90,90],ex:[X('Snare on the click',1,{S:'x'.repeat(16)},{bars:4})],loop:1};exI=0;bpm=90;
@@ -877,12 +869,14 @@ document.addEventListener('click',async e=>{
   if(a==='lat-'||a==='lat+'){state.lat+=a==='lat+'?5:-5;save();render();return;}
   if(a==='resetmap'){state.map={...DEFAULT_MAP};save();render();return;}
   if(a==='export'){exportData();return;}
+  if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
+  if(a==='kitcopy'){const txt=kitLogText()||'(empty)';try{await navigator.clipboard.writeText(txt);toast('Log copied: paste it to Claude');}catch(_){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="card"><p class="mut">Select all and copy:</p><textarea rows="12" style="width:100%">${esc(txt)}</textarea><div class="row" style="margin-top:8px"><button id="kx">Close</button></div></div>`;document.body.appendChild(m);$('#kx',m).onclick=()=>m.remove();}return;}
   if(a==='import'){importData();return;}
   if(a==='wipe'){if(await confirmBox('Erase all progress, sessions and songs? Export a backup first if unsure.')){const m=state.map,l=state.lat,s=state.set;state=freshState();state.map=m;state.lat=l;state.set=s;save();render();}return;}
 });
 document.addEventListener('change',e=>{
   const t=e.target;
-  if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','bars','countin','win'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
+  if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','dynPass','bars','countin','win'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
   if(t.dataset.ck){const id=t.dataset.ck;const ck=state.done[id+'_ck']=state.done[id+'_ck']||{};ck[t.dataset.i]=t.checked;
     const l=LBY[id];if(l.check&&l.check.every((_,i)=>ck[i]))state.done[id]=true;save();render();}
 });
