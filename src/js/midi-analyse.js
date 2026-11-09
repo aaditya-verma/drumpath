@@ -84,18 +84,18 @@ function analyse(buf,opt){
   const barQ=sig0.num*4/sig0.den/beatQ;
   const pulseBpm=Math.round(bpmQ/beatQ*10)/10;
   /* grid: per-beat best sub, then one sub for the whole groove (engine needs one) */
-  const offbeatFit=s=>{let hit=0;ev.forEach(e=>{const x=e.q*s;if(Math.abs(x-Math.round(x))/s<=0.06)hit++;});return hit/ev.length;};
-  const fit={};[1,2,3,4,6].forEach(s=>fit[s]=offbeatFit(s));
-  let sub=4;for(const s of [1,2,3,4,6]){if(fit[s]>=0.92){sub=s;break;}}
-  if(fit[sub]<0.92)sub=[2,3,4,6].reduce((a,s)=>fit[s]>fit[a]+0.02?s:a,4);
-  if(sub===1)sub=2;
+  /* swing: where the off-beat 8ths sit (0.5 straight … 0.67 triplet) */
+  const offs=ev.filter(e=>['HH','R','S','K'].includes(e.lane)).map(e=>e.q-Math.floor(e.q)).filter(f=>f>0.42&&f<0.75);
+  const swingR=offs.length>=4?median(offs):0.5;
+  // classify each note's position inside the beat: on-beat, 8th, 16th, triplet or sextuplet
+  const CL=[[0,'on'],[1,'on'],[0.5,'8'],[0.25,'16'],[0.75,'16'],[1/3,'t'],[2/3,'t'],[1/6,'s'],[5/6,'s']];
+  const cnt={on:0,'8':0,'16':0,t:0,s:0};ev.forEach(e=>{const f=e.q-Math.floor(e.q);let best=CL[0],bd=9;CL.forEach(c=>{const d=Math.abs(f-c[0]);if(d<bd){bd=d;best=c;}});cnt[best[1]]++;});
+  const N=ev.length,trip=swingR>=0.6||cnt.t>Math.max(1.5*cnt['16'],0.08*N);
+  let sub=trip?(cnt.s>0.06*N||cnt['8']>0.15*N&&cnt.t>0.15*N?6:3):(cnt['16']>0.06*N?4:2);
   // per-beat best sub (feature)
   const beatSub={};ev.forEach(e=>{const bt=Math.floor(e.q+1e-6);const fr=e.q-bt;const best=[2,3,4,6].find(s=>Math.abs(fr*s-Math.round(fr*s))/s<=0.06)||8;(beatSub[bt]=beatSub[bt]||[]).push(best);});
   const beatSubs=Object.values(beatSub).map(a=>Math.max(...a));
   const tripletBeats=beatSubs.filter(s=>s===3||s===6).length/Math.max(1,beatSubs.length);
-  /* swing: where the off-beat 8ths sit (0.5 straight … 0.67 triplet) */
-  const offs=ev.filter(e=>['HH','R','S','K'].includes(e.lane)).map(e=>e.q-Math.floor(e.q)).filter(f=>f>0.42&&f<0.75);
-  const swingR=offs.length>=4?median(offs):0.5;
   const swingFeel=sub===3||sub===6?(tripletBeats>0.3?'triplet':'straight'):swingR>=0.6?'swing':swingR>=0.54?'light swing':'straight';
   const swing=(sub===2||sub===4)&&swingR>=0.54&&swingR<0.6?r2(swingR):undefined;
   /* graces: flams/drags = hit on the same lane 12–90 ms before a main note, quieter */
@@ -258,23 +258,26 @@ function simTags(main,lessons,thr){thr=thr||0.8;const out=[];
   return out.sort((a,b)=>b.sim-a.sim).slice(0,3);}
 /* genre guess from features (used for draft + calibration vs Groove MIDI styles) */
 function guessGenre(f){
+  const tri=f.sub===3||f.sub===6;
   if(f.compound||f.meter==='12/8')return f.shuffle?'Blues':'Rock';
-  if(f.shuffle)return f.timeLane==='R'&&f.kickDensity<3?'Jazz':'Blues';
-  if(f.feel==='light swing'&&f.ghostRatio>0.15)return 'Hip-hop & R&B';
-  if(f.fourFloor)return f.hhOpenPerBar>=0.9?'Disco':'Pop';
-  if(f.xstick>=0.4)return 'Latin & Caribbean';
-  if(f.ghostRatio>0.2||f.kick16)return 'Funk & Soul';
-  if(f.bpm<95&&f.timeSub!=='16ths')return 'Hip-hop & R&B';
+  if(f.odd)return 'Prog & Odd time';
+  if(tri||f.swing>=0.6)return f.timeLane==='R'?'Jazz':'Blues';
+  if(f.bpm>=150&&f.timeSub==='8ths'||f.bpm>=125&&f.ghostRatio<0.1&&f.timeSub==='8ths')return 'Punk';
+  if(f.fourFloor)return f.hhOpenPerBar>=0.9?'Disco':f.backbeat!=='2&4'?'Latin & Caribbean':'Pop';
+  if(f.xstick>=0.3)return f.bpm<110&&f.hhOpenPerBar>=0.5?'Reggae':'Latin & Caribbean';
+  if(f.xstick>=0.15||f.backbeat==='other'&&f.timeSub!=='16ths'&&!f.kick16)return 'Latin & Caribbean';
+  if(f.bpm<95&&(f.kick16||f.swing>=0.54))return 'Hip-hop & R&B';
+  if(f.ghostRatio>0.3&&(f.timeSub==='16ths'||f.kick16))return 'Funk & Soul';
   return 'Rock';
 }
 /* ---------- tiny SMF writer (type 0) for tests and exports: notes [{q (quarters), note, vel}] ---------- */
-function writeSMF(notes,o){o=o||{};const ppq=o.ppq||480,out=[];const vlq=v=>{const a=[v&127];while(v>>=7)a.unshift(v&127|128);return a;};
+function writeSMF(notes,o){o=o||{};const ppq=o.ppq||480;const vlq=v=>{const a=[v&127];while(v>>=7)a.unshift(v&127|128);return a;};
   const ev=[];const us=Math.round(60e6/(o.bpm||120));ev.push({t:0,d:[0xFF,0x51,3,us>>16&255,us>>8&255,us&255]});
   ev.push({t:0,d:[0xFF,0x58,4,o.num||4,Math.round(Math.log2(o.den||4)),24,8]});
   notes.forEach(n=>{const t=Math.max(0,Math.round(n.q*ppq));ev.push({t,d:[0x99,n.note,n.vel||100]});ev.push({t:t+Math.round(ppq/8),d:[0x89,n.note,0]});});
-  ev.sort((a,b)=>a.t-b.t||(a.d[0]===0x89?-1:1));let last=0,body=[];ev.forEach(e=>{body.push(...vlq(e.t-last),...e.d);last=e.t;});body.push(0,0xFF,0x2F,0);
+  ev.sort((a,b)=>a.t-b.t||(a.d[0]===0x89?-1:1));let last=0;const body=[];ev.forEach(e=>{body.push(...vlq(e.t-last),...e.d);last=e.t;});body.push(0,0xFF,0x2F,0);
   const u32=v=>[v>>>24&255,v>>>16&255,v>>>8&255,v&255];
   return new Uint8Array([0x4D,0x54,0x68,0x64,...u32(6),0,0,0,1,ppq>>8,ppq&255,0x4D,0x54,0x72,0x6B,...u32(body.length),...body]);}
-const API={parseSMF,analyse,writeSMF,ruleTags,patternSim,simTags,guessGenre,GM,LANES,version:'1.0'};
+const API={parseSMF,analyse,writeSMF,ruleTags,patternSim,simTags,guessGenre,GM,LANES,version:'1.1'};
 if(typeof module!=='undefined'&&module.exports)module.exports=API;else root.MidiAnalyse=API;
 })(typeof window!=='undefined'?window:globalThis);
