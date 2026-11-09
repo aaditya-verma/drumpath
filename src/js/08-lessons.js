@@ -8,9 +8,9 @@ function patText(ex){
   const spb=ex.steps||ex.sub*4, n=spb*ex.bars;
   const cnt=Array.from({length:n},(_,i)=>{const b=i%spb;if(b%ex.sub===0)return String(b/ex.sub+1);return ex.sub===2?'&':ex.sub===3?(b%3===1?'t':'l'):['','e','&','a'][b%4]||'.';});
   const fmt=a=>a.map((c,i)=>(i&&i%spb===0?'| ':'')+c).join(' ');
-  let lines=['       '+fmt(cnt)];
-  if(ex.st)lines.push('Stick  '+fmt(Array.from({length:n},(_,i)=>ex.st[i%ex.st.length]||'.')));
-  LANES.filter(v=>ex.v[v]).forEach(v=>lines.push(VOICES[v].n.padEnd(7).slice(0,7)+fmt(ex.v[v].slice(0,n).split('').map(c=>({'.':'·',X:'>',g:'g',o:'o',r:'r',f:'f',d:'d'}[c]||'x')))));
+  let lines=['         '+fmt(cnt)];
+  if(ex.st)lines.push('Stick    '+fmt(Array.from({length:n},(_,i)=>ex.st[i%ex.st.length]||'.')));
+  LANES.filter(v=>ex.v[v]).forEach(v=>lines.push(VOICES[v].n.slice(0,8).padEnd(9)+fmt(ex.v[v].slice(0,n).split('').map(c=>({'.':'·',X:'>',g:'g',o:'o',r:'r',f:'f',d:'d'}[c]||'x')))));
   return lines.join('\n');
 }
 function lessonRow(l){

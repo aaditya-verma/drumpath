@@ -127,6 +127,8 @@ function loop(){
 }
 function hit(v,vel,tp,art){
   flashes[v]=performance.now();
+  if(typeof REC!=='undefined'&&REC&&REC.on){recordHit(v,vel,tp,art);return;}   // Analyse & tag › From my playing
+
   if(!run||$('#prac').classList.contains('hidden'))return;
   const lat=run.calib?0:state.lat;
   const t=tp-lat;

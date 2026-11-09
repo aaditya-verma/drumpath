@@ -89,6 +89,7 @@ function mergeStates(A,B){
   m.songDel=Object.assign({},older.songDel||{},newer.songDel||{});
   const songs=new Map();[...(older.songs||[]),...(newer.songs||[])].forEach(s=>{const o=songs.get(s.id);if(!o||(s.updatedAt||0)>=(o.updatedAt||0))songs.set(s.id,s);});
   m.songs=[...songs.values()].filter(s=>!(m.songDel[s.id]&&m.songDel[s.id]>=(s.updatedAt||0)));
+  m.songTagOv={};[older.songTagOv||{},newer.songTagOv||{}].forEach(o=>Object.entries(o).forEach(([k,v])=>{if(!m.songTagOv[k]||(v.updatedAt||0)>=(m.songTagOv[k].updatedAt||0))m.songTagOv[k]=v;}));
   m.songBpm=Object.assign({},older.songBpm||{},newer.songBpm||{});m.songExtra=Object.assign({},older.songExtra||{},newer.songExtra||{});
   m.songLog={};new Set([...Object.keys(a.songLog||{}),...Object.keys(b.songLog||{})]).forEach(id=>{const seen=new Set(),out=[];
     [...((a.songLog||{})[id]||[]),...((b.songLog||{})[id]||[])].forEach(r=>{const k=JSON.stringify(r);if(!seen.has(k)){seen.add(k);out.push(r);}});m.songLog[id]=out.sort((x,y)=>String(x[0]).localeCompare(String(y[0])));});
@@ -206,7 +207,9 @@ async function driveTests(){
   T('Songs: newer edit wins; deleted songs stay deleted',M.songs.length===1&&M.songs[0].title==='Mine (edited)','');
   const M2=mergeStates(M,M);T('Merging twice changes nothing (idempotent)',sameData(M2,M),'');
   // full sync flow against an in-memory Drive: device 1 pushes, device 2 pulls, offline run on device 1 syncs later
-  const keep={state,DRV,Drive,ds:Object.assign({},DS)};const savedSave=window.storeSave;
+  const keep={state,DRV,Drive,ds:Object.assign({},DS)};const savedSave=window.storeSave,savedCfg=window.drvSaveCfg,savedChip=window.renderDriveChip;
+  let cfgRaw=null;try{cfgRaw=localStorage.getItem(DRV_KEY);}catch(_){}
+  window.drvSaveCfg=()=>{};window.renderDriveChip=()=>{};
   try{const mock=mockDrive();Drive=mock;window.storeSave=()=>{};
     const root=(await mock.mkdir('root','DrumPath')).id;
     DRV={folderId:root};state=normaliseState(JSON.parse(JSON.stringify(A)));DS.dirty=true;DS.busy=false;await syncNow({test:true});
@@ -223,6 +226,7 @@ async function driveTests(){
     for(let i=0;i<35;i++)await mock.create(dev1.snapId,'2025-01-'+String(i+1).padStart(2,'0')+'.json','{}');DRV=dev1;DRV.lastSnapDay='';DS.dirty=true;await syncNow({test:true});
     T('Keeps only the last 30 snapshots',(await mock.list(dev1.snapId)).length===30,(await mock.list(dev1.snapId)).length+' snapshots');
   }catch(e){T('Sync flow',false,e.message);}
-  finally{state=keep.state;DRV=keep.DRV;Drive=keep.Drive;Object.assign(DS,keep.ds);window.storeSave=savedSave;}
+  finally{state=keep.state;DRV=keep.DRV;Drive=keep.Drive;Object.assign(DS,keep.ds);window.storeSave=savedSave;window.drvSaveCfg=savedCfg;window.renderDriveChip=savedChip;
+    try{if(cfgRaw==null)localStorage.removeItem(DRV_KEY);else localStorage.setItem(DRV_KEY,cfgRaw);}catch(_){}renderDriveChip();}
   return out;
 }

@@ -54,7 +54,7 @@ function renderSongs(){
     <div class="card stat"><div class="k">Curriculum</div><div class="v">${LESSONS.filter(l=>statusOf(l)==='ms').length}<small>/ ${LESSONS.length} lessons</small></div><div class="d">${lvDone.map(([lv,d,n])=>`L${lv} ${d}/${n}`).join(' · ')}</div></div>
     <div class="card stat" style="grid-column:span 2"><div class="k">Biggest unlocks</div>${top3.length?top3.map(u=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap;cursor:pointer" data-open="${u.id}"><b>${u.id}</b><span style="flex:1">${esc(tagName(u.id))}</span><span class="mut" style="font-size:13px">raises ${u.songs} song${u.songs===1?'':'s'}</span></div>`).join(''):'<div class="d">Play a few lessons to see which ones open the most songs.</div>'}</div>
    </div>
-   <div class="row" style="margin-top:16px">${seg}<span class="sp"></span><button class="pri" data-songedit="">+ Add song</button></div>
+   <div class="row" style="margin-top:16px">${seg}<span class="sp"></span>${(()=>{const n=allSongs().filter(x=>!songHasTags(x)).length;return n?`<button class="sm" ${STUDIO_URL?'':'disabled title="Studio not set up yet"'} data-act="batchstudio">Analyse untagged songs (${n})${STUDIO_URL?'':' · Studio not set up yet'}</button>`:'';})()}<button class="sm" data-act="pasteimport">Paste import code</button><button class="pri" data-songedit="">+ Add song</button></div>
    ${filters}${TEST?songTestBanner():''}${body}`;
   view.querySelectorAll('[data-mcell]').forEach(td=>td.addEventListener('click',e=>{e.stopPropagation();const [sid,lid]=td.dataset.mcell.split('|');if(LBY[lid])openLesson(lid,sid);else toast(lid+' is coming in Level '+lessonLevel(lid));}));
   view.querySelectorAll('[data-mrow]').forEach(th=>th.addEventListener('click',()=>go('songs',{id:th.dataset.mrow},{keep:true})));
@@ -76,7 +76,8 @@ function matrixHtml(stats,group){
   return h;
 }
 function songTestBanner(){const t=songTests();const bad=t.filter(x=>!x.pass);
-  return `<div class="card" style="border:1px solid ${bad.length?'var(--warn)':'var(--accent)'};margin:10px 0"><b>Test mode · song checks: ${bad.length?bad.length+' failing':'all '+t.length+' pass ✓'}</b>${t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('')}</div>`;}
+  return `<div class="card" style="border:1px solid ${bad.length?'var(--warn)':'var(--accent)'};margin:10px 0"><b>Test mode · song checks: ${bad.length?bad.length+' failing':'all '+t.length+' pass ✓'}</b>${t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('')}
+   <div style="margin-top:8px"><button class="sm" data-act="antest">Run Analyse &amp; tag tests</button><div id="antests"></div></div></div>`;}
 /* ---------- song page ---------- */
 function renderSong(song){
   const ctx=songCtx(),x=songStats(ctx,song),pl=songPlays(song.id),hist=state.songHist[song.id]||[];
@@ -90,7 +91,9 @@ function renderSong(song){
       <td>${pb?`<button class="sm" data-splay="${k.id}" data-sbpm="${pb}" data-ssong="${esc(song.id)}">${icon('play',13)} ${pb}</button>`:''}</td></tr>`;}).join('');
   view.innerHTML=crumbs([['Songs',{id:null}],[song.genre,null]]).replace(/data-crumb=/g,'data-scrumb=')+
   `<div class="row" style="align-items:center;flex-wrap:nowrap;gap:16px;margin:6px 0">${ring(x.ready/100,86,9)}<div style="min-width:0"><h1 style="margin:0">${esc(song.title)}</h1><div class="mut">${esc(song.artist)}</div>
-    <div class="row" style="gap:6px;margin-top:8px">${stChip(x.state)}<span class="chip">${esc(song.genre)}</span><span class="chip">Level ${x.level}</span><span class="chip">${esc(song.meter||'4/4')}</span><span class="chip">${bpmTxt(x)}</span>${x.unsure||!x.T?`<button class="sm" data-tap="${esc(song.id)}">Tap tempo</button>`:''}${state.songBpm[song.id]?`<button class="sm ghost" data-untap="${esc(song.id)}">Use catalog BPM</button>`:''}</div></div></div>
+    <div class="row" style="gap:6px;margin-top:8px">${stChip(x.state)}<span class="chip">${esc(song.genre)}</span><span class="chip">Level ${x.level}</span><span class="chip">${esc(song.meter||'4/4')}</span><span class="chip">${bpmTxt(x)}</span>${x.unsure||!x.T?`<button class="sm" data-tap="${esc(song.id)}">Tap tempo</button>`:''}${state.songBpm[song.id]?`<button class="sm ghost" data-untap="${esc(song.id)}">Use catalog BPM</button>`:''}</div></div>
+   <span class="sp"></span><button class="pri" data-analyse="${esc(song.id)}" style="flex:none">Analyse &amp; tag</button></div>
+  ${!songHasTags(song)?`<div class="card" style="border:1px solid var(--accent);margin-top:12px"><div class="row" style="flex-wrap:nowrap"><div style="flex:1"><b>This song has no lessons yet</b><div class="mut" style="font-size:14px">Readiness needs to know which lessons it uses. Analyse it from a MIDI file or from your playing, or pick lessons in Edit song.</div></div><button class="pri" data-analyse="${esc(song.id)}">Analyse &amp; tag</button></div></div>`:''}
   <div class="hero-stats" style="margin-top:12px">
    <div class="card stat"><div class="k">Readiness</div><div class="v">${x.ready}<small>%</small></div><div class="d">${hist.length>1?spark(hist.map(r=>r[1]),120,28)+'<br>since '+hist[0][0]:'history builds as you practise'}</div></div>
    <div class="card stat"><div class="k">Song-ready skills</div><div class="v">${x.readyCore+x.readySup}<small>/ ${x.skills.length}</small></div><div class="d">core ${x.readyCore}/${x.nCore} · support ${x.readySup}/${x.nSup}</div></div>
@@ -99,12 +102,17 @@ function renderSong(song){
   </div>
   ${x.next?`<div class="card" style="margin-top:12px"><span class="note-k" style="color:var(--accent)">Next step</span><div style="font-size:17px;margin-top:4px"><b>${x.next.id}</b> ${esc(tagName(x.next.id))}${x.next.coming?' — coming in Level '+lessonLevel(x.next.id):x.T?' → '+x.T+' BPM':''}</div></div>`:''}
   <h2>Skills</h2><div class="list" style="overflow-x:auto"><table><tr><th>Lesson</th><th>Weight</th><th>Status</th><th>Skill</th><th class="n">Best / target</th><th class="n">Last 5</th><th>Trend</th><th></th></tr>${rows}</table></div>
+  ${analysisCard(song)}
   <h2>By strand</h2><div class="card">${strandBars}</div>
   <h2>Play-along log</h2><div class="card"><p class="mut" style="margin-top:0">Played it along to the record? Log it: plays count separately from readiness.</p>
    <div class="row"><label class="row" style="gap:6px">Minutes <input type="number" id="lgm" value="4" min="1" style="width:80px"></label><span>Rating</span><div class="seg" id="lgr">${[1,2,3,4,5].map(n=>`<button class="${n===3?'on':''}" data-rate="${n}">${n}★</button>`).join('')}</div><button class="pri" data-logplay="${esc(song.id)}">Log a play</button></div>
    ${(state.songLog[song.id]||[]).length?`<table style="margin-top:10px"><tr><th>Date</th><th class="n">Minutes</th><th>Rating</th></tr>${[...state.songLog[song.id]].reverse().slice(0,10).map(r=>`<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td>${'★'.repeat(r[2])}</td></tr>`).join('')}</table>`:''}</div>
   <h2>Notes &amp; link</h2><div class="card">${ex.link?`<a href="${esc(ex.link)}" target="_blank" rel="noopener">Open the track ↗</a>`:'<span class="mut">No link yet.</span>'}${ex.notes?`<p>${esc(ex.notes)}</p>`:''}<div class="row" style="margin-top:8px"><button class="sm" data-songedit="${esc(song.id)}">${song.cat?'Edit link & notes':'Edit song'}</button>${song.cat?'':`<button class="sm ghost" data-songdel="${esc(song.id)}">Delete</button>`}</div></div>`;
 }
+function analysisCard(song){const ex=song.cat?(state.songExtra[song.id]||{}):song,a=ex.analysis,g=ex.grooves;if(!a&&!g)return '';
+  const src={midi:'from a MIDI file',playing:'from your playing',studio:'from DrumPath Studio'}[a&&a.src]||'';
+  return `<h2>Analysis</h2><div class="card"><div class="mut" style="font-size:13px">${a?`Analysed ${src} on ${a.date}${a.bpm?' · '+a.bpm+' BPM':''}${a.meter?' · '+esc(a.meter):''}${a.feel?' · '+esc(a.feel):''}${a.level?' · level '+a.level:''}${a.difficulty?' · difficulty '+a.difficulty+'/10':''}${a.sections&&a.sections.length?' · sections '+a.sections.map(x=>x.name+' '+x.bars).join(', '):''}`:''}</div>
+   ${g?Object.entries(g).map(([k,e])=>`<div style="margin-top:10px"><b>${esc({main:'Main groove',second:'Second groove',fill:'Main fill'}[k]||k)}</b><div class="pat" style="margin-top:6px">${esc(patText(Object.assign({bars:1},e)))}</div></div>`).join(''):''}</div>`;}
 /* ---------- tap tempo ---------- */
 function tapTempo(id){
   const s=songById(id);let taps=[];
@@ -125,15 +133,17 @@ function songForm(id){
   const pick={};(u.core||[]).forEach(t=>pick[t]='core');(u.support||[]).forEach(t=>{if(!pick[t])pick[t]='support';});
   const genres=[...new Set(allSongs().map(x=>x.genre))].sort();
   const all=[...LESSONS.filter(l=>l.type==='play'),...LATER];
-  const m=openSheet((s?'Edit':'Add')+' song',`<div class="grid"><div><label class="f">Title</label><input id="s_t" value="${esc(u.title)}"></div><div><label class="f">Artist</label><input id="s_a" value="${esc(u.artist)}"></div>
-   <div><label class="f">Genre</label><input id="s_g" list="s_gl" value="${esc(u.genre==='Other'?'':u.genre)}" placeholder="pick or type"><datalist id="s_gl">${genres.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
-   <div><label class="f">BPM (the pulse you count)</label><div class="row" style="flex-wrap:nowrap"><input id="s_b" type="number" value="${esc(u.bpm)}" style="flex:1"><button class="sm" id="s_tap">Tap</button></div></div>
+  const nPick=()=>Object.values(pick).filter(Boolean).length;
+  const m=openSheet((s?'Edit':'Add')+' song',`<div class="grid"><div><label class="f">Title</label><input id="s_t" value="${esc(u.title)}"></div><div><label class="f">Artist</label><input id="s_a" value="${esc(u.artist)}"></div></div>
+   <details open style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">Lessons used (<span id="s_cnt">${nPick()}</span> picked)</summary>
+   <p class="mut" style="font-size:13px;margin:6px 0">Tap to cycle: none → core (needed, ×2) → support (×1). Not sure? Save, then use <b>Analyse &amp; tag</b>.</p><input id="s_q" placeholder="Filter lessons, e.g. 2.5 or fill" style="width:100%;margin-bottom:6px">
+   <div id="s_tags" style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:4px 8px">${all.map(l=>`<div class="row s_tr" data-q="${esc((l.id+' '+l.t).toLowerCase())}" style="padding:4px 0;flex-wrap:nowrap"><button class="sm" data-pick="${l.id}" style="min-width:86px">${pick[l.id]||'—'}</button><span class="idx">${l.id}</span><span>${esc(l.t)}${l.later?' <span class="mut">(coming)</span>':''}</span></div>`).join('')}</div></details>
+   <div class="grid" style="margin-top:12px"><div><label class="f">Genre</label><input id="s_g" list="s_gl" value="${esc(u.genre==='Other'?'':u.genre)}" placeholder="pick or type"><datalist id="s_gl">${genres.map(g=>`<option value="${esc(g)}">`).join('')}</datalist></div>
+   <div><label class="f">BPM (the pulse you count)</label><div class="row" style="flex-wrap:nowrap"><input id="s_b" type="number" value="${esc(u.bpm)}" style="flex:1;min-width:0;width:auto"><button class="sm" id="s_tap">Tap</button></div></div>
    <div><label class="f">Meter / feel</label><input id="s_m" value="${esc(u.meter||'4/4')}"></div><div><label class="f">Link (optional)</label><input id="s_l" value="${esc(u.link||'')}" placeholder="https://…"></div></div>
-   <label class="f">Lessons used — tap to cycle: none → core (needed, ×2) → support (×1)</label><input id="s_q" placeholder="Filter lessons, e.g. 2.5 or fill" style="width:100%;margin-bottom:6px">
-   <div id="s_tags" style="max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:4px 8px">${all.map(l=>`<div class="row s_tr" data-q="${esc((l.id+' '+l.t).toLowerCase())}" style="padding:4px 0;flex-wrap:nowrap"><button class="sm" data-pick="${l.id}" style="min-width:86px">${pick[l.id]||'—'}</button><span class="idx">${l.id}</span><span>${esc(l.t)}${l.later?' <span class="mut">(coming)</span>':''}</span></div>`).join('')}</div>
    <label class="f">Notes</label><textarea id="s_n" rows="2">${esc(u.notes||'')}</textarea>
    <div class="row" style="margin-top:12px"><button class="pri" id="s_save">Save</button></div>`);
-  m.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.pick;pick[k]=!pick[k]?'core':pick[k]==='core'?'support':'';b.textContent=pick[k]||'—';b.classList.toggle('pri',pick[k]==='core');}));
+  m.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.pick;pick[k]=!pick[k]?'core':pick[k]==='core'?'support':'';b.textContent=pick[k]||'—';b.classList.toggle('pri',pick[k]==='core');$('#s_cnt',m).textContent=nPick();}));
   m.querySelectorAll('[data-pick]').forEach(b=>b.classList.toggle('pri',pick[b.dataset.pick]==='core'));
   $('#s_q',m).addEventListener('input',e=>{const q=e.target.value.toLowerCase();m.querySelectorAll('.s_tr').forEach(r=>r.style.display=!q||r.dataset.q.includes(q)?'':'none');});
   $('#s_tap',m).onclick=()=>{let taps=[];toast('Tap the Tap button on every beat');const b=$('#s_tap',m);b.onclick=null;b.textContent='Tap ●';b.addEventListener('pointerdown',e=>{e.preventDefault();const t=performance.now();if(taps.length&&t-taps[taps.length-1]>2500)taps=[];taps.push(t);if(taps.length>=8){const d=[];for(let i=1;i<taps.length;i++)d.push(taps[i]-taps[i-1]);$('#s_b',m).value=Math.round(60000/median(d.slice(-12)));}b.textContent='Tap ● '+taps.length;});};
@@ -141,5 +151,5 @@ function songForm(id){
     const core=Object.keys(pick).filter(k=>pick[k]==='core'),sup=Object.keys(pick).filter(k=>pick[k]==='support');
     let l=$('#s_l',m).value.trim();if(l&&!/^https?:\/\//.test(l))l='https://'+l;
     const o=Object.assign(s?u:{id:'u'+Date.now().toString(36),catId:''},{updatedAt:Date.now(),title:t,artist:$('#s_a',m).value.trim(),genre:$('#s_g',m).value.trim()||'Other',bpm:$('#s_b',m).value,bpmSure:!!+$('#s_b',m).value,meter:$('#s_m',m).value.trim()||'4/4',link:l,notes:$('#s_n',m).value.trim(),core,support:sup,tags:[...core,...sup]});
-    if(!s)state.songs.push(o);save();m.remove();updateSongHist();if(!s)go('songs',{id:o.id},{keep:true});else render();};
+    if(!s)state.songs.push(o);save();m.remove();updateSongHist();if(!s){go('songs',{id:o.id},{keep:true});if(!core.length&&!sup.length)analyseSheet(o.id);}else render();};
 }

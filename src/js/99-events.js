@@ -17,6 +17,7 @@ document.addEventListener('click',async e=>{
   const ce=T.closest('[data-cell]');if(ce){const [a,b]=ce.dataset.cell.split('.').map(Number);go('lessons',{lv:a,sd:b,id:null},{keep:true});return;}
   const pr=T.closest('[data-preset]');if(pr){Object.assign(VP.compare,JSON.parse(pr.dataset.preset));render();return;}
   const rn=T.closest('[data-run]');if(rn){openRun(rn.dataset.run);return;}
+  const an=T.closest('[data-analyse]');if(an){closeSheets();analyseSheet(an.dataset.analyse);return;}
   const sg=T.closest('[data-song]');if(sg){closeSheets();go('songs',{id:sg.dataset.song});return;}
   const sv=T.closest('[data-sview]');if(sv){VP.songs.view=sv.dataset.sview;render();return;}
   const sst=T.closest('[data-sst]');if(sst){VP.songs.st=VP.songs.st===sst.dataset.sst?'':sst.dataset.sst;render();return;}
@@ -69,6 +70,9 @@ document.addEventListener('click',async e=>{
   if(a==='drivedisconnect'){if(await confirmBox('Stop syncing this device with Google Drive? Your Drive files and the progress on this device both stay as they are.')){driveDisconnect();render();}return;}
   if(a==='drivetest'){const el=$('#drvtests');el.innerHTML='Running…';const t=await driveTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='cmptest'){const t=compareTests();render();const el=$('#cmptests');if(el)el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
+  if(a==='batchstudio'){if(!STUDIO_URL)return;const list=allSongs().filter(x=>!songHasTags(x)).map(x=>({songId:x.id,title:x.title,artist:x.artist,bpm:songBpm(x)||null,meter:x.meter||'4/4'}));window.open(STUDIO_URL+'#analyse='+b64u(new TextEncoder().encode(JSON.stringify({batch:list}))),'_blank','noopener');return;}
+  if(a==='pasteimport'){pasteImportSheet();return;}
+  if(a==='antest'){const el=$('#antests');el.innerHTML='Running…';const t=await analyseTests();render();const e2=$('#antests');if(e2)e2.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
   if(a==='stortest'){const el=$('#stortests');el.innerHTML='Running…';const t=await storageTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
@@ -112,7 +116,8 @@ function importData(){
 }
 /* ---------- boot ---------- */
 buildShell();applyTheme();view.innerHTML='<p class="mut">Loading your logbook…</p>';
-storageInit().catch(e=>{STORE.err=String(e&&e.message||e);}).finally(()=>{bootReady=true;if(bootPending){bootPending=false;save();}render();driveStart();});
+storageInit().catch(e=>{STORE.err=String(e&&e.message||e);}).finally(()=>{bootReady=true;if(bootPending){bootPending=false;save();}render();driveStart();checkImportHash();});
+addEventListener('hashchange',()=>{if(bootReady)checkImportHash();});
 addEventListener('pagehide',()=>{if(STORE.mode==='idb')storeSave();});
 if(navigator.permissions&&navigator.requestMIDIAccess){navigator.permissions.query({name:'midi'}).then(p=>{if(p.state==='granted')connectMidi();}).catch(()=>{});}
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(L)draw();});

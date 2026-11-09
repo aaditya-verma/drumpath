@@ -12,6 +12,7 @@ function songStateFill(s){
   if(!s.songHist||typeof s.songHist!=='object')s.songHist={};
   if(!s.songLog||typeof s.songLog!=='object')s.songLog={};
   if(!s.songExtra||typeof s.songExtra!=='object')s.songExtra={};
+  if(!s.songTagOv||typeof s.songTagOv!=='object')s.songTagOv={};
   let n=0;
   s.songs.forEach(u=>{
     if(!Array.isArray(u.tags))u.tags=[];
@@ -29,7 +30,8 @@ function songStateFill(s){
 songStateFill(state);
 
 /* ---------- song list ---------- */
-function allSongs(){return [...CAT_SONGS,...state.songs.filter(u=>!u.catId).map(u=>({...u,genre:u.genre||'Other',meter:u.meter||'4/4',core:Array.isArray(u.core)?u.core:(u.tags||[]),support:Array.isArray(u.support)?u.support:[],bpm:+u.bpm||0,cat:false}))];}
+function catSong(c){const o=state.songTagOv&&state.songTagOv[c.id];return o?Object.assign({},c,{core:o.core||c.core,support:o.support||c.support,genre:o.genre||c.genre,meter:o.meter||c.meter,tagged:true}):c;}
+function allSongs(){return [...CAT_SONGS.map(catSong),...state.songs.filter(u=>!u.catId).map(u=>({...u,genre:u.genre||'Other',meter:u.meter||'4/4',core:Array.isArray(u.core)?u.core:(u.tags||[]),support:Array.isArray(u.support)?u.support:[],bpm:+u.bpm||0,cat:false}))];}
 const SBY=()=>Object.fromEntries(allSongs().map(s=>[s.id,s]));
 function songById(id){return allSongs().find(s=>s.id===id);}
 function songTags(s){return [...s.core.map(id=>({id,w:2,core:true})),...s.support.filter(id=>!s.core.includes(id)).map(id=>({id,w:1,core:false}))];}
