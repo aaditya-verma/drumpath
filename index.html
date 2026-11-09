@@ -112,8 +112,9 @@ label.f{display:block;margin:10px 0 4px;font-size:14px;color:var(--mut)}
   <div id="pads"></div>
 </div>
 
-<script src="lessons/lib.js?v=3"></script>
-<script src="lessons/L0-2.js?v=3"></script>
+<script src="lessons/lib.js?v=4"></script>
+<script src="lessons/L0-2.js?v=4"></script>
+<script src="lessons/L3.js?v=4"></script>
 <script>
 'use strict';
 /* ============ DATA ============ */
@@ -125,7 +126,8 @@ const VOICES={
 const LANES=['C','R','HH','T1','T2','S','T3','K','HP'];
 const LIMB={C:'Right hand',R:'Right hand',HH:'Hands',T1:'Hands',T2:'Hands',S:'Hands',T3:'Hands',K:'Right foot',HP:'Left foot'};
 // Alesis Nitro defaults (General MIDI style). Calibrate in Kit to confirm.
-const DEFAULT_MAP={36:'K',35:'K',38:'S',40:'S',42:'HH',46:'HH',22:'HH',26:'HH',44:'HP',48:'T1',50:'T1',45:'T2',47:'T2',43:'T3',41:'T3',49:'C',57:'C',55:'C',51:'R',59:'R',53:'R'};
+const DEFAULT_ART={42:'closed',22:'closed',46:'open',26:'open',38:'head',40:'rim',37:'rim'};
+const DEFAULT_MAP={36:'K',35:'K',38:'S',40:'S',37:'S',42:'HH',46:'HH',22:'HH',26:'HH',44:'HP',48:'T1',50:'T1',45:'T2',47:'T2',43:'T3',41:'T3',49:'C',57:'C',55:'C',51:'R',59:'R',53:'R'};
 const LEVELS=['Setup','First beats & time','Reading, core rudiments & independence','The motions of drumming','Moeller & essential grooves','Rhythmic groupings & funk','Odd time & finger control','Foot technique & combinations','Texture, articulation & chart reading','Advanced styles & soloing','Go anywhere'];
 const STRANDS={1:'Theory / Reading',2:'Technique',3:'Rudiments',4:'Independence',5:'Grooves / Styles',6:'Fills / Rhythm',7:'Time / Ears',8:'Songs'};
 
@@ -338,12 +340,14 @@ const SUGGEST=[
 
 /* ============ STATE ============ */
 const KEY='drumpath.v1';
-const DEF_SET={tol:30,win:120,pass:90,dynPass:80,bars:4,vol:0.7,subclick:false,countin:1,pads:true};
+const DEF_SET={tol:30,win:120,pass:90,dynPass:80,hhMode:'auto',hhOpenCC:40,hhLowOpen:true,graceMode:'scored',scoreArt:true,bars:4,vol:0.7,subclick:false,countin:1,pads:true};
 let state;
-function freshState(){return{v:1,map:{...DEFAULT_MAP},lat:0,set:{...DEF_SET},prog:{},done:{},sessions:[],days:{},songs:[],savedAt:0};}
+function freshState(){return{v:1,map:{...DEFAULT_MAP},art:{...DEFAULT_ART},lat:0,set:{...DEF_SET},prog:{},done:{},sessions:[],days:{},songs:[],savedAt:0};}
 function loadLocal(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}return null;}
 state=Object.assign(freshState(),loadLocal()||{});
 state.set=Object.assign({...DEF_SET},state.set);
+state.art=Object.assign({...DEFAULT_ART},state.art||{});
+if(state.map[37]==null&&!Object.values(state.map).includes('__none'))state.map[37]='S';
 let cloud=null, saveT=null, saving=false, dirty=false;
 function save(){
   state.savedAt=Date.now();
@@ -404,7 +408,16 @@ function bindInputs(){
   if(cur==='kit')render();
 }
 function setMidiStatus(ok,txt){$('#mdot').classList.toggle('ok',ok);$('#mtxt').textContent=txt;}
-let kitLog=[], kitLast=0, hhCC=null;
+let kitLog=[], kitLast=0, hhCC=null, seenOpenNote=false;
+function artOf(n,v){
+  let a=state.art[n];
+  if(v==='HH'){
+    if(a==='open')seenOpenNote=true;
+    const m=state.set.hhMode;
+    if(hhCC!=null&&(m==='pedal'||(m==='auto'&&!seenOpenNote))){const low=hhCC<=state.set.hhOpenCC;a=(low===!!state.set.hhLowOpen)?'open':'closed';}
+  }
+  return a;
+}
 function logMidi(st,n,vel,t){
   const typ=st&0xf0; if(typ===0x80||(typ===0x90&&!vel))return; // skip note-offs
   if(typ===0xB0&&n===4)hhCC=vel;
@@ -443,11 +456,13 @@ function onMidi(e){
   monitor.unshift({n,vel,v});monitor=monitor.slice(0,8);
   const m=$('#mon');if(m)m.textContent=monitor.map(x=>`${x.v?VOICES[x.v].n:'?'} (note ${x.n}, vel ${x.vel})`).join('  ·  ');
   if(learnVoice){
+    const [lv,la]=learnVoice.split(':');
     Object.keys(state.map).forEach(k=>{if(+k===n)delete state.map[k];});
-    state.map[n]=learnVoice; save(); toast(VOICES[learnVoice].n+' ← note '+n); learnVoice=null; render(); return;
+    state.map[n]=lv; if(la)state.art[n]=la; else delete state.art[n];
+    save(); toast(VOICES[lv].n+(la?' ('+la+')':'')+' ← note '+n); learnVoice=null; render(); return;
   }
   if(velChk&&v==='S'){velHit(vel);return;}
-  if(v)hit(v,vel,t);
+  if(v)hit(v,vel,t,artOf(n,v));
 }
 
 /* ============ TEST MODE ============ */
@@ -455,12 +470,14 @@ const TEST=/[?&]test=1\b/.test(location.search);
 function simVel(e,mode,even){
   if(even)return mode==='dyn'?(e.step%2?50:95):80;
   if(mode==='dyn')return e.ch==='X'?80:e.ch==='g'?82:80;
+  if(e.gr)return 90;
   return e.ch==='X'?112:e.ch==='g'?34:80;
 }
 async function simulate(jit,mode){
   await startRun();const R=run;const even=R.ex.dyn==='even';
   R.evs.forEach(e=>{if(e.listen)return;
     const j=jit?(Math.random()*2-1)*jit:0, tt=e.t+j+state.lat;
+    if(e.gr&&mode!=='nograce')for(let k=e.gr;k>=1;k--){const gt=tt-30*k;setTimeout(()=>{if(run===R)hit(e.v,mode==='dyn'?95:45,gt,e.art);},Math.max(0,gt-performance.now()));}
     setTimeout(()=>{if(run===R)hit(e.v,simVel(e,mode,even),tt,e.art?(mode==='art'?(e.art==='open'?'closed':e.art==='closed'?'open':e.art==='rim'?'head':'rim'):e.art):undefined);},Math.max(0,tt-performance.now()));
   });
 }
@@ -526,7 +543,7 @@ function buildRun(lesson,ex,bpmv,base,opts={}){
     for(const v in ex.v){const s=ex.v[v];
       for(let i=0;i<patSteps;i++){const c=s[i];if(!c||c==='.')continue;
         const step=r*patSteps+i;
-        evs.push({v,ch:c,t:base+cinMs+step*stepMs+sw(step),acc:c==='X',ghost:c==='g',st:ex.st?ex.st[i%ex.st.length]:'',listen,hide:lesson.call&&!listen,step,bar:Math.floor(step/spb)});
+        evs.push({v,ch:c,art:v==='HH'?(c==='o'?'open':'closed'):v==='S'?(c==='r'?'rim':'head'):undefined,gr:c==='f'?1:c==='d'?2:0,graces:[],t:base+cinMs+step*stepMs+sw(step),acc:c==='X',ghost:c==='g',st:ex.st?ex.st[i%ex.st.length]:'',listen,hide:lesson.call&&!listen,step,bar:Math.floor(step/spb)});
       }}
   }
   evs.sort((a,b)=>a.t-b.t);
@@ -582,8 +599,8 @@ async function startRun(){
   run.clicks.forEach(c=>click(t0+c.t/1000,c.k,run.nodes));
   run.evs.forEach(e=>{if(e.listen)drum(e.v,t0+(e.t-base)/1000,run.nodes);});
   flashes={}; $('#pfeed').textContent=''; $('#go').textContent='Stop'; $('#result').classList.add('hidden');
-  try{if(navigator.wakeLock&&!wake)wake=await navigator.wakeLock.request('screen');}catch(e){}
   requestAnimationFrame(loop);
+  try{if(navigator.wakeLock&&!wake)navigator.wakeLock.request('screen').then(w=>{wake=w;w.addEventListener('release',()=>{if(wake===w)wake=null;});}).catch(()=>{});}catch(e){}
 }
 function stopRun(save_=true){
   if(!run)return; run.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
@@ -595,7 +612,7 @@ function loop(){
   if(now>run.end+350){finish();return;}
   requestAnimationFrame(loop);
 }
-function hit(v,vel,tp){
+function hit(v,vel,tp,art){
   flashes[v]=performance.now();
   if(!run||$('#prac').classList.contains('hidden'))return;
   const lat=run.calib?0:state.lat;
@@ -603,25 +620,41 @@ function hit(v,vel,tp){
   const start=run.base+run.cinMs;
   if(t<start-state.set.win)return; // ignore count-in
   if(run.lesson.call){const repMs=run.barMs*run.ex.bars;const r=Math.floor((t-start)/repMs);if(r%2===0&&t<start+(r+1)*repMs-state.set.win)return;} // listening bars
+  // grace notes: a later hit within 90 ms on a flam/drag note becomes the main stroke; the earlier one turns into a grace
+  for(const e of run.evs){if(e.listen||e.v!==v||!e.gr||e.hitT==null)continue;const gap=t-e.hitT;
+    if(gap>=0&&gap<=90&&e.graces.length<e.gr&&Math.abs(t-e.t)<=state.set.win){e.graces.push({t:e.hitT,vel:e.vel});e.hitT=t;e.dt=t-e.t;e.vel=vel;e.hitArt=art;
+      const g=e.graces[e.graces.length-1];feed(e.dt,state.set.graceMode==='lenient'?'':(t-g.t<12?'flat flam':g.vel>vel*0.8?'grace too loud':'grace ✓'));return;}}
   let best=null,bd=1e9;
   for(const e of run.evs){if(e.listen||e.v!==v||e.hitT!=null)continue;const d=Math.abs(t-e.t);if(d<bd&&d<=state.set.win){bd=d;best=e;}}
-  if(best){best.hitT=t;best.dt=t-best.t;best.vel=vel;
+  if(best){best.hitT=t;best.dt=t-best.t;best.vel=vel;best.hitArt=art;
     let extra='';
+    if(best.art&&art&&state.set.scoreArt!==false&&best.art!==art){best.artOk=false;feed(best.dt,art+', should be '+best.art);return;}
+    if(best.art&&art)best.artOk=true;
     if(isDyn(run.ex)&&run.ex.dyn!=='even')extra=dynVerdict(best,laneBase(run.evs,v));
     feed(best.dt,extra);}
   else{run.extras.push({v,t});feedTxt('Extra '+VOICES[v].n,'#ef6b6b');}
 }
-function isDyn(ex){if(!ex||ex.dyn===false)return false;if(ex.dyn)return true;return Object.values(ex.v).some(s=>/[Xg]/.test(s));}
+function isDyn(ex){if(!ex||ex.dyn===false)return false;if(ex.dyn)return true;return Object.values(ex.v).some(s=>/[Xg]/.test(s))||(hasGraces(ex)&&state.set.graceMode!=='lenient');}
+const hasGraces=ex=>Object.values(ex.v).some(s=>/[fd]/.test(s));
+const hasArt=ex=>Object.values(ex.v).some(s=>/[or]/.test(s));
 function median(a){if(!a.length)return null;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2;}
-function laneBase(evs,v){
-  const h=evs.filter(e=>e.v===v&&!e.listen&&e.hitT!=null&&e.vel!=null);
-  const mx=median(h.filter(e=>e.ch==='x').map(e=>e.vel)); if(mx!=null)return mx;
+const XLIKE=c=>c==='x'||c==='o'||c==='r';
+function baseOf(h){
+  const mx=median(h.filter(e=>XLIKE(e.ch)).map(e=>e.vel)); if(mx!=null)return {b:mx,x:true};
   const mX=median(h.filter(e=>e.ch==='X').map(e=>e.vel)), mg=median(h.filter(e=>e.ch==='g').map(e=>e.vel));
-  return mX!=null&&mg!=null?(mX+mg)/2:null;
+  return mX!=null&&mg!=null?{b:(mX+mg)/2}:null;
+}
+function laneBase(evs,v){
+  const all=evs.filter(e=>!e.listen&&e.hitT!=null&&e.vel!=null);
+  const own=baseOf(all.filter(e=>e.v===v)); if(own)return own.b;
+  // lane has only accents or only ghosts: fall back to the whole run (accents vs ghosts across pads)
+  const h=all.filter(e=>e.v!==v), mX=median(all.filter(e=>e.ch==='X').map(e=>e.vel)), mg=median(all.filter(e=>e.ch==='g').map(e=>e.vel));
+  if(mX!=null&&mg!=null)return (mX+mg)/2;
+  const ox=baseOf(h); return ox?ox.b:null;
 }
 const isLoud=(vel,b)=>vel>=Math.max(b*1.2,b+10), isSoft=(vel,b)=>vel<=b*0.6;
 function dynVerdict(e,b){ // returns '' if correct, else a message
-  if(b==null)return '';
+  if(b==null||e.ch==='f'||e.ch==='d')return '';
   if(e.ch==='X')return isLoud(e.vel,b)?'':'accent not loud enough';
   if(e.ch==='g')return isSoft(e.vel,b)?'':'ghost too loud';
   return isLoud(e.vel,b)?'too loud':isSoft(e.vel,b)?'too soft':'';
@@ -661,7 +694,11 @@ function draw(){
     let col=VOICES[e.v].c, alpha=e.listen?0.35:1;
     if(e.hitT!=null){const a=Math.abs(e.dt);col=a<=state.set.tol?'#5ad1a0':(e.dt<0?'#6aa8ff':'#f0a35a');}
     else if(run&&!e.listen&&x<hitX-state.set.win*ppm)col='#4a505c';
-    cx.globalAlpha=alpha;cx.fillStyle=col;cx.beginPath();cx.arc(x,y,e.acc?rad*1.15:e.ghost?rad*0.6:rad,0,7);cx.fill();
+    cx.globalAlpha=alpha;cx.fillStyle=col;cx.strokeStyle=col;
+    if(e.ch==='o'){cx.lineWidth=4;cx.beginPath();cx.arc(x,y,rad*0.85,0,7);cx.stroke();}
+    else if(e.ch==='r'){const q=rad*0.75;cx.fillRect(x-q,y-q,q*2,q*2);}
+    else{cx.beginPath();cx.arc(x,y,e.acc?rad*1.15:e.ghost?rad*0.6:rad,0,7);cx.fill();}
+    if(e.gr){for(let k=1;k<=e.gr;k++){cx.beginPath();cx.arc(x-k*30*ppm-rad*0.6,y,rad*0.35,0,7);cx.fill();}}
     if(e.st&&e.st!=='.'){cx.fillStyle='#0f1115';cx.font='700 13px system-ui';cx.textAlign='center';cx.fillText(e.st,x,y+1);cx.textAlign='left';}
     cx.globalAlpha=1;
   }
@@ -689,11 +726,12 @@ function finish(){
     showResult(`<h2>Latency set: ${state.lat} ms</h2><p class="mut">Median offset of ${ds.length} hits. Scores now subtract this. Spread: ${Math.round(ds[0])} to ${Math.round(ds[ds.length-1])} ms.</p>`,true);return;
   }
   const tol=state.set.tol;
-  const hits=sc.filter(e=>e.hitT!=null), on=hits.filter(e=>Math.abs(e.dt)<=tol);
+  const okT=e=>Math.abs(e.dt)<=tol&&e.artOk!==false;
+  const hits=sc.filter(e=>e.hitT!=null), on=hits.filter(okT);
   const miss=sc.length-hits.length, ext=R.extras.length;
   const score=Math.round(100*on.length/Math.max(1,sc.length+ext));
   const avg=hits.length?hits.reduce((a,e)=>a+e.dt,0)/hits.length:0;
-  const per={};sc.forEach(e=>{const p=per[e.v]||(per[e.v]={n:0,on:0,hit:0,sum:0});p.n++;if(e.hitT!=null){p.hit++;p.sum+=e.dt;if(Math.abs(e.dt)<=tol)p.on++;}});
+  const per={};sc.forEach(e=>{const p=per[e.v]||(per[e.v]={n:0,on:0,hit:0,sum:0});p.n++;if(e.hitT!=null){p.hit++;p.sum+=e.dt;if(okT(e))p.on++;if(e.artOk===false)p.snd=(p.snd||0)+1;}});
   R.extras.forEach(x=>{const p=per[x.v]||(per[x.v]={n:0,on:0,hit:0,sum:0});p.ext=(p.ext||0)+1;});
   // ---- dynamics (step A) ----
   const dynOn=isDyn(R.ex); let dynScore=null;
@@ -706,8 +744,20 @@ function finish(){
           [a,b].forEach(e=>{e.dynOk=good;const q=per[e.v];q.dn=(q.dn||0)+1;if(good)q.dok=(q.dok||0)+1;});i+=2;}else i++;}
     }else{
       const base={};LANES.forEach(v=>base[v]=laneBase(sc,v));
-      hits.forEach(e=>{const b=base[e.v];if(b==null)return;tot++;const good=!dynVerdict(e,b);if(good)ok++;e.dynOk=good;
+      // two parts, averaged: marked notes (accents/ghosts) right, and normal notes right — so skipping every accent can't pass
+      let mOk=0,mTot=0,nOk=0,nTot=0;
+      hits.forEach(e=>{if(e.ch==='f'||e.ch==='d')return;const b=base[e.v];if(b==null)return;if(!/[Xg]/.test(Object.values(R.ex.v).join(''))&&!R.ex.dyn)return;
+        const good=!dynVerdict(e,b);e.dynOk=good;if(e.ch==='X'||e.ch==='g'){mTot++;if(good)mOk++;}else{nTot++;if(good)nOk++;}
         const q=per[e.v];q.dn=(q.dn||0)+1;if(good)q.dok=(q.dok||0)+1;});
+      const parts=[mTot?mOk/mTot:null,nTot?nOk/nTot:null].filter(x=>x!=null);
+      if(parts.length){const avgP=parts.reduce((a,b)=>a+b,0)/parts.length;const w=mTot+nTot;tot+=w;ok+=avgP*w;}
+    }
+    // grace notes (flams, drags) count inside Dynamics
+    if(hasGraces(R.ex)&&state.set.graceMode!=='lenient'){
+      hits.filter(e=>e.gr).forEach(e=>{const g=e.graces;const good=g.length>=e.gr&&g.every(x=>e.hitT-x.t>=12&&e.hitT-x.t<=90&&x.vel<=e.vel*0.8);
+        e.grOk=good;tot++;if(good)ok++;const q=per[e.v];q.gn=(q.gn||0)+1;if(good)q.gok=(q.gok||0)+1;});
+      const grHits=hits.filter(e=>e.gr), anyG=grHits.some(e=>e.graces.length);
+      if(grHits.length>=4&&!anyG)R.graceWarn=true;
     }
     dynScore=tot?Math.round(100*ok/tot):null;
   }
@@ -731,12 +781,15 @@ function finish(){
   if(state.sessions.length>600)state.sessions.slice(0,-600).forEach(x=>{delete x.hits;}); // keep per-hit detail for the latest 600 runs only
   save(); renderPracBar();
   const tend=Math.abs(avg)<8?'Centred on the beat':avg<0?'Rushing: '+Math.round(-avg)+' ms ahead on average':'Dragging: '+Math.round(avg)+' ms behind on average';
+  const grCol=hasGraces(R.ex)&&state.set.graceMode!=='lenient', sndCol=hasArt(R.ex)&&state.set.scoreArt!==false;
   const rows=LANES.filter(v=>per[v]).map(v=>{const q=per[v];const a=q.hit?Math.round(q.sum/q.hit):0;
-    return `<tr><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td>${q.n?Math.round(100*q.on/q.n)+'%':'–'}</td><td>${q.on}/${q.n}</td><td>${q.n-q.hit}</td><td>${q.ext||0}</td><td>${q.hit?(a>0?'+':'')+a+' ms':'–'}</td>${dynOn?`<td>${q.dn?Math.round(100*(q.dok||0)/q.dn)+'%':'–'}</td>`:''}</tr>`;}).join('');
+    return `<tr><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td>${q.n?Math.round(100*q.on/q.n)+'%':'–'}</td><td>${q.on}/${q.n}</td><td>${q.n-q.hit}</td><td>${q.ext||0}</td><td>${q.hit?(a>0?'+':'')+a+' ms':'–'}</td>${dynOn?`<td>${q.dn?Math.round(100*(q.dok||0)/q.dn)+'%':'–'}</td>`:''}${grCol?`<td>${q.gn?Math.round(100*(q.gok||0)/q.gn)+'%':'–'}</td>`:''}${sndCol?`<td>${q.snd?q.snd+' wrong':'✓'}</td>`:''}</tr>`;}).join('');
   const dynBlock=dynScore!=null?`<div style="margin-left:18px"><div class="score" style="font-size:44px;color:${dynScore>=state.set.dynPass?'#5ad1a0':'#f0a35a'}">${dynScore}%</div><div class="mut">Dynamics (need ${state.set.dynPass}%)</div></div>`:'';
   showResult(`<div class="row"><div><div class="score" style="color:${score>=state.set.pass?'#5ad1a0':'#f0a35a'}">${score}%</div>${dynScore!=null?`<div class="mut">Timing (need ${state.set.pass}%)</div>`:''}</div>${dynBlock}<div style="margin-left:18px"><div style="font-weight:700;font-size:20px">${passed?'Pass':'Not yet'}</div><div class="mut">${esc(msg)}</div></div></div>
    <p>${on.length} of ${sc.length} notes on time (±${tol} ms) · ${miss} missed · ${ext} extra · ${tend}</p>
-   <table><tr><th>Pad</th><th>On time</th><th>Hits</th><th>Missed</th><th>Extra</th><th>Avg timing</th>${dynOn?'<th>Dynamics</th>':''}</tr>${rows}</table>
+   <table><tr><th>Pad</th><th>On time</th><th>Hits</th><th>Missed</th><th>Extra</th><th>Avg timing</th>${dynOn?'<th>Dynamics</th>':''}${grCol?'<th>Graces</th>':''}${sndCol?'<th>Sound</th>':''}</tr>${rows}</table>
+   ${R.graceWarn?'<p style="color:var(--warn)">No grace notes arrived from the kit in this run. If you did play them, the module may be merging the two hits: set <b>Grace notes</b> to <b>Lenient</b> in Kit &amp; Settings, or lower the snare’s retrigger/mask time on the module.</p>':''}
+   ${sndCol&&!R.evs.some(e=>e.hitArt)?'<p class="mut">Open/closed and rim/head weren’t reported for these hits (on-screen pads), so they weren’t checked.</p>':''}
    ${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}`);
 }
 function showResult(html,calib){
@@ -811,7 +864,7 @@ function patText(ex){
   const fmt=a=>a.map((c,i)=>(i&&i%spb===0?'| ':'')+c).join(' ');
   let lines=['       '+fmt(cnt)];
   if(ex.st)lines.push('Stick  '+fmt(Array.from({length:n},(_,i)=>ex.st[i%ex.st.length]||'.')));
-  LANES.filter(v=>ex.v[v]).forEach(v=>lines.push(VOICES[v].n.padEnd(7).slice(0,7)+fmt(ex.v[v].slice(0,n).split('').map(c=>c==='.'?'·':c==='X'?'>':'x'))));
+  LANES.filter(v=>ex.v[v]).forEach(v=>lines.push(VOICES[v].n.padEnd(7).slice(0,7)+fmt(ex.v[v].slice(0,n).split('').map(c=>({'.':'·',X:'>',g:'g',o:'o',r:'r',f:'f',d:'d'}[c]||'x')))));
   return lines.join('\n');
 }
 function renderLesson(id){
@@ -892,7 +945,7 @@ function renderKit(){
   <div class="card row"><div class="mut" style="flex:1">Hit the snare soft, medium and loud, 4 times each. If the three levels overlap, raise the snare's sensitivity on the module (Utility → trigger settings) before dynamics lessons.${state.velChk?`<br><b>Last check:</b> soft ${state.velChk.s}, medium ${state.velChk.m}, loud ${state.velChk.l}${state.velChk.ok?' ✓ well separated':' ⚠ overlapping'}`:''}</div><button class="pri" data-act="velcheck">Run velocity check</button></div>
   <h2>Pad mapping</h2>
   <div class="card"><p class="mut" style="margin-top:0">Defaults follow the General MIDI layout the Nitro uses. To confirm, tap Learn and hit that pad. Hi-hat can hold several notes (open / closed): learn it twice, once each way.</p>
-   <table>${LANES.map(v=>`<tr class="${learnVoice===v?'learn':''}"><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td class="mut">${(byV[v]||[]).map(n=>'note '+n).join(', ')||'–'}</td><td style="text-align:right"><button class="sm" data-learn="${v}">${learnVoice===v?'Hit the pad…':'Learn'}</button> <button class="sm ghost" data-unmap="${v}">Clear</button></td></tr>`).join('')}</table>
+   <table>${LANES.map(v=>`<tr class="${learnVoice&&learnVoice.split(':')[0]===v?'learn':''}"><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td class="mut">${(byV[v]||[]).map(n=>'note '+n+(state.art[n]&&(v==='HH'||v==='S')?' ('+state.art[n]+')':'')).join(', ')||'–'}</td><td style="text-align:right">${(v==='HH'?[['HH:closed','Learn closed'],['HH:open','Learn open']]:v==='S'?[['S:head','Learn head'],['S:rim','Learn rim']]:[[v,'Learn']]).map(([k,lab])=>`<button class="sm" data-learn="${k}">${learnVoice===k?'Hit the pad…':lab}</button>`).join(' ')} <button class="sm ghost" data-unmap="${v}">Clear</button></td></tr>`).join('')}</table>
    <div class="row" style="margin-top:10px"><button class="sm" data-act="resetmap">Restore defaults</button></div></div>
   <h2>Timing</h2>
   <div class="card"><div class="row"><div><b>Latency offset: ${state.lat} ms</b><div class="mut">Subtracted from every hit. Measure it with the test.</div></div><span class="sp"></span><button data-act="lat-">−5</button><button data-act="lat+">+5</button><button class="pri" data-act="latency">Run latency test</button></div></div>
@@ -907,6 +960,11 @@ function renderKit(){
    <div><label class="f">Subdivision clicks</label><select data-set="subclick"><option value="false">Off</option><option value="true" ${st.subclick?'selected':''}>On</option></select></div>
    <div><label class="f">On-screen pads</label><select data-set="pads"><option value="true">Show</option><option value="false" ${st.pads?'':'selected'}>Hide</option></select></div>
    <div><label class="f">Match window (± ms)</label><input type="number" data-set="win" value="${st.win}"></div>
+   <div><label class="f">Check open/closed hi-hat &amp; rim</label><select data-set="scoreArt"><option value="true">Yes</option><option value="false" ${st.scoreArt?'':'selected'}>No</option></select></div>
+   <div><label class="f">Open hi-hat detected from</label><select data-set="hhMode">${[['auto','Auto (note, else pedal)'],['note','Note number only'],['pedal','Pedal position (CC 4)']].map(([k,l])=>`<option value="${k}" ${st.hhMode===k?'selected':''}>${l}</option>`).join('')}</select></div>
+   <div><label class="f">Pedal counts as open when CC 4 is</label><select data-set="hhLowOpen"><option value="true">≤ threshold (low = open)</option><option value="false" ${st.hhLowOpen?'':'selected'}>&gt; threshold (high = open)</option></select></div>
+   <div><label class="f">Pedal threshold (0–127)</label><input type="number" data-set="hhOpenCC" value="${st.hhOpenCC}"></div>
+   <div><label class="f">Grace notes (flams, drags)</label><select data-set="graceMode"><option value="scored">Scored</option><option value="lenient" ${st.graceMode==='lenient'?'selected':''}>Lenient (main note only)</option></select></div>
   </div>
   <h2>Backup</h2>
   <div class="card row"><button data-act="export">Export backup</button><button data-act="import">Import backup</button><span class="sp"></span><button class="ghost" data-act="wipe" style="color:var(--bad)">Reset all progress</button></div>
@@ -945,7 +1003,7 @@ document.addEventListener('click',async e=>{
   if(a==='latency'){L={id:'latency',t:'Latency test',calib:true,bpm:[90,90],ex:[X('Snare on the click',1,{S:'x'.repeat(16)},{bars:4})],loop:1};exI=0;bpm=90;
     $('#prac').classList.remove('hidden');$('#result').classList.add('hidden');$('#ptitle').textContent='Latency test: hit the snare exactly on each click';renderPracBar();renderPads(L.ex[0]);sizeCv();makePreview();draw();return;}
   if(a==='lat-'||a==='lat+'){state.lat+=a==='lat+'?5:-5;save();render();return;}
-  if(a==='resetmap'){state.map={...DEFAULT_MAP};save();render();return;}
+  if(a==='resetmap'){state.map={...DEFAULT_MAP};state.art={...DEFAULT_ART};save();render();return;}
   if(a==='export'){exportData();return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
   if(a==='kitcopy'){const txt=kitLogText()||'(empty)';try{await navigator.clipboard.writeText(txt);toast('Log copied: paste it to Claude');}catch(_){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="card"><p class="mut">Select all and copy:</p><textarea rows="12" style="width:100%">${esc(txt)}</textarea><div class="row" style="margin-top:8px"><button id="kx">Close</button></div></div>`;document.body.appendChild(m);$('#kx',m).onclick=()=>m.remove();}return;}
@@ -954,7 +1012,7 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
-  if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','dynPass','bars','countin','win'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
+  if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','dynPass','bars','countin','win','hhOpenCC'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
   if(t.dataset.ck){const id=t.dataset.ck;const ck=state.done[id+'_ck']=state.done[id+'_ck']||{};ck[t.dataset.i]=t.checked;
     const l=LBY[id];if(l.check&&l.check.every((_,i)=>ck[i])&&(!l.quiz||l.quiz.every((q,i)=>(state.done[id+'_qa']||{})[i]===q.c)))state.done[id]=true;save();render();}
 });
