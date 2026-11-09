@@ -34,3 +34,34 @@ Run **Kit & Settings → Kit check**, copy the log and record the results here.
 Open `?test=1`: lesson-data check on the Lessons page and a **Simulate** button on the practice screen
 (jitter, wrong dynamics, wrong sound, no graces). Every Level 3 exercise passed perfect / wrong-dynamics / wrong-sound /
 missing-grace simulations on 10 Nov 2026; Levels 0–2 still score 100% on perfect runs.
+
+## Storage (S1, 10 Nov 2026)
+
+Progress lives in **IndexedDB** (database `drumpath`, stores `state`, `runs`, `files`), not in `localStorage`.
+
+- **First load after the update:** the app copies `localStorage` `drumpath.v1` into IndexedDB, reads it back and compares lesson, run, song and checklist counts. Only if they match does it switch over and set `drumpath.migrated`. If they don't, it keeps using `localStorage` and says so in Settings › Storage; nothing is lost.
+- `drumpath.v1` is kept untouched (read-only) for 30 days after migration, then removed.
+- Every run is kept with its per-hit detail; the old 600-run cap only applies if IndexedDB is unavailable.
+- The app asks Chrome to keep the data (`navigator.storage.persist()`) once you have a passed run. Settings › Storage shows space used, the run count and whether it's protected.
+- Export / Import backup work as before (one JSON file with everything).
+
+## Google Drive sync (S2): one-time Google Cloud setup
+
+DrumPath syncs to a folder in **your own** Google Drive. Google needs a free "OAuth client" for that. About 15 minutes, once. Use your **personal** Google account (the one that owns My Drive › Projects › DrumPath).
+
+1. **Create a project.** Open https://console.cloud.google.com, signed in with the personal account. Top bar → project picker → **New project** → name it `DrumPath` → **Create**, then select it.
+2. **Turn on the two APIs.** Menu → **APIs & Services → Library**. Search **Google Drive API** → **Enable**. Back to Library, search **Google Picker API** → **Enable**.
+3. **Consent screen.** Menu → **APIs & Services → OAuth consent screen** (may be called **Google Auth Platform → Branding / Audience**).
+   - User type **External**. App name `DrumPath`, support email and developer email = your personal address. Save.
+   - Under **Audience** (or **Test users**), leave publishing status as **Testing** and **Add users** → your personal address.
+   - Scopes: you can skip this page; the app asks only for `drive.file` (files it creates or that you pick).
+4. **OAuth client id.** **APIs & Services → Credentials → Create credentials → OAuth client ID**.
+   - Application type **Web application**, name `DrumPath web`.
+   - **Authorized JavaScript origins** → Add URI → `https://aaditya-verma.github.io` (exactly that: no path, no trailing slash).
+   - Leave redirect URIs empty. **Create**, then copy the **Client ID** (ends in `.apps.googleusercontent.com`).
+5. **Picker API key.** **Credentials → Create credentials → API key**. Then **Edit API key**:
+   - Application restrictions → **Websites** → add `https://aaditya-verma.github.io/*`.
+   - API restrictions → **Restrict key** → tick **Google Picker API** only. Save, and copy the key.
+6. **Send both to the build chat:** the Client ID and the restricted Picker API key. Both are safe in a public repo: the client id is public by design, and the key only works for the Picker on this site. Also note the **project number** (Dashboard → Project info); the Picker needs it as the app id.
+
+Testing mode is fine for a personal app: only listed test users can sign in. Google may ask you to re-approve access about once a week while the app stays in Testing; that's expected.

@@ -62,6 +62,8 @@ document.addEventListener('click',async e=>{
   if(a==='lat-'||a==='lat+'){state.lat+=a==='lat+'?5:-5;save();render();return;}
   if(a==='resetmap'){state.map={...DEFAULT_MAP};state.art={...DEFAULT_ART};save();render();return;}
   if(a==='export'){exportData();return;}
+  if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
+  if(a==='stortest'){const el=$('#stortests');el.innerHTML='Running…';const t=await storageTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
   if(a==='kitcopy'){const txt=kitLogText()||'(empty)';try{await navigator.clipboard.writeText(txt);toast('Log copied: paste it to Claude');}catch(_){openSheet('Kit log',`<p class="mut">Select all and copy:</p><textarea rows="12" style="width:100%">${esc(txt)}</textarea>`);}return;}
   if(a==='import'){importData();return;}
@@ -102,6 +104,8 @@ function importData(){
   $('#ig',m).onclick=()=>{try{const d=JSON.parse($('#it',m).value);if(!d.v)throw 0;state=Object.assign(freshState(),d);state.set=Object.assign({...DEF_SET},state.set);state.art=Object.assign({...DEFAULT_ART},state.art||{});songStateFill(state);updateSongHist();save();m.remove();render();toast('Backup restored');}catch(_){toast('That doesn’t look like a DrumPath backup');}};
 }
 /* ---------- boot ---------- */
-buildShell();applyTheme();render();
+buildShell();applyTheme();view.innerHTML='<p class="mut">Loading your logbook…</p>';
+storageInit().catch(e=>{STORE.err=String(e&&e.message||e);}).finally(()=>{bootReady=true;if(bootPending){bootPending=false;save();}render();});
+addEventListener('pagehide',()=>{if(STORE.mode==='idb')storeSave();});
 if(navigator.permissions&&navigator.requestMIDIAccess){navigator.permissions.query({name:'midi'}).then(p=>{if(p.state==='granted')connectMidi();}).catch(()=>{});}
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(L)draw();});

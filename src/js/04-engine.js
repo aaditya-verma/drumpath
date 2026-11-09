@@ -299,7 +299,7 @@ function finish(){
   lastRunTs=Date.now();
   state.sessions.push(Object.assign({ts:lastRunTs,id:L.id,ex:exI,bpm:R.bpm,score,on:on.length,n:sc.length,ext,miss,avg:Math.round(avg),pads:padRec,hits:hitRec,dur:Math.round(elapsed/1000)},dynScore!=null?{dyn:dynScore}:{},R.stretch?{stretch:1}:{}));
   if(state.sessions.length>3000)state.sessions=state.sessions.slice(-3000);
-  if(state.sessions.length>600)state.sessions.slice(0,-600).forEach(x=>{delete x.hits;}); // keep per-hit detail for the latest 600 runs only
+  if(STORE.mode!=='idb'&&state.sessions.length>600)state.sessions.slice(0,-600).forEach(x=>{delete x.hits;}); // keep per-hit detail for the latest 600 runs only
   save(); renderPracBar();
   try{updateSongHist();}catch(e){console.warn(e);}
   const tend=Math.abs(avg)<8?'Centred on the beat':avg<0?'Rushing: '+Math.round(-avg)+' ms ahead on average':'Dragging: '+Math.round(avg)+' ms behind on average';

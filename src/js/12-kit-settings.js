@@ -63,6 +63,8 @@ function renderSettings(){
    <div><label class="f">Pedal counts as open when CC 4 is</label>${sel('hhLowOpen',[['true','≤ threshold (low = open)'],['false','> threshold (high = open)']])}</div>
    <div><label class="f">Pedal threshold (0–127)</label><input type="number" data-set="hhOpenCC" value="${st.hhOpenCC}"></div></div>
   <h2>Appearance</h2><div class="card row"><span>Theme</span><div class="seg">${[['system','Device'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${tm===k?'on':''}" data-themeset="${k}">${l}</button>`).join('')}</div></div>
+  <h2>Storage</h2>${storageCard()}${TEST?'<div class="card" style="margin-top:10px"><button class="sm" data-act="stortest">Run storage tests</button><div id="stortests"></div></div>':''}
   <h2>Backup</h2><div class="card row"><button data-act="export">Export backup</button><button data-act="import">Import backup</button><span class="sp"></span><button class="ghost" data-act="wipe" style="color:var(--bad)">Reset all progress</button></div>
   <p class="mut" style="font-size:13px">${cloud?'Progress is saved to your Claude account and on this device.':'Progress is saved on this device (in this browser). Export a backup now and then.'}</p>`;
+  fillStorageCard();
 }

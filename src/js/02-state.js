@@ -11,9 +11,12 @@ state.set=Object.assign({...DEF_SET},state.set);
 state.art=Object.assign({...DEFAULT_ART},state.art||{});
 if(state.map[37]==null&&!Object.values(state.map).includes('__none'))state.map[37]='S';
 let cloud=null, saveT=null, saving=false, dirty=false;
+let bootReady=false,bootPending=false;
 function save(){
-  state.savedAt=Date.now();
-  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+  if(!bootReady){bootPending=true;return;}      // nothing is written until storage has loaded (02b-storage.js)
+  state.savedAt=Date.now();state.rev=(state.rev||0)+1;
+  if(STORE.mode==='idb')storeSave();
+  else try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
   if(cloud){clearTimeout(saveT);saveT=setTimeout(pushCloud,2500);}
 }
 async function pushCloud(){
@@ -32,7 +35,7 @@ async function pushCloud(){
     const d=db.collection('data/users/'+id).doc('drumpath');
     let r=await d.get(); let data=r&&(typeof r.data==='function'?r.data():(r.data!==undefined?r.data:r));
     cloud=d;
-    if(data&&data.v&&(data.savedAt||0)>(state.savedAt||0)){state=Object.assign(freshState(),data);state.set=Object.assign({...DEF_SET},state.set);if(typeof songStateFill==='function')songStateFill(state);try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} render();}
+    if(data&&data.v&&(data.savedAt||0)>(state.savedAt||0)){state=Object.assign(freshState(),data);state.set=Object.assign({...DEF_SET},state.set);if(typeof songStateFill==='function')songStateFill(state);save();render();}
     else pushCloud();
   }catch(e){console.warn('cloud',e);}
 })();
