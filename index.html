@@ -102,6 +102,8 @@ label.f{display:block;margin:10px 0 4px;font-size:14px;color:var(--mut)}
     <div class="ptitle" id="ptitle"></div>
     <div class="exsel" id="exsel"></div>
     <div class="sp"></div>
+    <button class="sm ghost" id="subbtn" data-act="subclick">Sub-click: Off</button>
+    <span id="simwrap"></span>
     <div class="passdots" id="pdots"></div>
     <div class="bpmc"><button data-act="bpm-">−</button><span id="bpmv">60</span><button data-act="bpm+">+</button><small class="mut">BPM</small></div>
     <button class="pri" id="go" data-act="go">Start</button>
@@ -415,6 +417,23 @@ function logMidi(st,n,vel,t){
 let kitMark='';
 function kitLogHtml(k){return kitLog.slice(0,k).map(x=>`${x.mark?`<div style="color:var(--warn);margin-top:6px">— ${esc(x.mark)} —</div>`:''}<div>${String('+'+x.gap+' ms').padStart(9)}  ${x.kind.padEnd(10)} ${String(x.n).padStart(3)}  ${x.kind==='Note'?'vel':'val'} ${String(x.vel).padStart(3)}${x.v?'  '+VOICES[x.v].n:x.kind==='Note'?'  (unmapped)':x.kind==='CC'&&x.n===4?'  hi-hat pedal':''}</div>`).join('')||'<span class="mut">Nothing yet: hit a pad.</span>';}
 function kitLogText(){return kitLog.slice().reverse().map(x=>(x.mark?'--- '+x.mark+' ---\n':'')+`+${x.gap}ms ${x.kind} ${x.n} ${x.kind==='Note'?'vel':'val'} ${x.vel}${x.v?' '+VOICES[x.v].n:''}`).join('\n');}
+let velChk=null;
+function velCheckStart(){
+  if(!midi)connectMidi();
+  velChk={i:0,v:[]};const m=document.createElement('div');m.className='modal';m.id='velm';
+  m.innerHTML=`<div class="card"><h2 style="margin-top:0">Velocity check</h2><p id="velp" style="font-size:22px;font-weight:700"></p><p class="mut" id="velv"></p><div class="row"><button id="velx">Cancel</button></div></div>`;
+  document.body.appendChild(m);$('#velx',m).onclick=()=>{velChk=null;m.remove();};velPrompt();
+}
+function velPrompt(){const i=velChk.i,lv=['SOFT','MEDIUM','LOUD'][Math.floor(i/4)];$('#velp').textContent=`Hit the snare ${lv} (${i%4+1} of 4)`;$('#velv').textContent=velChk.v.length?'Last: '+velChk.v[velChk.v.length-1]:'';}
+function velHit(vel){velChk.v.push(vel);velChk.i++;
+  if(velChk.i<12){velPrompt();return;}
+  const g=k=>velChk.v.slice(k*4,k*4+4), avg=a=>Math.round(a.reduce((x,y)=>x+y,0)/a.length);
+  const S=g(0),M=g(1),Lo=g(2);const ok=Math.max(...S)<Math.min(...M)&&Math.max(...M)<Math.min(...Lo);
+  state.velChk={s:avg(S),m:avg(M),l:avg(Lo),ok,ts:Date.now()};save();
+  $('#velp').textContent=`Soft ${avg(S)} · Medium ${avg(M)} · Loud ${avg(Lo)}`;
+  $('#velv').innerHTML=ok?'✓ The three levels are clearly apart: dynamics lessons will work well.':'⚠ The levels overlap (soft '+Math.min(...S)+'–'+Math.max(...S)+', medium '+Math.min(...M)+'–'+Math.max(...M)+', loud '+Math.min(...Lo)+'–'+Math.max(...Lo)+'). Raise the snare sensitivity on the module (Utility → trigger settings), then run this again.';
+  $('#velx').textContent='Close';velChk=null;if(cur==='kit')render();
+}
 function onMidi(e){
   const [st,n,vel]=e.data;
   const t=e.timeStamp||performance.now();
@@ -427,8 +446,35 @@ function onMidi(e){
     Object.keys(state.map).forEach(k=>{if(+k===n)delete state.map[k];});
     state.map[n]=learnVoice; save(); toast(VOICES[learnVoice].n+' ← note '+n); learnVoice=null; render(); return;
   }
+  if(velChk&&v==='S'){velHit(vel);return;}
   if(v)hit(v,vel,t);
 }
+
+/* ============ TEST MODE ============ */
+const TEST=/[?&]test=1\b/.test(location.search);
+function simVel(e,mode,even){
+  if(even)return mode==='dyn'?(e.step%2?50:95):80;
+  if(mode==='dyn')return e.ch==='X'?80:e.ch==='g'?82:80;
+  return e.ch==='X'?112:e.ch==='g'?34:80;
+}
+async function simulate(jit,mode){
+  await startRun();const R=run;const even=R.ex.dyn==='even';
+  R.evs.forEach(e=>{if(e.listen)return;
+    const j=jit?(Math.random()*2-1)*jit:0, tt=e.t+j+state.lat;
+    setTimeout(()=>{if(run===R)hit(e.v,simVel(e,mode,even),tt,e.art?(mode==='art'?(e.art==='open'?'closed':e.art==='closed'?'open':e.art==='rim'?'head':'rim'):e.art):undefined);},Math.max(0,tt-performance.now()));
+  });
+}
+function validateLessons(){
+  const out=[];
+  LESSONS.filter(l=>l.type==='play').forEach(l=>l.ex.forEach((ex,i)=>{
+    const spb=ex.steps||4*ex.sub, n=spb*ex.bars, tag=l.id+' · '+(i+1)+' '+ex.n;
+    Object.entries(ex.v).forEach(([v,str])=>{if(!LANES.includes(v))out.push(tag+': unknown lane '+v);if(str.length!==n)out.push(`${tag}: ${v} has ${str.length} steps, needs ${n}`);if(/[^.xXgorfd]/.test(str))out.push(tag+': odd char in '+v);});
+    if(ex.st&&ex.st.length!==n)out.push(`${tag}: sticking has ${ex.st.length}, pattern ${n}`);
+    if(ex.clicks&&ex.clicks.some(c=>c>=spb))out.push(tag+': click step beyond bar');
+  }));
+  return out;
+}
+window.validateLessons=validateLessons;
 
 /* ============ AUDIO ============ */
 let ac=null, noiseBuf=null;
@@ -464,25 +510,43 @@ function drum(v,t,nodes){
 let L=null, exI=0, bpm=60, run=null, preview=null, lastFeed=0, flashes={}, wake=null;
 const cv=$('#cv'), cx=cv.getContext('2d');
 
+function beatStepsOf(ex){const sub=ex.sub,spb=ex.steps||4*sub;return ex.clicks?ex.clicks.slice():Array.from({length:Math.ceil(spb/sub)},(_,i)=>i*sub).filter(x=>x<spb);}
 function buildRun(lesson,ex,bpmv,base,opts={}){
-  const sub=ex.sub, spb=4*sub, patSteps=spb*ex.bars;
-  const beatMs=60000/bpmv, stepMs=beatMs/sub;
+  const sub=ex.sub, spb=ex.steps||4*sub, patSteps=spb*ex.bars;
+  const beatMs=60000/bpmv, stepMs=beatMs/sub, barMs=spb*stepMs;
+  const swOff=((ex.swing||0.5)-0.5)*2*stepMs;
+  const sw=st=>(st%spb)%2?swOff:0;
   let reps;
   if(lesson.loop===1||opts.calib)reps=1;
   else{const want=Math.max(state.set.bars,ex.bars);reps=Math.ceil(want/ex.bars);if(lesson.call&&reps%2)reps++;}
-  const cin=(opts.calib?1:state.set.countin)*4;
+  const cinBars=opts.calib?1:state.set.countin, cinMs=cinBars*barMs;
   const evs=[];
   for(let r=0;r<reps;r++){
     const listen=lesson.call&&r%2===0;
     for(const v in ex.v){const s=ex.v[v];
       for(let i=0;i<patSteps;i++){const c=s[i];if(!c||c==='.')continue;
         const step=r*patSteps+i;
-        evs.push({v,ch:c,t:base+cin*beatMs+step*stepMs,acc:c==='X',ghost:c==='g',st:ex.st?ex.st[i%ex.st.length]:'',listen,hide:lesson.call&&!listen,step,bar:Math.floor(step/spb)});
+        evs.push({v,ch:c,t:base+cinMs+step*stepMs+sw(step),acc:c==='X',ghost:c==='g',st:ex.st?ex.st[i%ex.st.length]:'',listen,hide:lesson.call&&!listen,step,bar:Math.floor(step/spb)});
       }}
   }
   evs.sort((a,b)=>a.t-b.t);
-  const totalBeats=cin+reps*ex.bars*4;
-  return{lesson,ex,bpm:bpmv,base,beatMs,stepMs,sub,cin,reps,evs,totalBeats,end:base+totalBeats*beatMs,extras:[],nodes:[],calib:!!opts.calib,spb};
+  // clicks + grid lines (relative ms from base)
+  const beats=beatStepsOf(ex), mode=ex.click||'all';
+  const play=mode==='24'?beats.filter((_,i)=>i===1||i===3):mode==='1'?[0]:beats;
+  const subOn=opts.subclick!=null?opts.subclick:state.set.subclick;
+  const clicks=[], grid=[];
+  for(let b=0;b<cinBars;b++)beats.forEach((st,i)=>{const t=b*barMs+st*stepMs;clicks.push({t,k:i===0?'acc':'beat',cin:true,n:i+1});grid.push({t,bar:false});});
+  const totalBars=reps*ex.bars;
+  for(let b=0;b<totalBars;b++)for(let st=0;st<spb;st++){
+    const t=cinMs+b*barMs+st*stepMs+sw(st);
+    if(play.includes(st))clicks.push({t,k:st===0?'acc':'beat'});
+    else if(subOn&&!beats.includes(st))clicks.push({t,k:'sub'});
+    else if(subOn&&mode!=='all'&&beats.includes(st))clicks.push({t,k:'sub'});
+    if(beats.includes(st))grid.push({t,bar:st===0});
+  }
+  grid.push({t:cinMs+totalBars*barMs,bar:true});
+  const totalMs=cinMs+totalBars*barMs;
+  return{lesson,ex,bpm:bpmv,base,beatMs,stepMs,barMs,sub,spb,cinBars,cinMs,reps,evs,clicks,grid,totalMs,end:base+totalMs,extras:[],nodes:[],calib:!!opts.calib};
 }
 
 function openPractice(id){
@@ -492,6 +556,8 @@ function openPractice(id){
   renderPracBar(); renderPads(L.ex[exI]); sizeCv(); makePreview(); draw();
 }
 function renderPracBar(){
+  const sb=$('#subbtn');if(sb)sb.textContent='Sub-click: '+(state.set.subclick?'On':'Off');
+  const sw=$('#simwrap');if(sw)sw.innerHTML=TEST&&!L.calib?`<select id="simj" class="sm"><option value="0">jitter 0</option><option value="15">jitter 15</option><option value="40">jitter 40</option></select><select id="simm"><option value="ok">all correct</option><option value="dyn">wrong dynamics</option><option value="art">wrong sound</option><option value="nograce">no graces</option></select><button class="sm" data-act="simulate">Simulate</button>`:'';
   $('#exsel').innerHTML=L.ex.length>1?L.ex.map((e,i)=>`<button class="${i===exI?'on':''}" data-act="ex" data-i="${i}">${esc(e.n)}</button>`).join(''):`<span class="mut">${esc(L.ex[0].n)}</span>`;
   $('#bpmv').textContent=bpm;
   if(L.calib){$('#pdots').innerHTML='<span>Latency test</span>';return;}
@@ -513,11 +579,7 @@ async function startRun(){
   const base=pNow+(t0-cNow)*1000+outLat;
   run=buildRun(L,L.ex[exI],bpm,base,{calib:L.calib});
   run.t0=t0; run.startPerf=performance.now();
-  const bs=run.beatMs/1000;
-  for(let b=0;b<run.totalBeats;b++){
-    const t=t0+b*bs; click(t,b%4===0?'acc':'beat',run.nodes);
-    if(state.set.subclick&&run.sub>1)for(let s=1;s<run.sub;s++)click(t+s*bs/run.sub,'sub',run.nodes);
-  }
+  run.clicks.forEach(c=>click(t0+c.t/1000,c.k,run.nodes));
   run.evs.forEach(e=>{if(e.listen)drum(e.v,t0+(e.t-base)/1000,run.nodes);});
   flashes={}; $('#pfeed').textContent=''; $('#go').textContent='Stop'; $('#result').classList.add('hidden');
   try{if(navigator.wakeLock&&!wake)wake=await navigator.wakeLock.request('screen');}catch(e){}
@@ -538,9 +600,9 @@ function hit(v,vel,tp){
   if(!run||$('#prac').classList.contains('hidden'))return;
   const lat=run.calib?0:state.lat;
   const t=tp-lat;
-  const start=run.base+run.cin*run.beatMs;
+  const start=run.base+run.cinMs;
   if(t<start-state.set.win)return; // ignore count-in
-  if(run.lesson.call){const repMs=run.stepMs*run.spb*run.ex.bars;const r=Math.floor((t-start)/repMs);if(r%2===0&&t<start+(r+1)*repMs-state.set.win)return;} // listening bars
+  if(run.lesson.call){const repMs=run.barMs*run.ex.bars;const r=Math.floor((t-start)/repMs);if(r%2===0&&t<start+(r+1)*repMs-state.set.win)return;} // listening bars
   let best=null,bd=1e9;
   for(const e of run.evs){if(e.listen||e.v!==v||e.hitT!=null)continue;const d=Math.abs(t-e.t);if(d<bd&&d<=state.set.win){bd=d;best=e;}}
   if(best){best.hitT=t;best.dt=t-best.t;best.vel=vel;
@@ -576,9 +638,9 @@ function draw(){
   const W=cv.clientWidth,H=cv.clientHeight; if(!W||!H)return;
   cx.clearRect(0,0,W,H);
   const R=run||preview; if(!R)return;
-  const now=run?performance.now():(R.base+R.cin*R.beatMs-R.beatMs*0.6);
+  const now=run?performance.now():(R.base+R.cinMs-R.beatMs*0.6);
   const vs=LANES.filter(v=>R.ex.v[v]); const n=vs.length; const top=34, lh=(H-top-6)/n;
-  const hitX=Math.max(110,W*0.17); const barMs=R.beatMs*4; const ppm=(W-hitX)*0.62/barMs;
+  const hitX=Math.max(110,W*0.17); const ppm=(W-hitX)*0.62/Math.max(R.barMs,R.beatMs*3);
   // lanes
   vs.forEach((v,i)=>{const y=top+i*lh;cx.fillStyle=i%2?'#14171d':'#171a21';cx.fillRect(0,y,W,lh);
     const fl=flashes[v]&&performance.now()-flashes[v]<140;
@@ -586,8 +648,8 @@ function draw(){
     if(fl){cx.fillStyle=VOICES[v].c+'55';cx.fillRect(hitX-30,y,60,lh);}
   });
   // beat lines
-  for(let b=0;b<R.totalBeats+1;b++){const t=R.base+b*R.beatMs;const x=hitX+(t-now)*ppm;if(x<hitX-200||x>W)continue;
-    const isBar=b>=R.cin&&(b-R.cin)%4===0;cx.strokeStyle=isBar?'#3a414f':'#242934';cx.lineWidth=isBar?2:1;cx.beginPath();cx.moveTo(x,top);cx.lineTo(x,H);cx.stroke();}
+  for(const g of R.grid){const x=hitX+(R.base+g.t-now)*ppm;if(x<hitX-200||x>W)continue;
+    const isBar=g.bar;cx.strokeStyle=isBar?'#3a414f':'#242934';cx.lineWidth=isBar?2:1;cx.beginPath();cx.moveTo(x,top);cx.lineTo(x,H);cx.stroke();}
   // hit line
   cx.strokeStyle='#e9ecf1';cx.lineWidth=3;cx.beginPath();cx.moveTo(hitX,top-4);cx.lineTo(hitX,H);cx.stroke();
   // notes
@@ -606,9 +668,9 @@ function draw(){
   // header info
   cx.fillStyle='#8b93a3';cx.font='600 13px system-ui';cx.textBaseline='middle';
   if(run){
-    const beat=Math.floor((now-R.base)/R.beatMs);
-    if(beat<R.cin&&beat>=0){cx.fillStyle='#e9ecf1';cx.font='800 72px system-ui';cx.textAlign='center';cx.fillText(String(beat%4+1),W/2,H/2);cx.textAlign='left';}
-    else if(beat>=R.cin){const bar=Math.floor((beat-R.cin)/4);const totalBars=R.reps*R.ex.bars;
+    const rel=now-R.base;
+    if(rel>=0&&rel<R.cinMs){const c=R.clicks.filter(c=>c.cin&&c.t<=rel).pop();if(c){cx.fillStyle='#e9ecf1';cx.font='800 72px system-ui';cx.textAlign='center';cx.fillText(String(c.n),W/2,H/2);cx.textAlign='left';}}
+    else if(rel>=R.cinMs){const bar=Math.floor((rel-R.cinMs)/R.barMs);const totalBars=R.reps*R.ex.bars;
       let lab='Bar '+Math.min(bar+1,totalBars)+' / '+totalBars;
       if(R.lesson.call){lab+=Math.floor(bar/R.ex.bars)%2===0?'   ·   LISTEN':'   ·   YOUR TURN';}
       cx.fillText(lab,hitX,16);}
@@ -662,8 +724,11 @@ function finish(){
     }else msg='Passed, but below your current target ('+p.bpm+' BPM), so it doesn’t count toward the streak.';
   }else{if(R.bpm>=p.bpm)p.streak=0;msg=(score<state.set.pass?'Need '+state.set.pass+'% timing':'Need '+state.set.dynPass+'% dynamics')+' to pass. Streak reset.';}
   p.best=Math.max(p.best,score);
-  state.sessions.push(Object.assign({ts:Date.now(),id:L.id,ex:exI,bpm:R.bpm,score,on:on.length,n:sc.length,ext,miss,avg:Math.round(avg)},dynScore!=null?{dyn:dynScore}:{}));
+  const padRec={};LANES.forEach(v=>{const q=per[v];if(!q)return;padRec[v]=[q.n,q.on,q.n-q.hit,q.ext||0,q.hit?Math.round(q.sum/q.hit):null,q.dn?Math.round(100*(q.dok||0)/q.dn):null];});
+  const hitRec=sc.filter(e=>e.hitT!=null).slice(0,256).map(e=>[LANES.indexOf(e.v),Math.round(e.dt),e.vel||0]);
+  state.sessions.push(Object.assign({ts:Date.now(),id:L.id,ex:exI,bpm:R.bpm,score,on:on.length,n:sc.length,ext,miss,avg:Math.round(avg),pads:padRec,hits:hitRec,dur:Math.round(elapsed/1000)},dynScore!=null?{dyn:dynScore}:{}));
   if(state.sessions.length>3000)state.sessions=state.sessions.slice(-3000);
+  if(state.sessions.length>600)state.sessions.slice(0,-600).forEach(x=>{delete x.hits;}); // keep per-hit detail for the latest 600 runs only
   save(); renderPracBar();
   const tend=Math.abs(avg)<8?'Centred on the beat':avg<0?'Rushing: '+Math.round(-avg)+' ms ahead on average':'Dragging: '+Math.round(avg)+' ms behind on average';
   const rows=LANES.filter(v=>per[v]).map(v=>{const q=per[v];const a=q.hit?Math.round(q.sum/q.hit):0;
@@ -719,7 +784,8 @@ function renderHome(){
   <div class="card">${recent.length?`<table><tr><th>When</th><th>Lesson</th><th>BPM</th><th>Score</th><th>Timing</th></tr>${recent.map(s=>`<tr data-open="${s.id}" style="cursor:pointer"><td>${new Date(s.ts).toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'})}</td><td><span class="idx">${s.id}</span> ${esc(LBY[s.id]?LBY[s.id].t:'')}</td><td>${s.bpm}</td><td>${s.score}%</td><td>${s.avg>0?'+':''}${s.avg} ms</td></tr>`).join('')}</table>`:'<span class="mut">No runs yet. Start with Level 0 to set up, then 1.2.02.</span>'}</div>`;
 }
 function renderLessons(){
-  const all=[...LESSONS,...LATER]; let html='<h1>Lessons</h1><p class="mut">Everything is unlocked: start at the top and move on when you feel ready. Levels 0–2 are playable now; Levels 3–10 are indexed and will be added next.</p>';
+  const all=[...LESSONS,...LATER]; const vi=TEST?validateLessons():[];
+  let html=(TEST?`<div class="card" style="border-color:${vi.length?'var(--warn)':'var(--acc)'};margin-bottom:12px"><b>Test mode</b> · lesson data check: ${vi.length?vi.length+' issue(s)':'all patterns valid ✓'}${vi.length?`<div class="pat" style="margin-top:8px;max-height:200px;overflow:auto">${esc(vi.join('\n'))}</div>`:''}</div>`:'')+'<h1>Lessons</h1><p class="mut">Everything is unlocked: start at the top and move on when you feel ready. Levels 0–2 are playable now; Levels 3–10 are indexed and will be added next.</p>';
   for(let lv=0;lv<=10;lv++){
     const ls=all.filter(l=>l.lv===lv);const done=ls.filter(l=>statusOf(l)==='ms').length;const play=lv<=2;
     html+=`<div class="lvl"><div class="lvlh" data-lv="${lv}"><span>Level ${lv}: ${LEVELS[lv]}</span><span class="sp"></span>${play?`<span class="mut">${done}/${ls.length}</span>`:'<span class="chip">Coming</span>'}<span>${openLv[lv]?'▾':'▸'}</span></div>`;
@@ -736,10 +802,13 @@ function renderLessons(){
   }
   view.innerHTML=html;
 }
+function exMeta(e){const g={1:'quarter notes',2:'8th notes',3:'triplets',4:'16th notes',6:'16th-note triplets',8:'32nd notes'}[e.sub]||('÷'+e.sub);
+  const m=e.meter||(e.steps&&e.steps!==4*e.sub?e.steps+' steps per bar':'');
+  return [g,m,e.bars>1?e.bars+' bars':'',e.swing&&e.swing!==0.5?'swing '+Math.round(e.swing*100)+'%':'',e.click&&e.click!=='all'?(e.click==='24'?'click on 2 & 4 only':'click on 1 only'):'',e.dyn==='even'?'even doubles scored':isDyn(e)?'dynamics scored':''].filter(Boolean).join(' · ');}
 function patText(ex){
-  const n=ex.sub*4*ex.bars;
-  const cnt=Array.from({length:n},(_,i)=>{const b=i%(ex.sub*4);if(b%ex.sub===0)return String(b/ex.sub+1);return ex.sub===2?'&':ex.sub===3?(b%3===1?'t':'l'):['','e','&','a'][b%4];});
-  const fmt=a=>a.map((c,i)=>(i&&i%(ex.sub*4)===0?'| ':'')+c).join(' ');
+  const spb=ex.steps||ex.sub*4, n=spb*ex.bars;
+  const cnt=Array.from({length:n},(_,i)=>{const b=i%spb;if(b%ex.sub===0)return String(b/ex.sub+1);return ex.sub===2?'&':ex.sub===3?(b%3===1?'t':'l'):['','e','&','a'][b%4];});
+  const fmt=a=>a.map((c,i)=>(i&&i%spb===0?'| ':'')+c).join(' ');
   let lines=['       '+fmt(cnt)];
   if(ex.st)lines.push('Stick  '+fmt(Array.from({length:n},(_,i)=>ex.st[i%ex.st.length]||'.')));
   LANES.filter(v=>ex.v[v]).forEach(v=>lines.push(VOICES[v].n.padEnd(7).slice(0,7)+fmt(ex.v[v].slice(0,n).split('').map(c=>c==='.'?'·':c==='X'?'>':'x'))));
@@ -753,11 +822,13 @@ function renderLesson(id){
     body=`<div class="grid"><div class="card"><div class="mut">Current target</div><div class="big">${p.bpm} BPM</div><div class="mut">goal ${l.bpm[1]} · +${l.step} per 3 passes</div></div>
       <div class="card"><div class="mut">Best score</div><div class="big">${p.best}%</div><div class="mut">best passing tempo ${p.bestBpm||'–'}</div></div>
       <div class="card"><div class="mut">Practice</div><div class="big">${mins(p.ms)} min</div><div class="mut">${p.attempts} runs</div></div></div>
-      <h2>Exercises</h2>${l.ex.map(e=>`<div class="card" style="margin-bottom:10px"><b>${esc(e.n)}</b> <span class="mut">· ${e.sub===1?'quarter notes':e.sub===2?'8th notes':e.sub===3?'triplets':'16th notes'}${e.bars>1?' · '+e.bars+' bars':''}</span><div class="pat">${esc(patText(e))}</div></div>`).join('')}
+      <h2>Exercises</h2>${l.ex.map(e=>`<div class="card" style="margin-bottom:10px"><b>${esc(e.n)}</b> <span class="mut">· ${exMeta(e)}</span><div class="pat">${esc(patText(e))}</div></div>`).join('')}
       <div class="row" style="margin-top:14px"><button class="pri" style="font-size:20px;padding:14px 34px" data-play="${id}">Practise</button>${s==='ms'?'<button data-reset="'+id+'">Reset progress</button>':''}</div>`;
   }else{
     const ck=state.done[id+'_ck']||{};
-    body=`${l.check?`<div class="card">${l.check.map((c,i)=>`<label class="row" style="padding:8px 0;cursor:pointer"><input type="checkbox" data-ck="${id}" data-i="${i}" ${ck[i]?'checked':''} style="width:22px;height:22px"> ${esc(c)}</label>`).join('')}</div>`:''}
+    const qa=state.done[id+'_qa']||{};
+    const quiz=l.quiz?`<h2>Quick quiz</h2>${l.quiz.map((q,i)=>`<div class="card" style="margin-bottom:10px"><b>${i+1}. ${esc(q.q)}</b><div class="row" style="margin-top:8px">${q.a.map((a,j)=>`<button class="sm ${qa[i]===j?(j===q.c?'pri':''):''}" ${qa[i]===j&&j!==q.c?'style="border-color:var(--bad);color:var(--bad)"':''} data-quiz="${id}" data-qi="${i}" data-qj="${j}">${esc(a)}</button>`).join('')}</div>${qa[i]!=null?`<p class="mut" style="margin:8px 0 0">${qa[i]===q.c?'✓ ':'✗ '}${esc(q.why||'')}</p>`:''}</div>`).join('')}`:'';
+    body=`${quiz}${l.check?`<div class="card">${l.check.map((c,i)=>`<label class="row" style="padding:8px 0;cursor:pointer"><input type="checkbox" data-ck="${id}" data-i="${i}" ${ck[i]?'checked':''} style="width:22px;height:22px"> ${esc(c)}</label>`).join('')}</div>`:''}
       <div class="row" style="margin-top:14px">
       ${l.tool==='kit'?'<button class="pri" data-go="kit">Open Kit & Settings</button>':''}
       ${l.tool==='latency'?'<button class="pri" data-act="latency">Run latency test</button>':''}
@@ -817,6 +888,8 @@ function renderKit(){
    <div class="row" style="margin-bottom:8px">${['HH pedal UP: hit hi-hat 4×','HH pedal DOWN: hit hi-hat 4×','HH half open: hit 4×','Press & lift HH pedal slowly','Snare head 4×','Snare rim / cross-stick 4×','Flams on snare 4× (slow)','Drags on snare 4×'].map((m,i)=>`<button class="sm" data-kitmark="${esc(m)}">${i+1}. ${esc(m)}</button>`).join('')}</div>
    <div class="row" style="margin-bottom:8px"><button class="sm pri" data-act="kitcopy">Copy log</button><button class="sm ghost" data-act="kitclear">Clear</button><span class="mut">Hi-hat pedal (CC 4): <b id="hhcc">${hhCC==null?'not seen yet':hhCC}</b></span></div>
    <div id="kitlog" class="pat" style="max-height:320px;overflow:auto;white-space:pre">${kitLogHtml(40)}</div></div>
+  <h2>Velocity check</h2>
+  <div class="card row"><div class="mut" style="flex:1">Hit the snare soft, medium and loud, 4 times each. If the three levels overlap, raise the snare's sensitivity on the module (Utility → trigger settings) before dynamics lessons.${state.velChk?`<br><b>Last check:</b> soft ${state.velChk.s}, medium ${state.velChk.m}, loud ${state.velChk.l}${state.velChk.ok?' ✓ well separated':' ⚠ overlapping'}`:''}</div><button class="pri" data-act="velcheck">Run velocity check</button></div>
   <h2>Pad mapping</h2>
   <div class="card"><p class="mut" style="margin-top:0">Defaults follow the General MIDI layout the Nitro uses. To confirm, tap Learn and hit that pad. Hi-hat can hold several notes (open / closed): learn it twice, once each way.</p>
    <table>${LANES.map(v=>`<tr class="${learnVoice===v?'learn':''}"><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td class="mut">${(byV[v]||[]).map(n=>'note '+n).join(', ')||'–'}</td><td style="text-align:right"><button class="sm" data-learn="${v}">${learnVoice===v?'Hit the pad…':'Learn'}</button> <button class="sm ghost" data-unmap="${v}">Clear</button></td></tr>`).join('')}</table>
@@ -843,6 +916,8 @@ function renderKit(){
 /* ============ EVENTS ============ */
 document.addEventListener('click',async e=>{
   const km=e.target.closest('[data-kitmark]');if(km){kitMark=km.dataset.kitmark;toast('Now: '+kitMark);if(!midi)connectMidi();return;}
+  const qz=e.target.closest('[data-quiz]');if(qz){const id=qz.dataset.quiz,l=LBY[id];const qa=state.done[id+'_qa']=state.done[id+'_qa']||{};qa[qz.dataset.qi]=+qz.dataset.qj;
+    if(l.quiz.every((q,i)=>qa[i]===q.c)&&(!l.check||l.check.every((_,i)=>(state.done[id+'_ck']||{})[i]))){state.done[id]=true;toast('Lesson done ✓');}save();render();return;}
   const t=e.target.closest('[data-go],[data-open],[data-play],[data-act],[data-lv],[data-back],[data-done],[data-learn],[data-unmap],[data-edit],[data-del],[data-addsug],[data-reset],[data-ex]');
   if(!t)return; const d=t.dataset;
   if(d.go){go(d.go);return;}
@@ -860,6 +935,9 @@ document.addEventListener('click',async e=>{
   const a=d.act;
   if(a==='ex'){if(run)return;exI=+d.i;P(L.id).ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
   if(a==='go'){if(run)stopRun();else startRun();return;}
+  if(a==='subclick'){if(run)return;state.set.subclick=!state.set.subclick;save();renderPracBar();makePreview();draw();return;}
+  if(a==='simulate'){if(run)return;simulate(+$('#simj').value,$('#simm').value);return;}
+  if(a==='velcheck'){velCheckStart();return;}
   if(a==='again'){$('#result').classList.add('hidden');startRun();return;}
   if(a==='pexit'){stopRun();$('#prac').classList.add('hidden');try{wake&&wake.release();}catch(_){}wake=null;const back=L&&!L.calib&&LBY[L.id]?L.id:null;L=null;if(back){openL=back;}render();return;}
   if(a==='bpm-'||a==='bpm+'){if(run)return;bpm=Math.max(30,Math.min(300,bpm+(a==='bpm+'?5:-5)));$('#bpmv').textContent=bpm;makePreview();draw();return;}
@@ -878,7 +956,7 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','dynPass','bars','countin','win'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
   if(t.dataset.ck){const id=t.dataset.ck;const ck=state.done[id+'_ck']=state.done[id+'_ck']||{};ck[t.dataset.i]=t.checked;
-    const l=LBY[id];if(l.check&&l.check.every((_,i)=>ck[i]))state.done[id]=true;save();render();}
+    const l=LBY[id];if(l.check&&l.check.every((_,i)=>ck[i])&&(!l.quiz||l.quiz.every((q,i)=>(state.done[id+'_qa']||{})[i]===q.c)))state.done[id]=true;save();render();}
 });
 document.addEventListener('pointerdown',e=>{const p=e.target.closest('[data-pad]');if(p){e.preventDefault();hit(p.dataset.pad,100,performance.now());}});
 const KEYS={f:'K',j:'S',k:'HH',d:'HP',u:'T1',i:'T2',l:'T3',o:'C',p:'R'};
