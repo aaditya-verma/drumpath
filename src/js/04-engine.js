@@ -31,7 +31,7 @@ function drum(v,t,nodes){
 }
 
 /* ============ PRACTICE ENGINE ============ */
-let lastRunTs=0, L=null, exI=0, bpm=60, run=null, preview=null, lastFeed=0, flashes={}, wake=null;
+let stretchMode=false, lastRunTs=0, L=null, exI=0, bpm=60, run=null, preview=null, lastFeed=0, flashes={}, wake=null;
 const cv=$('#cv'), cx=cv.getContext('2d');
 
 function beatStepsOf(ex){const sub=ex.sub,spb=ex.steps||4*sub;return ex.clicks?ex.clicks.slice():Array.from({length:Math.ceil(spb/sub)},(_,i)=>i*sub).filter(x=>x<spb);}
@@ -74,7 +74,7 @@ function buildRun(lesson,ex,bpmv,base,opts={}){
 }
 
 function openPractice(id){
-  L=LBY[id]; const p=P(id); exI=Math.min(p.ex||0,L.ex.length-1); bpm=p.bpm||L.bpm[0];
+  L=LBY[id]; stretchMode=false; const p=P(id); exI=Math.min(p.ex||0,L.ex.length-1); bpm=p.bpm||L.bpm[0];
   $('#prac').classList.remove('hidden'); $('#result').classList.add('hidden');
   $('#ptitle').innerHTML=`<span class="idx">${L.id}</span>${esc(L.t)}`;
   renderPracBar(); renderPads(L.ex[exI]); sizeCv(); makePreview(); draw();
@@ -86,8 +86,13 @@ function renderPracBar(){
   $('#bpmv').textContent=bpm;
   if(L.calib){$('#pdots').innerHTML='<span>Latency test</span>';return;}
   const p=P(L.id);
+  const sx=stretchMax(L.id),cs=canStretch(L.id);
+  $('#stretchwrap').innerHTML=sx&&cs?`<button class="sm ${stretchMode?'pri':''}" data-act="stretch" title="Keep climbing +${L.step} BPM above the lesson goal, up to the fastest song that uses this lesson">${stretchMode?'Stretch on · '+(p.stretchBpm||L.bpm[1]+L.step)+' → '+sx:'Stretch to song tempo → '+sx}</button>`:'';
+  if(stretchMode&&cs){$('#pdots').innerHTML=`<span>Stretch</span>`+[0,1,2].map(i=>`<i class="${i<(p.sStreak||0)?'f':''}"></i>`).join('')+`<span>@ ${p.stretchBpm||L.bpm[1]+L.step} · songs ${sx}</span>`;return;}
   $('#pdots').innerHTML=`<span>${p.status==='mastered'?'Mastered':'Passes'}</span>`+[0,1,2].map(i=>`<i class="${i<p.streak||p.status==='mastered'?'f':''}"></i>`).join('')+`<span>@ ${p.bpm} · goal ${L.bpm[1]}</span>`;
 }
+// stretch is offered once the lesson is passed at its goal (mastered, or 3 passing runs at the goal tempo)
+function canStretch(id){const l=LBY[id];if(!l||!l.bpm)return false;const p=state.prog[id];if(p&&p.status==='mastered')return true;try{return (songCtx().pass[id]||0)>=l.bpm[1];}catch(e){return false;}}
 function renderPads(ex){
   const vs=LANES.filter(v=>ex.v[v]);
   $('#pads').classList.toggle('hidden',!state.set.pads);
@@ -102,6 +107,7 @@ async function startRun(){
   const outLat=((a.outputLatency||0)+(a.baseLatency||0))*1000;
   const base=pNow+(t0-cNow)*1000+outLat;
   run=buildRun(L,L.ex[exI],bpm,base,{calib:L.calib});
+  run.stretch=!L.calib&&stretchMode&&canStretch(L.id)&&bpm>L.bpm[1];
   run.t0=t0; run.startPerf=performance.now();
   run.clicks.forEach(c=>click(t0+c.t/1000,c.k,run.nodes));
   run.evs.forEach(e=>{if(e.listen)drum(e.v,t0+(e.t-base)/1000,run.nodes);});
@@ -272,22 +278,30 @@ function finish(){
   if(p.status==='new')p.status='progress';
   let msg='';
   const passed=score>=state.set.pass&&(dynScore==null||dynScore>=state.set.dynPass);
-  if(passed){p.bestBpm=Math.max(p.bestBpm,R.bpm);
+  if(R.stretch){ // song-tempo stretch: its own +5 ladder above the goal; never changes the lesson's pass status
+    const mx=stretchMax(L.id);p.stretchBpm=p.stretchBpm||Math.min(mx,L.bpm[1]+L.step);
+    if(passed&&R.bpm>=p.stretchBpm){p.sStreak=(p.sStreak||0)+1;
+      if(p.sStreak>=3){p.sStreak=0;if(p.stretchBpm>=mx)msg='Stretch done: '+p.stretchBpm+' BPM, your fastest song tempo for this lesson.';else{p.stretchBpm=Math.min(mx,p.stretchBpm+L.step);bpm=p.stretchBpm;msg='Stretch up! Next: '+p.stretchBpm+' BPM (songs go to '+mx+')';}}
+      else msg='Stretch pass '+p.sStreak+' of 3 at '+p.stretchBpm+' BPM';}
+    else if(passed)msg='Passed, below the stretch target ('+p.stretchBpm+' BPM).';
+    else{if(R.bpm>=p.stretchBpm)p.sStreak=0;msg='Stretch run: need '+state.set.pass+'% to count.';}
+  }else if(passed){p.bestBpm=Math.max(p.bestBpm,R.bpm);
     if(R.bpm>=p.bpm){p.streak++;
       if(p.streak>=3){p.streak=0;
         if(p.bpm>=L.bpm[1]){if(p.status!=='mastered'){p.status='mastered';p.masteredAt=Date.now();msg='🎉 Lesson mastered at '+p.bpm+' BPM!';}else msg='Still mastered. Nice.';}
         else{p.bpm=Math.min(L.bpm[1],p.bpm+L.step);msg='Tempo up! Next target: '+p.bpm+' BPM';bpm=p.bpm;}
       }else msg='Pass '+p.streak+' of 3 at '+p.bpm+' BPM';
     }else msg='Passed, but below your current target ('+p.bpm+' BPM), so it doesn’t count toward the streak.';
-  }else{if(R.bpm>=p.bpm)p.streak=0;msg=(score<state.set.pass?'Need '+state.set.pass+'% timing':'Need '+state.set.dynPass+'% dynamics')+' to pass. Streak reset.';}
+  }else if(!R.stretch){if(R.bpm>=p.bpm)p.streak=0;msg=(score<state.set.pass?'Need '+state.set.pass+'% timing':'Need '+state.set.dynPass+'% dynamics')+' to pass. Streak reset.';}
   p.best=Math.max(p.best,score);
   const padRec={};LANES.forEach(v=>{const q=per[v];if(!q)return;padRec[v]=[q.n,q.on,q.n-q.hit,q.ext||0,q.hit?Math.round(q.sum/q.hit):null,q.dn?Math.round(100*(q.dok||0)/q.dn):null];});
   const hitRec=sc.filter(e=>e.hitT!=null).slice(0,256).map(e=>[LANES.indexOf(e.v),Math.round(e.dt),e.vel||0]);
   lastRunTs=Date.now();
-  state.sessions.push(Object.assign({ts:lastRunTs,id:L.id,ex:exI,bpm:R.bpm,score,on:on.length,n:sc.length,ext,miss,avg:Math.round(avg),pads:padRec,hits:hitRec,dur:Math.round(elapsed/1000)},dynScore!=null?{dyn:dynScore}:{}));
+  state.sessions.push(Object.assign({ts:lastRunTs,id:L.id,ex:exI,bpm:R.bpm,score,on:on.length,n:sc.length,ext,miss,avg:Math.round(avg),pads:padRec,hits:hitRec,dur:Math.round(elapsed/1000)},dynScore!=null?{dyn:dynScore}:{},R.stretch?{stretch:1}:{}));
   if(state.sessions.length>3000)state.sessions=state.sessions.slice(-3000);
   if(state.sessions.length>600)state.sessions.slice(0,-600).forEach(x=>{delete x.hits;}); // keep per-hit detail for the latest 600 runs only
   save(); renderPracBar();
+  try{updateSongHist();}catch(e){console.warn(e);}
   const tend=Math.abs(avg)<8?'Centred on the beat':avg<0?'Rushing: '+Math.round(-avg)+' ms ahead on average':'Dragging: '+Math.round(avg)+' ms behind on average';
   const grCol=hasGraces(R.ex)&&state.set.graceMode!=='lenient', sndCol=hasArt(R.ex)&&state.set.scoreArt!==false;
   const rows=LANES.filter(v=>per[v]).map(v=>{const q=per[v];const a=q.hit?Math.round(q.sum/q.hit):0;

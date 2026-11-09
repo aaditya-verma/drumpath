@@ -1,6 +1,6 @@
 # DrumPath
 
-Drum practice app for the Alesis Nitro kit (Web MIDI), with scored lessons, progress tracking and song tagging.
+Drum practice app for the Alesis Nitro kit (Web MIDI), with scored lessons, progress tracking and a 62-song play-along library with readiness scores and a Song × Lesson matrix.
 Live: https://aaditya-verma.github.io/drumpath/
 
 ## Files

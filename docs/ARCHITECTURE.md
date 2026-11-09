@@ -10,7 +10,7 @@ script/style tag when files change so tablets pick up the new version.
 | `src/css/app.css` | Design tokens (light/dark), pad colours `--p-*`, fonts, all component styles |
 | `lessons/lib.js` | Pattern helpers (`X`, `rep`, `withFill`, `B8`, `B8_16`), `DP_LESSONS` |
 | `lessons/L0-2.js`, `lessons/L3.js` | Lesson data, one file per level band |
-| `src/js/01-data.js` | Pads (`VOICES`, `LANES`), default MIDI map + articulations, levels, strands, `LATER` index, starter songs |
+| `src/js/01-data.js` | Pads (`VOICES`, `LANES`), default MIDI map + articulations, levels, strands, `LATER` index |
 | `src/js/02-state.js` | Saved state (`localStorage` `drumpath.v1`, Claude account sync when framed), helpers |
 | `src/js/03-midi.js` | Web MIDI, articulation (open hi-hat / rim, CC 4 fallback), kit-check log, velocity check, test mode |
 | `src/js/04-engine.js` | Audio click + synth, `buildRun` (meters, clicks, swing, graces), `hit` matching, scoring (`finish`), note-lane canvas |
@@ -20,7 +20,9 @@ script/style tag when files change so tablets pick up the new version.
 | `src/js/08-lessons.js` | Skill map → level → strand → lesson (tempo ladder, by-pad table, exercises, runs) |
 | `src/js/09-progress.js` | Progress: timeline drill-down, calendar, pads & limbs, records; run detail; pad trend sheet |
 | `src/js/10-compare.js` | Compare: crosstab (rows × columns × measure × period), cell → runs → run detail |
-| `src/js/11-songs.js` | Songs with lesson tags and readiness |
+| `lessons/songs.js` | `SONG_CATALOG`: 62 songs from `curriculum/songs-catalog.md` §5 (id, title, artist, genre, BPM, sure?, meter, core tags, support tags) |
+| `src/js/11a-songs-model.js` | Song model: save-state fill/migration, per-skill score, stretch target, readiness, strand roll-up, next step, daily history, play log, library totals, biggest unlocks, `songTests()` |
+| `src/js/11-songs.js` | Songs screens: library (All / genre / artist / level / Ready now, filters, sort), song page, tap tempo, add/edit, Song × Lesson matrix |
 | `src/js/12-kit-settings.js` | Kit drawing (live lights, tap to learn), latency/velocity/kit check, Settings |
 | `src/js/99-events.js` | Event delegation, dialogs, backup import/export, boot |
 

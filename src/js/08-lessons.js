@@ -64,7 +64,7 @@ function renderLevel(lv,sd){
   ${sds.map(k=>`${sd?'':`<div class="h2" style="font-size:18px;margin:18px 0 8px">${k}. ${STRANDS[k]}</div>`}<div class="list">${ls.filter(l=>l.sd===k).map(lessonRow).join('')}</div>`).join('')}`;
 }
 function renderLesson(id){
-  const l=LBY[id],s=statusOf(l),songs=state.songs.filter(x=>x.tags.includes(id));
+  const l=LBY[id],s=statusOf(l),sctx=songCtx(),songs=songsUsing(id).map(x=>songStats(sctx,x)).sort((a,b)=>b.ready-a.ready),cs=VP.lessons.ctx&&songById(VP.lessons.ctx),sm=stretchMax(id);
   const runs=state.sessions.filter(x=>x.id===id);
   let body='';
   if(l.type==='play'){const p=P(id),pa=padAgg(runs);
@@ -91,9 +91,10 @@ function renderLesson(id){
   }
   const sib=LESSONS.filter(x=>x.lv===l.lv).sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true})),ix=sib.indexOf(l);
   view.innerHTML=crumbs([['Skill map',{lv:null,sd:null,id:null}],['Level '+l.lv,{lv:l.lv,sd:null,id:null}],[STRANDS[l.sd],{lv:l.lv,sd:l.sd,id:null}],[l.id,null]])+
+   (cs?(()=>{const k=songStats(sctx,cs).skills.find(q=>q.id===id);return k?`<div class="card" style="border:1px solid var(--accent);margin-bottom:10px"><div class="row" style="flex-wrap:nowrap"><div style="flex:1"><span class="note-k" style="color:var(--accent)">For ${esc(cs.title)}</span><div>${k.core?'Core':'Support'} skill · ${SKILL_LABEL[k.status]} · score ${k.score} · best ${k.best||'–'} / song ${k.T||'–'} BPM</div></div><button class="sm" data-song="${esc(cs.id)}">Song</button></div></div>`:'';})():'')+
    `<h1><span class="idx" style="font-size:.55em;vertical-align:middle">${l.id}</span> ${esc(l.t)} ${chip(s)}</h1>
    <p style="font-size:17px;max-width:900px">${esc(l.d)}</p>${body}
-   <h2>Songs using this lesson</h2>
-   <div class="card">${songs.length?songs.map(x=>`<div class="row" style="padding:6px 0"><b>${esc(x.title)}</b><span class="mut">${esc(x.artist)}</span><span class="sp"></span>${ring(songReady(x),36,4)}</div>`).join(''):'<span class="mut">No songs tagged yet. Tag songs in Songs.</span>'}</div>
+   <h2>Songs that use this</h2>
+   <div class="card">${songs.length?`${sm?`<p class="mut" style="margin-top:0">Song tempos go up to <b>${sm} BPM</b>${l.bpm?` (goal ${l.bpm[1]})`:''}. ${canStretch(id)?'Use <b>Stretch</b> on the practice screen to push past the goal without changing this lesson’s progress.':'Pass the goal tempo to unlock Stretch.'}</p>`:''}${songs.slice(0,12).map(x=>{const k=x.skills.find(q=>q.id===id);return `<div class="row" style="padding:6px 0;cursor:pointer;flex-wrap:nowrap" data-song="${esc(x.song.id)}">${ring(x.ready/100,36,4)}<div style="flex:1;min-width:0"><b>${esc(x.song.title)}</b> <span class="mut">${esc(x.song.artist)}</span><div class="mut" style="font-size:13px">${k.core?'core':'support'} · ${x.T?(x.unsure?'≈':'')+x.T+' BPM':'BPM not set'} · this skill ${k.score}</div></div>${stChip(x.state)}</div>`;}).join('')}${songs.length>12?`<button class="sm" data-nav="songs" data-p='{"view":"matrix"}'>All ${songs.length} songs in the matrix</button>`:''}`:'<span class="mut">No songs use this lesson yet.</span>'}</div>
    <div class="row" style="margin-top:18px">${ix>0?`<button data-open="${sib[ix-1].id}">← ${sib[ix-1].id} ${esc(sib[ix-1].t)}</button>`:''}<span class="sp"></span>${ix<sib.length-1?`<button data-open="${sib[ix+1].id}">${sib[ix+1].id} ${esc(sib[ix+1].t)} →</button>`:''}</div>`;
 }

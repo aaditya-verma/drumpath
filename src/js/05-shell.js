@@ -43,7 +43,7 @@ const NAVI={
   practise:['Practise','Today’s plan and quick start'],
   lessons:['Lessons','Skill map, levels, every lesson'],
   progress:['Progress','Timeline, calendar, pads, records'],
-  songs:['Songs','Songs tagged with lessons'],
+  songs:['Songs','Song library, readiness and matrix'],
   compare:['Compare','Crosstab any measure'],
   kit:['Kit','Your kit, pads, kit check, latency'],
   settings:['Settings','Scoring, theme, backup'],
@@ -57,17 +57,21 @@ const VP={
   lessons:{lv:null,sd:null,id:null},
   progress:{mode:'timeline',path:[],calY:null,calM:null,day:null,padPer:'8w'},
   compare:{r:'strand',c:'month',m:'timing',per:'all'},
+  songs:{view:'all',st:'',genre:'',level:'',unsure:false,sort:'ready',open:{},id:null,mgroup:'genre'},
 };
 const NAV={stack:[]};
 function navSnap(){return{cur,vp:VP[cur]?JSON.parse(JSON.stringify(VP[cur])):null,y:scrollY,label:viewLabel()};}
 function viewLabel(){
   if(cur==='lessons'){const p=VP.lessons;if(p.id)return p.id;if(p.lv!=null)return 'Level '+p.lv+(p.sd?' · '+STRANDS[p.sd]:'');return 'Skill map';}
+  if(cur==='songs'&&VP.songs.id){const s=songById(VP.songs.id);if(s)return s.title;}
   if(cur==='progress'){const p=VP.progress;return 'Progress'+(p.path.length?' · '+periodName(p.path[p.path.length-1]):'');}
   return NAVI[cur]?NAVI[cur][0]:cur;
 }
 function go(view,params,opts={}){
   if(!opts.noPush){const sn=navSnap();const top=NAV.stack[NAV.stack.length-1];if(!top||top.cur!==sn.cur||JSON.stringify(top.vp)!==JSON.stringify(sn.vp))NAV.stack.push(sn);if(NAV.stack.length>20)NAV.stack.shift();}
   if(view==='lessons'&&!params&&!opts.keep)VP.lessons={lv:null,sd:null,id:null};
+  if(view==='lessons'&&!(params&&params.ctx))VP.lessons.ctx=null;
+  if(view==='songs'&&(params?!('id' in params):!opts.keep))VP.songs.id=null;
   if(params)Object.assign(VP[view]||(VP[view]={}),params);
   cur=view;closeMore();render();if(!opts.keepScroll)scrollTo(0,0);
 }
@@ -77,7 +81,7 @@ function back(){
   cur=sn.cur;if(sn.vp)VP[cur]=sn.vp;render();requestAnimationFrame(()=>scrollTo(0,sn.y||0));
 }
 // open a lesson from anywhere
-function openLesson(id){if(!LBY[id])return;const l=LBY[id];go('lessons',{lv:l.lv,sd:l.sd,id},{keep:true});}
+function openLesson(id,ctx){if(!LBY[id])return;const l=LBY[id];go('lessons',{lv:l.lv,sd:l.sd,id,ctx:ctx||null},{keep:true});}
 
 /* ---------- shell DOM ---------- */
 function buildShell(){
@@ -111,9 +115,9 @@ function openSearch(){
   const m=openSheet('Search',`<input id="sq" placeholder="Lesson, rudiment, song, e.g. “flam” or “2.3”" style="width:100%;font-size:18px;padding:12px"><div id="sres" style="margin-top:10px"></div>`);
   const q=$('#sq',m);const run_=()=>{const t=q.value.trim().toLowerCase();const r=$('#sres',m);if(!t){r.innerHTML='<p class="mut">Type to search.</p>';return;}
     const ls=[...LESSONS,...LATER].filter(l=>(l.id+' '+l.t+' '+(l.d||'')).toLowerCase().includes(t)).slice(0,30);
-    const ss=state.songs.map((s,i)=>[s,i]).filter(([s])=>(s.title+' '+s.artist).toLowerCase().includes(t));
+    const ss=allSongs().filter(s=>(s.title+' '+s.artist+' '+s.genre).toLowerCase().includes(t)).slice(0,20);
     r.innerHTML=(ls.length?`<div class="list">${ls.map(l=>`<div class="lrow ${l.later?'dim':''}" ${l.later?'':`data-open="${l.id}"`}><span class="idx">${l.id}</span><span>${esc(l.t)}</span><span class="sp"></span>${chip(statusOf(l))}</div>`).join('')}</div>`:'')+
-      (ss.length?`<h2>Songs</h2><div class="list">${ss.map(([s])=>`<div class="lrow" data-nav="songs"><b>${esc(s.title)}</b><span class="mut">${esc(s.artist)}</span></div>`).join('')}</div>`:'')||'<p class="mut">Nothing found.</p>';};
+      (ss.length?`<h2>Songs</h2><div class="list">${ss.map(s=>`<div class="lrow" data-song="${esc(s.id)}"><b>${esc(s.title)}</b><span class="mut">${esc(s.artist)}</span></div>`).join('')}</div>`:'')||'<p class="mut">Nothing found.</p>';};
   q.addEventListener('input',run_);run_();setTimeout(()=>q.focus(),50);
 }
 

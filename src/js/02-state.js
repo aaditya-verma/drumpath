@@ -32,7 +32,7 @@ async function pushCloud(){
     const d=db.collection('data/users/'+id).doc('drumpath');
     let r=await d.get(); let data=r&&(typeof r.data==='function'?r.data():(r.data!==undefined?r.data:r));
     cloud=d;
-    if(data&&data.v&&(data.savedAt||0)>(state.savedAt||0)){state=Object.assign(freshState(),data);state.set=Object.assign({...DEF_SET},state.set);try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} render();}
+    if(data&&data.v&&(data.savedAt||0)>(state.savedAt||0)){state=Object.assign(freshState(),data);state.set=Object.assign({...DEF_SET},state.set);if(typeof songStateFill==='function')songStateFill(state);try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} render();}
     else pushCloud();
   }catch(e){console.warn('cloud',e);}
 })();
@@ -53,5 +53,4 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const mins=ms=>Math.round(ms/60000);
 function toast(t,ms=2600){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),ms);}
 const chip=s=>s==='ms'?'<span class="chip ms">Done</span>':s==='ip'?'<span class="chip ip">In progress</span>':s==='later'?'<span class="chip">Coming</span>':'<span class="chip">New</span>';
-function songReady(s){const t=s.tags.filter(id=>LBY[id]);if(!t.length)return 0;return t.filter(id=>statusOf(LBY[id])==='ms').length/t.length;}
 

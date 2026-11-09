@@ -39,6 +39,7 @@ function renderHome(){
   const firstTs=(state.sessions.find(x=>LBY[x.id])||{}).ts, totalMin=dayMinutes(), lastBk=state.lastBackup;
   const ago=ts=>{if(!ts)return 'never';const d=Math.floor((Date.now()-ts)/864e5);return d<1?'today':d+'d ago';};
   const pl=(n,w)=>n+' '+w+(n===1?'':'s');
+  const sst=allSongStats(songCtx()),slib=libraryStats(sst),su=slib.unlocks[0];
   view.innerHTML=`<div class="fresh"><span class="chip" data-nav="kit"><span class="dot ${inputs.length?'ok':''}"></span>Kit: ${inputs.length?'connected':'not connected'}</span><span class="chip" data-nav="kit"><span class="dot ok"></span>Latency ${state.lat} ms</span><span class="chip" data-nav="settings"><span class="dot ${lastBk&&Date.now()-lastBk<14*864e5?'ok':''}"></span>Backup: ${ago(lastBk)}</span></div>
   <h1>Overview</h1>
   <p class="hero line">${state.sessions.length?`Every run you’ve played since ${new Date(firstTs||Date.now()).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})}: ${pl(state.sessions.length,'run')} over ${Math.round(totalMin)} minutes, ${doneN} of ${LESSONS.length} lessons done.`:`Your drum logbook. Connect the kit, set up in Level 0, and every run you play is scored and kept here.`}</p>
@@ -53,6 +54,7 @@ function renderHome(){
   <div class="card row"><div style="flex:1;min-width:200px"><span class="idx">${nx.id}</span> <b style="font-size:18px">${esc(nx.t)}</b><div class="mut">Level ${nx.lv}: ${LEVELS[nx.lv]} · ${STRANDS[nx.sd]}</div></div>
     ${last&&last.id!==nx.id?`<button data-open="${last.id}">Resume ${last.id}</button>`:''}
     <button data-open="${nx.id}">Open</button>${nx.type==='play'?`<button class="pri" data-play="${nx.id}">${icon('play',16)} Practise</button>`:''}</div>
+  <div class="card tap row" data-nav="songs" style="margin-top:12px;flex-wrap:nowrap">${ring(slib.avg/100,44,5)}<div style="flex:1;min-width:0"><div class="note-k" style="color:var(--accent)">Songs ↗</div><b>${slib.counts.ready} of ${sst.length} songs ready</b> <span class="mut">· ${slib.counts.reach} in reach</span>${su?`<div class="mut" style="font-size:14px">Biggest unlock: <b>${su.id}</b> ${esc(tagLesson(su.id).t)}, raises ${pl(su.songs,'song')}</div>`:''}</div></div>
   <h2>Coach notes</h2>
   <div class="deck">${notes.map((n,i)=>`<div class="card tap" data-note="${i}"><div class="note-k" style="color:${n.c}">${esc(n.k)}</div><b style="font-size:17px">${esc(n.t)}</b><span class="mut">${esc(n.d)}</span></div>`).join('')}</div>
   <h2>Last 14 days</h2>
@@ -79,11 +81,11 @@ function todaysPlan(){
   return plan;
 }
 function renderPractise(){
-  const plan=todaysPlan(), song=state.songs.map(s=>[s,songReady(s)]).filter(([,r])=>r<1).sort((a,b)=>b[1]-a[1])[0];
+  const plan=todaysPlan(), song=allSongStats(songCtx()).filter(x=>x.state!=='ready'&&x.next&&!x.next.coming).sort((a,b)=>b.ready-a.ready)[0];
   const ipl=LESSONS.filter(l=>l.type==='play'&&statusOf(l)==='ip').sort((a,b)=>(state.prog[b.id].last||0)-(state.prog[a.id].last||0));
   view.innerHTML=`<h1>Practise</h1><p class="sub">Today’s plan: about 20–30 minutes. Tap to start; you can change the tempo on the practice screen.</p>
   <div class="grid2">${plan.map(p=>{const l=LBY[p.id],pr=state.prog[p.id];return `<div class="card"><div class="note-k" style="color:var(--accent)">${p.k}</div><div class="row" style="margin-top:4px"><span class="idx">${l.id}</span><b style="font-size:18px">${esc(l.t)}</b></div><div class="mut">${p.why}${pr&&pr.bpm?' · target '+pr.bpm+' BPM':l.bpm?' · from '+l.bpm[0]+' BPM':''}</div><div class="row" style="margin-top:10px"><button class="pri" data-play="${l.id}">${icon('play',16)} Start</button><button class="ghost" data-open="${l.id}">Details</button></div></div>`;}).join('')}
-  ${song?`<div class="card"><div class="note-k" style="color:var(--accent)">Song</div><b style="font-size:18px">${esc(song[0].title)}</b><div class="mut">${esc(song[0].artist)} · ${Math.round(song[1]*100)}% ready</div><div class="row" style="margin-top:10px"><button data-nav="songs">Open Songs</button></div></div>`:''}</div>
+  ${song?`<div class="card"><div class="note-k" style="color:var(--accent)">Closest song</div><b style="font-size:18px">${esc(song.song.title)}</b><div class="mut">${esc(song.song.artist)} · ${song.ready}% ready · next: ${song.next.id} ${esc(tagLesson(song.next.id).t)}</div><div class="row" style="margin-top:10px">${LBY[song.next.id].type==='play'?`<button class="pri" data-play="${song.next.id}">${icon('play',16)} ${song.next.id}</button>`:''}<button data-song="${esc(song.song.id)}">Open song</button></div></div>`:''}</div>
   <h2>In progress</h2>
   ${ipl.length?`<div class="list">${ipl.map(l=>lessonRow(l)).join('')}</div>`:'<div class="card mut">Nothing in progress yet.</div>'}
   <h2>Tools</h2>

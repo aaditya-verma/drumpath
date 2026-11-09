@@ -197,3 +197,18 @@ svg.chart text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
 .fresh .chip{text-transform:none;letter-spacing:0;font-weight:500;font-size:12px;background:var(--L1);color:var(--muted)}
 .fresh .chip .dot{width:7px;height:7px}
 .hero-stats{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+/* ---------- songs matrix ---------- */
+#matrix{overflow:auto;max-height:75vh;border-radius:16px;background:var(--L1);box-shadow:var(--edge,none)}
+table.mtx{border-collapse:separate;border-spacing:0;font-size:12px;width:max-content}
+table.mtx th,table.mtx td{padding:0;height:26px;min-width:30px;text-align:center;border-bottom:1px solid var(--line)}
+table.mtx thead th{position:sticky;top:0;background:var(--L2);z-index:2}
+table.mtx thead tr:nth-child(2) th{top:26px}
+table.mtx th.vh{height:64px;vertical-align:bottom}
+table.mtx th.vh span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg);padding:4px 0;font-weight:600;font-variant-numeric:tabular-nums}
+table.mtx th.rh{position:sticky;left:0;background:var(--L2);z-index:1;text-align:left;padding:0 10px;min-width:170px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+table.mtx thead th.rh{z-index:3}
+table.mtx td.cell{cursor:pointer;font-variant-numeric:tabular-nums}
+table.mtx td.n{padding:0 8px;font-variant-numeric:tabular-nums}
+table.mtx tr.gh th.rh{background:var(--L3);text-transform:uppercase;font-size:11px;letter-spacing:.06em}
+table.mtx tr.gh td{background:var(--L3)}
+table.mtx tr.foot td,table.mtx tr.foot th{background:var(--L2);font-weight:700;position:sticky;bottom:0}

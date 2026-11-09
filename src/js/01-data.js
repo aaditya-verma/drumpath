@@ -211,13 +211,3 @@ const LATER=`3.1.01|Whole & half notes
 10.6.05|Soloing over an ostinato / open solo / trading
 10.8.01|Song checkpoints`.split('\n').map(s=>{const[id,t]=s.split('|');return{id,t,lv:+id.split('.')[0],sd:+id.split('.')[1],later:true};}).filter(l=>!LBY[l.id]);
 
-const SUGGEST=[
- {title:'We Will Rock You',artist:'Queen',bpm:81,tags:['1.2.03','1.5.02'],notes:'Stomp-stomp-clap idea: kick, kick, snare.'},
- {title:'Seven Nation Army',artist:'The White Stripes',bpm:124,tags:['1.2.02','1.5.01'],notes:'Steady quarter-note pulse.'},
- {title:'Another One Bites the Dust',artist:'Queen',bpm:110,tags:['1.5.02','1.5.03'],notes:'Four-on-the-floor kick, snare on 2 & 4.'},
- {title:'Billie Jean',artist:'Michael Jackson',bpm:117,tags:['1.5.03','2.4.03'],notes:'Steady 8th hi-hat, kick 1 & 3, snare 2 & 4.'},
- {title:'Back in Black',artist:'AC/DC',bpm:94,tags:['1.5.03','2.5.01','1.6.04'],notes:'8th-note rock beat with clear start/stop hits.'},
- {title:'Highway to Hell',artist:'AC/DC',bpm:116,tags:['1.5.03','2.5.01','1.6.01'],notes:'8th-note rock beat with simple fills.'},
- {title:'Smells Like Teen Spirit',artist:'Nirvana',bpm:117,tags:['2.5.01','2.6.02','1.6.03'],notes:'Harder: 16th-note tom fills.'}
-];
-

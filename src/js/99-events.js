@@ -17,8 +17,22 @@ document.addEventListener('click',async e=>{
   const ce=T.closest('[data-cell]');if(ce){const [a,b]=ce.dataset.cell.split('.').map(Number);go('lessons',{lv:a,sd:b,id:null},{keep:true});return;}
   const pr=T.closest('[data-preset]');if(pr){Object.assign(VP.compare,JSON.parse(pr.dataset.preset));render();return;}
   const rn=T.closest('[data-run]');if(rn){openRun(rn.dataset.run);return;}
+  const sg=T.closest('[data-song]');if(sg){closeSheets();go('songs',{id:sg.dataset.song});return;}
+  const sv=T.closest('[data-sview]');if(sv){VP.songs.view=sv.dataset.sview;render();return;}
+  const sst=T.closest('[data-sst]');if(sst){VP.songs.st=VP.songs.st===sst.dataset.sst?'':sst.dataset.sst;render();return;}
+  const mg=T.closest('[data-mgroup]');if(mg){VP.songs.mgroup=mg.dataset.mgroup;render();return;}
+  const sgr=T.closest('[data-sgrp]');if(sgr){const k=sgr.dataset.sgrp;VP.songs.open[k]=VP.songs.open[k]===false;render();return;}
+  const scr=T.closest('[data-scrumb]');if(scr){go('songs',JSON.parse(scr.dataset.scrumb),{keep:true});return;}
+  const oc=T.closest('[data-openctx]');if(oc){e.preventDefault();openLesson(oc.dataset.openctx,VP.songs.id);return;}
+  const tp=T.closest('[data-tap]');if(tp){tapTempo(tp.dataset.tap);return;}
+  const ut=T.closest('[data-untap]');if(ut){delete state.songBpm[ut.dataset.untap];save();updateSongHist();render();return;}
+  const rt=T.closest('[data-rate]');if(rt){rt.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',b===rt));return;}
+  const lp=T.closest('[data-logplay]');if(lp){const id=lp.dataset.logplay,mn=Math.max(1,+($('#lgm')||{}).value||4),r=+(($('#lgr .on')||{}).dataset||{}).rate||3;(state.songLog[id]=state.songLog[id]||[]).push([today(),mn,r]);save();render();toast('Play logged');return;}
+  const se=T.closest('[data-songedit]');if(se){songForm(se.dataset.songedit||null);return;}
+  const sdl=T.closest('[data-songdel]');if(sdl){if(await confirmBox('Delete this song?')){const i=state.songs.findIndex(x=>x.id===sdl.dataset.songdel);if(i>=0)state.songs.splice(i,1);save();VP.songs.id=null;render();}return;}
+  const spl=T.closest('[data-splay]');if(spl){const id=spl.dataset.splay,b=+spl.dataset.sbpm,l=LBY[id];closeSheets();openPractice(id);if(b>l.bpm[1]&&canStretch(id)){stretchMode=true;}else{stretchMode=false;}bpm=Math.max(30,Math.min(300,b));$('#bpmv').textContent=bpm;renderPracBar();makePreview();draw();return;}
   const nv=T.closest('[data-nav]');if(nv){const p=nv.dataset.p?JSON.parse(nv.dataset.p):undefined;closeSheets();go(nv.dataset.nav,p);return;}
-  const t=T.closest('[data-open],[data-play],[data-act],[data-done],[data-learn],[data-unmap],[data-edit],[data-del],[data-addsug],[data-reset],[data-close]');
+  const t=T.closest('[data-open],[data-play],[data-act],[data-done],[data-learn],[data-unmap],[data-reset],[data-close]');
   if(!t)return; const d=t.dataset;
   if(d.close!==undefined)closeSheets();
   if(d.open){if(!LBY[d.open])return;closeSheets();openLesson(d.open);return;}
@@ -27,9 +41,6 @@ document.addEventListener('click',async e=>{
   if(d.reset){if(await confirmBox('Reset progress for '+d.reset+'?')){delete state.prog[d.reset];save();render();}return;}
   if(d.learn){learnVoice=learnVoice===d.learn?null:d.learn;if(!midi)await connectMidi();if(learnVoice)toast('Hit the '+d.learn.replace(':',' (')+(d.learn.includes(':')?')':'')+' now');render();return;}
   if(d.unmap){Object.keys(state.map).forEach(k=>{if(state.map[k]===d.unmap)delete state.map[k];});save();render();return;}
-  if(d.edit!==undefined){songModal(+d.edit);return;}
-  if(d.del!==undefined){if(await confirmBox('Delete this song?')){state.songs.splice(+d.del,1);save();render();}return;}
-  if(d.addsug){const s=SUGGEST.find(x=>x.title===d.addsug);state.songs.push({title:s.title,artist:s.artist,bpm:s.bpm,link:'',tags:[...s.tags],notes:s.notes});save();render();return;}
   const a=d.act;
   if(a==='back'){back();return;}
   if(a==='home'){go('home');return;}
@@ -37,6 +48,7 @@ document.addEventListener('click',async e=>{
   if(a==='search'){closeMore();openSearch();return;}
   if(a==='theme'){cycleTheme();return;}
   if(a==='ex'){if(run)return;exI=+d.i;P(L.id).ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
+  if(a==='stretch'){if(run)return;stretchMode=!stretchMode;const p=P(L.id);bpm=stretchMode?(p.stretchBpm||Math.min(L.bpm[1]+5,stretchMax(L.id)||L.bpm[1]+5)):p.bpm;$('#bpmv').textContent=bpm;renderPracBar();makePreview();draw();return;}
   if(a==='go'){if(run)stopRun();else startRun();return;}
   if(a==='subclick'){if(run)return;state.set.subclick=!state.set.subclick;save();renderPracBar();makePreview();draw();return;}
   if(a==='simulate'){if(run)return;simulate(+$('#simj').value,$('#simm').value);return;}
@@ -57,6 +69,7 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('change',e=>{
   const t=e.target;
+  if(t.dataset.sf){const k=t.dataset.sf;VP.songs[k]=t.type==='checkbox'?t.checked:t.value;render();return;}
   if(t.dataset.cmp){VP.compare[t.dataset.cmp]=t.value;render();return;}
   if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','dynPass','bars','countin','win','hhOpenCC'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
   if(t.dataset.ck){const id=t.dataset.ck;const ck=state.done[id+'_ck']=state.done[id+'_ck']||{};ck[t.dataset.i]=t.checked;
@@ -86,7 +99,7 @@ function exportData(){
 function importData(){
   const m=openSheet('Import backup',`<p class="mut">Choose a backup file or paste its text. This replaces current progress.</p><input type="file" accept=".json,application/json" id="if"><textarea id="it" rows="6" style="width:100%;margin-top:10px" placeholder="…or paste backup text"></textarea><div class="row" style="margin-top:10px"><button class="pri" id="ig">Import</button></div>`);
   $('#if',m).onchange=async ev=>{const f=ev.target.files[0];if(f)$('#it',m).value=await f.text();};
-  $('#ig',m).onclick=()=>{try{const d=JSON.parse($('#it',m).value);if(!d.v)throw 0;state=Object.assign(freshState(),d);state.set=Object.assign({...DEF_SET},state.set);state.art=Object.assign({...DEFAULT_ART},state.art||{});save();m.remove();render();toast('Backup restored');}catch(_){toast('That doesn’t look like a DrumPath backup');}};
+  $('#ig',m).onclick=()=>{try{const d=JSON.parse($('#it',m).value);if(!d.v)throw 0;state=Object.assign(freshState(),d);state.set=Object.assign({...DEF_SET},state.set);state.art=Object.assign({...DEFAULT_ART},state.art||{});songStateFill(state);updateSongHist();save();m.remove();render();toast('Backup restored');}catch(_){toast('That doesn’t look like a DrumPath backup');}};
 }
 /* ---------- boot ---------- */
 buildShell();applyTheme();render();
