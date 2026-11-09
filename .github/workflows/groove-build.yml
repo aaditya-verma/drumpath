@@ -1,0 +1,28 @@
+name: groove-build
+# Manual, build-time only. Downloads the Groove MIDI Dataset (Google Magenta, CC BY 4.0), analyses every
+# file with src/js/midi-analyse.js and pushes ONLY derived JSON (patterns, tags, calibration) to the
+# `groove-build` branch. No MIDI files are committed.
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - name: Download Groove MIDI Dataset
+        run: |
+          curl -fsSL -o /tmp/g.zip https://storage.googleapis.com/magentadata/datasets/groove/groove-v1.0.0-midionly.zip
+          echo "651cbc524ffb891be1a3e46d89dc82a1cecb09a57c748c7b45b844c4841dcc1e  /tmp/g.zip" | sha256sum -c
+          unzip -q /tmp/g.zip -d /tmp/gmd
+      - name: Analyse
+        run: DUMP=1 node tools/groove-build.mjs /tmp/gmd/groove data/groove
+      - name: Push derived data to groove-build branch
+        run: |
+          git config user.name "github-actions"; git config user.email "github-actions@users.noreply.github.com"
+          git checkout -B groove-build
+          git add -f data/groove tools/out
+          git commit -qm "Groove build: derived data from ${GITHUB_SHA::7}"
+          git push -f origin groove-build
