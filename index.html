@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>DrumPath</title>
+<style>
+:root{--bg:#0f1115;--bg2:#171a21;--bg3:#20242d;--line:#2c313c;--tx:#e9ecf1;--mut:#8b93a3;--acc:#5ad1a0;--warn:#f0a35a;--bad:#ef6b6b;--blue:#6aa8ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:10px 16px;cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.97)}
+button.pri{background:var(--acc);color:#06281a;border-color:var(--acc);font-weight:700}
+button.ghost{background:transparent}
+button.sm{padding:6px 10px;font-size:14px}
+input,select,textarea{font:inherit;color:var(--tx);background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(15,17,21,.95);border-bottom:1px solid var(--line)}
+header .logo{font-weight:800;font-size:20px;margin-right:12px;letter-spacing:.5px}
+header .logo b{color:var(--acc)}
+nav{display:flex;gap:6px;flex:1}
+nav button{background:transparent;border:none;padding:10px 14px;color:var(--mut);font-weight:600}
+nav button.on{color:var(--tx);background:var(--bg3)}
+.mstat{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mut);cursor:pointer}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--bad)}
+.dot.ok{background:var(--acc)}
+main{padding:16px;max-width:1200px;margin:0 auto}
+h1{font-size:24px;margin:4px 0 14px}
+h2{font-size:18px;margin:22px 0 10px}
+.mut{color:var(--mut)}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px}
+.big{font-size:30px;font-weight:800}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sp{flex:1}
+.lrow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+.lrow:hover{background:var(--bg2)}
+.lrow.dim{opacity:.45;cursor:default}
+.idx{font-family:ui-monospace,Menlo,monospace;color:var(--mut);min-width:64px}
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--bg3);color:var(--mut);border:1px solid var(--line)}
+.chip.ip{color:var(--warn);border-color:#5a4429}
+.chip.ms{color:var(--acc);border-color:#22543e}
+.chip.tag{cursor:pointer;color:var(--blue);border-color:#2b4366}
+.lvl{background:var(--bg2);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.lvlh{display:flex;align-items:center;gap:10px;padding:14px;cursor:pointer;font-weight:700}
+.strand{padding:8px 14px;font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;background:var(--bg)}
+.bar{height:8px;background:var(--bg3);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--acc)}
+.bars14{display:flex;align-items:flex-end;gap:6px;height:110px;padding-top:6px}
+.bars14 div{flex:1;background:var(--acc);border-radius:4px 4px 0 0;position:relative}
+.bars14 span{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--mut)}
+table{border-collapse:collapse;width:100%}
+td,th{padding:8px;border-bottom:1px solid var(--line);text-align:left}
+.pat{font-family:ui-monospace,Menlo,monospace;font-size:14px;background:var(--bg);border-radius:8px;padding:8px 10px;overflow-x:auto;white-space:pre;line-height:1.5}
+.hidden{display:none!important}
+#prac{position:fixed;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column}
+.ptop{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ptitle{font-weight:700;font-size:17px}
+.bpmc{display:flex;align-items:center;gap:6px}
+.bpmc span{font-size:26px;font-weight:800;min-width:60px;text-align:center}
+.bpmc button{font-size:22px;padding:6px 16px}
+#go{font-size:22px;padding:12px 30px;min-width:150px}
+.passdots{display:flex;gap:5px;align-items:center;font-size:13px;color:var(--mut)}
+.passdots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--acc)}
+.passdots i.f{background:var(--acc)}
+.cvwrap{flex:1;position:relative;min-height:200px}
+#cv{position:absolute;inset:0;width:100%;height:100%}
+#pfeed{position:absolute;top:10px;right:16px;font-size:20px;font-weight:700;text-align:right;pointer-events:none}
+#pads{display:flex;gap:6px;padding:8px;border-top:1px solid var(--line)}
+#pads button{flex:1;padding:18px 4px;font-weight:700;font-size:14px}
+#result{position:absolute;inset:0;background:rgba(15,17,21,.96);overflow:auto;padding:24px;display:flex;justify-content:center}
+#result .in{max-width:760px;width:100%}
+.score{font-size:64px;font-weight:900;line-height:1}
+.exsel{display:flex;gap:6px;flex-wrap:wrap}
+.exsel button{padding:6px 12px;font-size:14px}
+.exsel button.on{background:var(--acc);color:#06281a;border-color:var(--acc)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal .card{max-width:640px;width:100%;max-height:90vh;overflow:auto}
+label.f{display:block;margin:10px 0 4px;font-size:14px;color:var(--mut)}
+.f+input,.f+select,.f+textarea{width:100%}
+.mon{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--mut);min-height:22px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--line);padding:12px 18px;border-radius:12px;z-index:60;font-weight:600}
+.learn{outline:3px solid var(--warn)}
+@media (max-width:700px){nav button{padding:8px 8px;font-size:14px}header .logo{font-size:17px;margin-right:4px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Drum<b>Path</b></div>
+  <nav id="nav">
+    <button data-go="home">Home</button>
+    <button data-go="lessons">Lessons</button>
+    <button data-go="songs">Songs</button>
+    <button data-go="kit">Kit &amp; Settings</button>
+  </nav>
+  <div class="mstat" data-go="kit"><span class="dot" id="mdot"></span><span id="mtxt">Kit not connected</span></div>
+</header>
+<main id="view"></main>
+
+<div id="prac" class="hidden">
+  <div class="ptop">
+    <button class="ghost" data-act="pexit">✕</button>
+    <div class="ptitle" id="ptitle"></div>
+    <div class="exsel" id="exsel"></div>
+    <div class="sp"></div>
+    <div class="passdots" id="pdots"></div>
+    <div class="bpmc"><button data-act="bpm-">−</button><span id="bpmv">60</span><button data-act="bpm+">+</button><small class="mut">BPM</small></div>
+    <button class="pri" id="go" data-act="go">Start</button>
+  </div>
+  <div class="cvwrap"><canvas id="cv"></canvas><div id="pfeed"></div><div id="result" class="hidden"></div></div>
+  <div id="pads"></div>
+</div>
+
+<script>
+'use strict';
+/* ============ DATA ============ */
+const VOICES={
+  C:{n:'Crash',c:'#f5c542'}, R:{n:'Ride',c:'#e8a33d'}, HH:{n:'Hi-hat',c:'#4fd1c5'},
+  T1:{n:'Tom 1',c:'#b48cff'}, T2:{n:'Tom 2',c:'#9a7bff'}, S:{n:'Snare',c:'#ff6b8b'},
+  T3:{n:'Tom 3',c:'#7f6bff'}, K:{n:'Kick',c:'#6aa8ff'}, HP:{n:'HH pedal',c:'#3fb6a8'}
+};
+const LANES=['C','R','HH','T1','T2','S','T3','K','HP'];
+const LIMB={C:'Right hand',R:'Right hand',HH:'Hands',T1:'Hands',T2:'Hands',S:'Hands',T3:'Hands',K:'Right foot',HP:'Left foot'};
+// Alesis Nitro defaults (General MIDI style). Calibrate in Kit to confirm.
+const DEFAULT_MAP={36:'K',35:'K',38:'S',40:'S',42:'HH',46:'HH',22:'HH',26:'HH',44:'HP',48:'T1',50:'T1',45:'T2',47:'T2',43:'T3',41:'T3',49:'C',57:'C',55:'C',51:'R',59:'R',53:'R'};
+const LEVELS=['Setup','First beats & time','Reading, core rudiments & independence','The motions of drumming','Moeller & essential grooves','Rhythmic groupings & funk','Odd time & finger control','Foot technique & combinations','Texture, articulation & chart reading','Advanced styles & soloing','Go anywhere'];
+const STRANDS={1:'Theory / Reading',2:'Technique',3:'Rudiments',4:'Independence',5:'Grooves / Styles',6:'Fills / Rhythm',7:'Time / Ears',8:'Songs'};
+
+const X=(n,sub,v,o={})=>Object.assign({n,sub,bars:1,v},o);
+const rep=(s,k)=>s.repeat(k);
+function withFill(sub,base,fill,name){
+  const n=4*sub, out={};
+  const vs=new Set([...Object.keys(base),'C',...fill.filter(Boolean)]);
+  vs.forEach(v=>{
+    const b1=(base[v]||rep('.',n)).split(''), b2=(base[v]||rep('.',n)).split('');
+    if(v==='HH'||v==='R') b1[0]='.';
+    if(v==='C') b1[0]='x';
+    for(let k=0;k<fill.length;k++){const i=n-fill.length+k; b2[i]=fill[k]===v?'x':'.';}
+    const s=b1.join('')+b2.join(''); if(s.includes('x')) out[v]=s;
+  });
+  return {n:name,sub,bars:2,v:out};
+}
+const B8={HH:'xxxxxxxx',K:'x...x...',S:'..x...x.'};
+const B8_16={HH:'x.x.x.x.x.x.x.x.',K:'x.......x.......',S:'....x.......x...'};
+
+const LESSONS=[
+/* ---- Level 0 ---- */
+{id:'0.2.01',t:'Throne height & distance',type:'info',d:'Sit so your thighs are level or slope slightly down toward the knees. Both feet rest flat on the pedals without stretching.',check:['Thighs level or slightly downward','Feet flat on both pedals','Back straight, shoulders relaxed','Sticks reach the snare centre with relaxed elbows']},
+{id:'0.2.02',t:'Pedal placement',type:'info',d:'Kick pedal under the right foot, hi-hat pedal under the left. Both reachable without twisting your hips.',check:['Kick pedal in line with right leg','Hi-hat pedal in line with left leg','Snare roughly between your knees']},
+{id:'0.2.03',t:'Pad & cymbal positions',type:'info',d:'Snare between the knees and slightly above them. Hi-hat to the left, toms in an arc, crash and ride reachable without stretching.',check:['Hi-hat a few cm above snare height','Toms 1–2 angled toward you above the snare','Tom 3 (floor) at the right, near snare height','Crash and ride reachable with a relaxed arm','Tablet mounted where you can see it without turning your head']},
+{id:'0.1.01',t:'Kit map & notation key',type:'info',d:'Every pad has a lane in the practice screen, top to bottom: Crash, Ride, Hi-hat, Tom 1, Tom 2, Snare, Tom 3, Kick, Hi-hat pedal. On a drum staff, cymbals are written as x above the staff, kick on the bottom space, snare on the third space, toms from high (top) to low.',check:['I know which lane is which pad','I know where kick, snare and hi-hat sit on the staff']},
+{id:'0.2.04',t:'Connect & calibrate the kit',type:'tool',tool:'kit',d:'Connect the Nitro module’s USB port to the tablet with a USB-B to USB-C (OTG) cable. Then open Kit & Settings, tap Connect, and use Learn to confirm every pad.',check:['Kit connected (green dot)','Every pad shows the right name when hit']},
+{id:'0.7.01',t:'Latency check',type:'tool',tool:'latency',d:'Play quarter notes on the snare with the click for 4 bars. The app measures the delay between the click and your hits and removes it from all scores.',check:['Latency test done']},
+/* ---- Level 1 ---- */
+{id:'1.2.01',t:'Matched grip',type:'info',d:'Hold each stick about one third from the butt end. The fulcrum is between thumb and the first joint of the index finger; the other fingers wrap loosely. Let the stick bounce back after each hit.',check:['Fulcrum at thumb and index finger','Other fingers loose, not squeezing','Stick rebounds freely off the snare','Both hands look the same']},
+{id:'1.2.02',t:'Full strokes',bpm:[60,90],d:'Quarter notes on the snare, alternating hands. Start each stroke high and let the stick bounce back to the same height.',ex:[X('Quarter notes',1,{S:'xxxx'},{st:'RLRL'})]},
+{id:'1.2.03',t:'Kick: heel-down',bpm:[60,90],d:'Heel stays on the pedal plate; the ankle does the work. Quarter notes on the kick.',ex:[X('Quarter notes',1,{K:'xxxx'})]},
+{id:'1.2.04',t:'Kick: heel-up',bpm:[60,90],d:'Heel lifts; the leg drives the pedal. Start with quarters, then 8ths.',ex:[X('Quarter notes',1,{K:'xxxx'}),X('8th notes',2,{K:'xxxxxxxx'})]},
+{id:'1.2.05',t:'Hi-hat foot “chick”',bpm:[60,90],d:'Close the hi-hat with the left foot on every beat. Keep the motion small and even.',ex:[X('Quarter notes',1,{HP:'xxxx'})]},
+{id:'1.2.06',t:'Hitting cymbals',bpm:[60,80],d:'Hi-hat with the tip on top, ride on the bow (middle), crash on the edge with a glancing stroke.',ex:[X('Hi-hat → Ride → Crash',1,{HH:'xxxx........',R:'....xxxx....',C:'........x...'},{bars:3})]},
+{id:'1.7.01',t:'Playing with the click',bpm:[60,100],d:'Quarter notes on the snare, exactly with the click. The goal is hits that land on the click, neither ahead nor behind.',ex:[X('Quarter notes',1,{S:'xxxx'},{st:'RLRL'})]},
+{id:'1.5.01',t:'First beat',bpm:[60,90],d:'Hi-hat on every beat, kick on 1 and 3, snare on 2 and 4. This is the backbone of rock and pop.',ex:[X('Basic beat',1,{HH:'xxxx',K:'x.x.',S:'.x.x'})]},
+{id:'1.5.02',t:'Unison work',bpm:[60,90],d:'Two limbs hitting at exactly the same time. They should sound as one note.',ex:[X('Kick + snare together',1,{K:'xxxx',S:'xxxx'}),X('Four on the floor',1,{HH:'xxxx',K:'xxxx',S:'.x.x'})]},
+{id:'1.6.01',t:'First fill',bpm:[60,90],d:'One bar of beat, then 4 quarter notes on the snare, landing on the crash with the kick on beat 1.',ex:[X('Beat + snare fill',1,{C:'x.......',HH:'.xxx....',K:'x.x.....',S:'.x.xxxxx'},{bars:2})]},
+{id:'1.6.02',t:'Beat + fill cycle',bpm:[60,90],d:'Three bars of beat, one bar of fill, repeat. This is how songs are built.',ex:[X('3 + 1',1,{C:'x...............',HH:'.xxxxxxxxxxx....',K:'x.x.x.x.x.x.....',S:'.x.x.x.x.x.xxxxx'},{bars:4})]},
+{id:'1.5.03',t:'8th-note beat',bpm:[60,100],d:'Hi-hat 8ths (“1 & 2 & 3 & 4 &”), kick on 1 and 3, snare on 2 and 4.',ex:[X('8th-note rock beat',2,B8)]},
+{id:'1.6.03',t:'8th-note fill around the toms',bpm:[60,100],d:'Snare, Tom 1, Tom 2, Tom 3 in pairs of 8ths, back to the crash.',ex:[withFill(2,B8,['S','S','T1','T1','T2','T2','T3','T3'],'Pairs around the kit')]},
+{id:'1.6.04',t:'Start & end a song',bpm:[70,100],loop:1,d:'Count-in, three bars of beat, then end with crash + kick on beat 1 and stop.',ex:[X('Intro → ending',2,{C:'x.......'+rep('.',16)+'x.......',HH:'.xxxxxxx'+rep('xxxxxxxx',2)+'........',K:rep('x...x...',3)+'x.......',S:rep('..x...x.',3)+'........'},{bars:4})]},
+{id:'1.8.01',t:'Song checkpoint',type:'song',d:'Pick a song tagged with 1.5.03 and 1.6.03 in Songs and play along to your own audio.'},
+/* ---- Level 2 ---- */
+{id:'2.1.01',t:'Drum notation key',type:'info',d:'Drum staff, top to bottom: crash/ride/hi-hat written as x above the top line; toms in the top spaces; snare on the third space; floor tom below it; kick on the bottom space; hi-hat pedal as x below the staff.',check:['I can name each position on the staff']},
+{id:'2.1.02',t:'Quarter notes',bpm:[70,100],d:'Read the rhythm and play it on the snare. A dot is a rest.',ex:[X('Read 1',1,{S:'xxxx'}),X('Read 2',1,{S:'x.x.'}),X('Read 3',1,{S:'xx.x'}),X('Read 4',1,{S:'.xxx'})]},
+{id:'2.1.03',t:'8th notes',bpm:[70,100],d:'Count “1 & 2 & 3 & 4 &”. Play only the notes shown.',ex:[X('Read 1',2,{S:'xxxxxxxx'}),X('Read 2',2,{S:'x.xxx.xx'}),X('Read 3',2,{S:'xx.xxx.x'}),X('Read 4',2,{S:'.x.x.x.x'})]},
+{id:'2.1.04',t:'16th notes',bpm:[60,90],d:'Count “1 e & a 2 e & a…”.',ex:[X('Read 1',4,{S:rep('x',16)}),X('Read 2',4,{S:'x.xxx.xxx.xxx.xx'}),X('Read 3',4,{S:'xxx.xxx.xxx.xxx.'}),X('Read 4',4,{S:'x..xx..xx..xx..x'})]},
+{id:'2.1.05',t:'Time signatures & 4/4',type:'info',d:'4/4 means 4 beats per bar, each beat a quarter note. Bars are separated by bar lines; count “1 2 3 4” and restart.',check:['I can count bars of 4/4 out loud while playing']},
+{id:'2.1.06',t:'Tempo & BPM',bpm:[60,100],step:20,d:'The same beat at 60, 80 and 100 BPM. Pass 3 runs to move up 20 BPM.',ex:[X('8th-note beat',2,B8)]},
+{id:'2.1.07',t:'Reading drills',bpm:[60,90],d:'Two-bar syncopated rhythms on the snare. Count out loud.',ex:[X('Drill 1',2,{S:'x..x..x.x.x..x..'},{bars:2}),X('Drill 2',2,{S:'.xx..xx.x.x.xx..'},{bars:2}),X('Drill 3',2,{S:'x.x..x.x.x..x.xx'},{bars:2}),X('Drill 4',2,{S:'xx.x.xx.x..xx.x.'},{bars:2})]},
+{id:'2.2.01',t:'Hand & foot warm-ups',type:'info',d:'Five minutes before every session.',check:['Wrist circles, 30 s each direction','Finger stretches, 30 s','Slow singles on the snare, 1 min','Heel-down kick, 1 min','Hi-hat foot quarters, 1 min']},
+{id:'2.2.02',t:'Sticking combinations',bpm:[60,100],d:'8th notes on the snare with set stickings. Make the weaker hand match the stronger one.',ex:['RLRLRLRL','LRLRLRLR','RRLLRRLL','LLRRLLRR','RLRRLRLL','RLLRLRRL','RRLRRRLR','LLRLLLRL'].map((s,i)=>X('Pattern '+(i+1),2,{S:'xxxxxxxx'},{st:s}))},
+{id:'2.3.01',t:'Single stroke roll',bpm:[60,100],d:'Alternate hands: R L R L. Even volume and spacing. Practise slow → fast → slow.',ex:[X('8ths',2,{S:'xxxxxxxx'},{st:'RLRLRLRL'}),X('Triplets',3,{S:rep('x',12)},{st:'RLRLRLRLRLRL'}),X('16ths',4,{S:rep('x',16)},{st:rep('RL',8)})]},
+{id:'2.3.02',t:'Singles: applications',bpm:[60,100],d:'Single strokes moving around the kit: snare → Tom 1 → Tom 2 → Tom 3.',ex:[X('8ths around',2,{S:'xx......',T1:'..xx....',T2:'....xx..',T3:'......xx'},{st:'RLRLRLRL'}),X('16ths around',4,{S:'xxxx'+rep('.',12),T1:'....xxxx'+rep('.',8),T2:rep('.',8)+'xxxx....',T3:rep('.',12)+'xxxx'},{st:rep('RL',8)})]},
+{id:'2.3.03',t:'Double stroke roll',bpm:[60,90],d:'Two strokes per hand: R R L L. The second stroke should be as loud as the first.',ex:[X('8ths',2,{S:'xxxxxxxx'},{st:'RRLLRRLL'}),X('16ths',4,{S:rep('x',16)},{st:rep('RRLL',4)})]},
+{id:'2.3.04',t:'Doubles: applications',bpm:[60,90],d:'Right-hand doubles on the snare, left-hand doubles moving around the toms.',ex:[X('Snare + toms',4,{S:'xx..xx..xx..xx..',T1:'..xx............',T2:'......xx........',T3:'..........xx..xx'},{st:rep('RRLL',4)})]},
+{id:'2.3.05',t:'Single paradiddle',bpm:[60,90],d:'R L R R  L R L L. Accent the first note of each group.',ex:[X('8ths',2,{S:'XxxxXxxx'},{st:'RLRRLRLL'}),X('16ths',4,{S:rep('Xxxx',4)},{st:'RLRRLRLLRLRRLRLL'})]},
+{id:'2.3.06',t:'Paradiddle: applications',bpm:[60,90],d:'Paradiddle split between hands: right hand on the hi-hat, left hand on the snare, kick on 1 and 3.',ex:[X('Paradiddle groove',4,{HH:'x.xx.x..x.xx.x..',S:'.x..x.xx.x..x.xx',K:'x.......x.......'},{st:'RLRRLRLLRLRRLRLL'})]},
+{id:'2.4.01',t:'Two limbs: right hand + kick',bpm:[60,100],d:'Hi-hat 8ths stay steady while the kick pattern changes.',ex:['x...x...','x.x.x.x.','x..xx...','x...x.x.'].map((k,i)=>X('Kick '+(i+1),2,{HH:'xxxxxxxx',K:k}))},
+{id:'2.4.02',t:'Two limbs: right hand + left hand',bpm:[60,100],d:'Hi-hat 8ths with the snare in different places.',ex:[X('Backbeat',2,{HH:'xxxxxxxx',S:'..x...x.'}),X('Off-beats',2,{HH:'xxxxxxxx',S:'.x.x.x.x'}),X('Mixed',2,{HH:'xxxxxxxx',S:'..x..xx.'})]},
+{id:'2.4.03',t:'Right hand fixed',bpm:[60,100],d:'The hi-hat never changes; kick and snare move underneath it.',ex:[X('Var 1',2,{HH:'xxxxxxxx',K:'x...x...',S:'..x...x.'}),X('Var 2',2,{HH:'xxxxxxxx',K:'x.x...x.',S:'..x...x.'}),X('Var 3',2,{HH:'xxxxxxxx',K:'x...xx..',S:'..x...x.'}),X('Var 4',2,{HH:'xxxxxxxx',K:'xx..x...',S:'..x...x.'})]},
+{id:'2.4.04',t:'Left hand moves',bpm:[60,100],d:'Hi-hat and kick fixed; snare placements change.',ex:['..x...x.','..x..x.x','..xx..x.','..x...xx'].map((s,i)=>X('Snare '+(i+1),2,{HH:'xxxxxxxx',K:'x...x...',S:s}))},
+{id:'2.4.05',t:'Bass drum moves (on the “&”)',bpm:[60,100],d:'Kick notes on the off-beats under a fixed beat.',ex:['x..xx...','x...x..x','xx..x...','x..x.x..'].map((k,i)=>X('Kick '+(i+1),2,{HH:'xxxxxxxx',K:k,S:'..x...x.'}))},
+{id:'2.4.06',t:'Hi-hat foot added',bpm:[60,90],d:'Right hand moves to the ride; the left foot closes the hi-hat on 2 and 4. All four limbs.',ex:[X('Four limbs',2,{R:'xxxxxxxx',K:'x...x...',S:'..x...x.',HP:'..x...x.'})]},
+{id:'2.5.01',t:'Essential 8th-note rock beats',bpm:[70,110],d:'Eight common kick variations under hi-hat 8ths and a 2 & 4 backbeat.',ex:['x...x...','x...x.x.','x.x.x...','x..xx...','x...x..x','x...xx..','xx..x...','x..x.x..'].map((k,i)=>X('Beat '+(i+1),2,{HH:'xxxxxxxx',K:k,S:'..x...x.'}))},
+{id:'2.5.02',t:'16th-note rock beats',bpm:[60,90],d:'Two-handed 16ths on the hi-hat (R L R L); the right hand moves to the snare on 2 and 4.',ex:[X('Beat 1',4,{HH:'xxxx.xxxxxxx.xxx',K:'x.......x.......',S:'....x.......x...'},{st:rep('RLRL',4)}),X('Beat 2',4,{HH:'xxxx.xxxxxxx.xxx',K:'x.....x.x.......',S:'....x.......x...'},{st:rep('RLRL',4)}),X('Beat 3',4,{HH:'xxxx.xxxxxxx.xxx',K:'x.......x.x.....',S:'....x.......x...'},{st:rep('RLRL',4)})]},
+{id:'2.6.01',t:'8th-note rock fills',bpm:[70,110],d:'One bar of beat, then a 1-, 2- or 4-beat fill, landing on the crash.',ex:[withFill(2,B8,['S','S'],'1-beat fill'),withFill(2,B8,['S','S','T2','T3'],'2-beat fill'),withFill(2,B8,['S','S','T1','T1','T2','T2','T3','T3'],'4-beat fill')]},
+{id:'2.6.02',t:'16th-note rock fills',bpm:[60,90],d:'16th-note fills around snare and the three toms, landing on the crash.',ex:[withFill(4,B8_16,['S','S','S','S'],'1-beat fill'),withFill(4,B8_16,['S','S','S','S','T1','T1','T3','T3'],'2-beat fill'),withFill(4,B8_16,['S','S','S','S','T1','T1','T1','T1','T2','T2','T2','T2','T3','T3','T3','T3'],'4-beat fill')]},
+{id:'2.7.01',t:'Listen & copy',bpm:[70,100],call:true,d:'The app plays one bar; you play it back in the next bar from memory (the notes are hidden).',ex:[X('Copy 1',2,B8),X('Copy 2',2,{HH:'xxxxxxxx',K:'x.x.x...',S:'..x...x.'}),X('Copy 3',2,{HH:'xxxxxxxx',K:'x..xx...',S:'..x...x.'}),X('Copy 4',1,{HH:'xxxx',K:'x.x.',S:'.x.x'})]},
+{id:'2.8.01',t:'Song checkpoint',type:'song',d:'Pick a song tagged with 2.5.01 and 2.6.01 in Songs and play along to your own audio.'}
+];
+LESSONS.forEach(l=>{l.type=l.type||'play'; l.lv=+l.id.split('.')[0]; l.sd=+l.id.split('.')[1]; if(l.bpm&&!l.step)l.step=5;});
+const LBY=Object.fromEntries(LESSONS.map(l=>[l.id,l]));
+
+const LATER=`3.1.01|Whole & half notes
+3.1.02|8th-note triplets
+3.1.03|16th-note triplets
+3.1.04|Dynamics & articulation
+3.1.05|Repeats
+3.2.01|The four strokes
+3.2.02|Accents in 8ths and 16ths
+3.2.03|Developing doubles
+3.2.04|Cross-sticking & rim
+3.2.05|Hi-hat openings
+3.2.06|Hi-hat barks
+3.2.07|Ghost notes intro
+3.3.01|Five-stroke roll
+3.3.02|Five-stroke: applications
+3.3.03|Double paradiddle
+3.3.04|Double paradiddle: applications
+3.3.05|Triple paradiddle
+3.3.06|Triple paradiddle: applications
+3.3.07|Flam
+3.3.08|Flam: applications
+3.3.09|Drag (ruff)
+3.3.10|Drag: applications
+3.4.01|Right-hand independence
+3.4.02|Left-hand independence
+3.4.03|Bass drum independence
+3.4.04|Hi-hat foot independence
+3.4.05|Dynamic independence
+3.4.06|Unisons
+3.5.01|Moving between cymbals
+3.5.02|Modern country beats
+3.5.03|Train beat
+3.5.04|Two-step
+3.5.05|Country shuffle
+3.5.06|Disco beats
+3.6.01|Fills for each style
+3.6.02|Syncopated accents
+3.7.01|Listen & copy 2
+3.7.02|Time feel 102
+3.7.03|Song roadmap
+3.8.01|Song checkpoints
+4.1.01|Quarter-note triplets
+4.1.02|Dotted notes
+4.1.03|Reading in 3/4
+4.1.04|Reading in 6/8 vs 3/4
+4.1.05|Reading in 12/8
+4.2.01|Moeller method intro
+4.2.02|2-, 3- and 4-stroke Moeller
+4.2.03|Applying Moeller
+4.2.04|Developing speed
+4.2.05|Ghost notes 2
+4.2.06|Bass drum doubles
+4.2.07|Daily bass drum challenge
+4.3.01|Single stroke four
+4.3.02|Single stroke seven
+4.3.03|Six-stroke roll
+4.3.04|Seven-stroke roll
+4.3.05|Nine-stroke roll
+4.3.06|Single paradiddle-diddle
+4.3.07|Rudiment applications
+4.4.01|Coordination drills
+4.4.02|RH / LH / kick / hi-hat foot
+4.4.03|Dynamic independence 2
+4.5.01|Half-time feel
+4.5.02|Filling over the barline
+4.5.03|Pushing the beat
+4.5.04|Rock ballad grooves & fills
+4.5.05|3/4 rock beats & fills
+4.5.06|6/8 rock beats & fills
+4.5.07|Swing pattern
+4.5.08|Blues shuffles
+4.5.09|12/8 blues grooves & fills
+4.7.01|Time feel 103
+4.7.02|12-bar blues form
+4.7.03|Comping in swing
+4.8.01|Song checkpoints
+5.1.01|Dynamic & tempo markings
+5.1.02|Pickups, ties, cut time, double time
+5.1.03|Buzz notation
+5.1.04|Switching time signatures
+5.2.01|Moeller development
+5.2.02|Developing your feet
+5.2.03|Hi-hat splashes
+5.2.04|Cymbal chokes (if your crash supports it)
+5.2.05|Daily doubles challenge
+5.3.01|Multiple bounce roll
+5.3.02|Triple stroke roll
+5.3.03|Flam accent
+5.3.04|Flam tap
+5.3.05|Swiss army triplet
+5.3.06|Rudiment applications
+5.4.01|Snare comping
+5.4.02|Kick comping
+5.4.03|Hi-hat foot comping
+5.4.04|Ride comping
+5.5.01|Funk beats & fills
+5.5.02|Linear beats & fills
+5.5.03|Motown beats & fills
+5.5.04|Reggae beats & fills
+5.5.05|Bossa nova
+5.5.06|Half-time shuffle
+5.6.01|4-, 6- and 3-note groupings
+5.6.02|Combining groupings
+5.6.03|Swing vs straight
+5.6.04|Tension & release / endings
+5.7.01|Musical phrasing
+5.8.01|Song checkpoints
+6.1.01|Odd time: quarter-note meters
+6.1.02|Odd time: 8th-note meters
+6.2.01|Finger control: singles
+6.2.02|Daily paradiddle challenge
+6.3.01|Ten-stroke roll
+6.3.02|Flam paradiddle
+6.3.03|Single dragadiddle
+6.3.04|Rudiment applications
+6.4.01|Independence in rock / bossa / swing / shuffle
+6.5.01|5/4 and 5/8 rock beats & fills
+6.5.02|7/4 and 7/8 rock beats & fills
+6.5.03|Hip-hop & R&B beats & fills
+6.5.04|Cha-cha-chá
+6.5.05|Calypso & soca
+6.5.06|3/4 jazz waltz
+6.5.07|New Orleans second line
+6.6.01|5- and 7-note groupings
+6.7.01|Time awareness & trading 2s
+6.8.01|Song checkpoints
+7.2.01|Inverted doubles
+7.2.02|Daily finger-control challenge
+7.2.03|Heel-toe technique
+7.2.04|Slide technique
+7.2.05|Single-pedal speed
+7.3.01|Eleven-stroke roll
+7.3.02|Single ratamacue
+7.3.03|Herta (optional, non-PAS)
+7.3.04|Rudiment applications
+7.4.01|Independence: swing 4/4 & 3/4
+7.4.02|Independence: rock
+7.5.01|Punk rock beats & fills
+7.5.02|Metal beats (single pedal)
+7.6.01|Hand-foot combinations
+7.6.02|Triplet hand-foot combos
+7.6.03|Playing shots
+7.7.01|Time vs time feel / trading 4s
+7.8.01|Song checkpoints
+8.1.01|Navigation markings
+8.1.02|Chart reading challenge
+8.1.03|Lead sheets & song forms
+8.2.01|Technique check-in
+8.3.01|Flamacue
+8.3.02|Single flammed mill
+8.3.03|Double ratamacue
+8.3.04|Flam paradiddle-diddle
+8.3.05|Pataflafla
+8.3.06|Lesson 25
+8.3.07|Triple ratamacue
+8.3.08|Rudiment applications
+8.4.01|Interpreting stickings
+8.4.02|Interpreting rhythms & layering
+8.5.01|Samba
+8.5.02|The clave
+8.5.03|Mozambique
+8.7.01|Trading 8s & subdivision awareness
+8.8.01|Song checkpoints
+9.2.01|Technique check-in
+9.3.01|Single drag tap
+9.3.02|Double drag tap
+9.3.03|Inverted flam tap
+9.3.04|Flam drag
+9.3.05|Drag paradiddle #1
+9.3.06|Drag paradiddle #2
+9.3.07|Thirteen-stroke roll
+9.3.08|Fifteen-stroke roll
+9.3.09|Seventeen-stroke roll
+9.3.10|Rudiment applications
+9.4.01|Swing / samba / tumbao: interpreting
+9.5.01|Mambo, songo, ñañigo
+9.6.01|Intro to soloing
+9.6.02|Soloing over a vamp
+9.7.01|Background vs foreground drumming
+9.8.01|Song checkpoints
+10.1.01|Odd time: 16th-note meters
+10.1.02|Half-note triplets, quintuplets, septuplets
+10.4.01|Melodic ostinatos
+10.5.01|Advanced odd-time beats
+10.5.02|Quintuplet & septuplet grooves/fills
+10.5.03|Advanced Afro-Cuban & Latin jazz
+10.5.04|Up-tempo swing
+10.6.01|Polyrhythms 3:2, 4:3, 5:4
+10.6.02|Polyrhythmic beats & fills
+10.6.03|Polymeters
+10.6.04|Metric modulation
+10.6.05|Soloing over an ostinato / open solo / trading
+10.8.01|Song checkpoints`.split('\n').map(s=>{const[id,t]=s.split('|');return{id,t,lv:+id.split('.')[0],sd:+id.split('.')[1],later:true};});
+
+const SUGGEST=[
+ {title:'We Will Rock You',artist:'Queen',bpm:81,tags:['1.2.03','1.5.02'],notes:'Stomp-stomp-clap idea: kick, kick, snare.'},
+ {title:'Seven Nation Army',artist:'The White Stripes',bpm:124,tags:['1.2.02','1.5.01'],notes:'Steady quarter-note pulse.'},
+ {title:'Another One Bites the Dust',artist:'Queen',bpm:110,tags:['1.5.02','1.5.03'],notes:'Four-on-the-floor kick, snare on 2 & 4.'},
+ {title:'Billie Jean',artist:'Michael Jackson',bpm:117,tags:['1.5.03','2.4.03'],notes:'Steady 8th hi-hat, kick 1 & 3, snare 2 & 4.'},
+ {title:'Back in Black',artist:'AC/DC',bpm:94,tags:['1.5.03','2.5.01','1.6.04'],notes:'8th-note rock beat with clear start/stop hits.'},
+ {title:'Highway to Hell',artist:'AC/DC',bpm:116,tags:['1.5.03','2.5.01','1.6.01'],notes:'8th-note rock beat with simple fills.'},
+ {title:'Smells Like Teen Spirit',artist:'Nirvana',bpm:117,tags:['2.5.01','2.6.02','1.6.03'],notes:'Harder: 16th-note tom fills.'}
+];
+
+/* ============ STATE ============ */
+const KEY='drumpath.v1';
+const DEF_SET={tol:30,win:120,pass:90,bars:4,vol:0.7,subclick:false,countin:1,pads:true};
+let state;
+function freshState(){return{v:1,map:{...DEFAULT_MAP},lat:0,set:{...DEF_SET},prog:{},done:{},sessions:[],days:{},songs:[],savedAt:0};}
+function loadLocal(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}return null;}
+state=Object.assign(freshState(),loadLocal()||{});
+state.set=Object.assign({...DEF_SET},state.set);
+let cloud=null, saveT=null, saving=false, dirty=false;
+function save(){
+  state.savedAt=Date.now();
+  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
+  if(cloud){clearTimeout(saveT);saveT=setTimeout(pushCloud,2500);}
+}
+async function pushCloud(){
+  if(!cloud)return; if(saving){dirty=true;return;}
+  saving=true;
+  try{await cloud.set(JSON.parse(JSON.stringify(state)));}catch(e){console.warn('cloud save',e);}
+  saving=false; if(dirty){dirty=false;pushCloud();}
+}
+(async function initCloud(){
+  for(let i=0;i<50&&!(window.claude&&window.claude.use);i++) await sleep(100);
+  if(!(window.claude&&window.claude.use))return;
+  try{
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    if(!db||!user)return;
+    const id=await user.id(); if(!id)return;
+    const d=db.collection('data/users/'+id).doc('drumpath');
+    let r=await d.get(); let data=r&&(typeof r.data==='function'?r.data():(r.data!==undefined?r.data:r));
+    cloud=d;
+    if(data&&data.v&&(data.savedAt||0)>(state.savedAt||0)){state=Object.assign(freshState(),data);state.set=Object.assign({...DEF_SET},state.set);try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){} render();}
+    else pushCloud();
+  }catch(e){console.warn('cloud',e);}
+})();
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function P(id){const l=LBY[id];if(!state.prog[id])state.prog[id]={bpm:l&&l.bpm?l.bpm[0]:0,streak:0,best:0,bestBpm:0,attempts:0,ms:0,status:'new',last:0,ex:0};return state.prog[id];}
+function statusOf(l){
+  if(l.later)return'later';
+  if(l.type!=='play')return state.done[l.id]?'ms':'new';
+  const p=state.prog[l.id]; if(!p)return'new'; return p.status==='mastered'?'ms':(p.attempts?'ip':'new');
+}
+const today=()=>dkey(new Date());
+function dkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function addTime(id,ms){if(ms<=0)return;const p=P(id);p.ms+=ms;const k=today();state.days[k]=(state.days[k]||0)+ms;}
+
+/* ============ UTIL ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mins=ms=>Math.round(ms/60000);
+function toast(t,ms=2600){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),ms);}
+const chip=s=>s==='ms'?'<span class="chip ms">Done</span>':s==='ip'?'<span class="chip ip">In progress</span>':s==='later'?'<span class="chip">Coming</span>':'<span class="chip">New</span>';
+function songReady(s){const t=s.tags.filter(id=>LBY[id]);if(!t.length)return 0;return t.filter(id=>statusOf(LBY[id])==='ms').length/t.length;}
+
+/* ============ MIDI ============ */
+let midi=null, inputs=[], learnVoice=null, monitor=[];
+async function connectMidi(){
+  if(!navigator.requestMIDIAccess){setMidiStatus(false,'MIDI not available here');toast('This browser/page cannot use MIDI. Open DrumPath in Chrome on the tablet.',5000);return;}
+  try{
+    midi=await navigator.requestMIDIAccess({sysex:false});
+    midi.onstatechange=bindInputs; bindInputs();
+  }catch(e){setMidiStatus(false,'MIDI blocked');toast('MIDI permission was blocked: '+e.message,5000);}
+}
+function bindInputs(){
+  inputs=[];midi.inputs.forEach(i=>{i.onmidimessage=onMidi;inputs.push(i);});
+  setMidiStatus(inputs.length>0,inputs.length?inputs.map(i=>i.name).join(', '):'No kit found: check the USB cable');
+  if(cur==='kit')render();
+}
+function setMidiStatus(ok,txt){$('#mdot').classList.toggle('ok',ok);$('#mtxt').textContent=txt;}
+function onMidi(e){
+  const [st,n,vel]=e.data; if((st&0xf0)!==0x90||!vel)return;
+  const t=e.timeStamp||performance.now();
+  const v=state.map[n];
+  monitor.unshift({n,vel,v});monitor=monitor.slice(0,8);
+  const m=$('#mon');if(m)m.textContent=monitor.map(x=>`${x.v?VOICES[x.v].n:'?'} (note ${x.n}, vel ${x.vel})`).join('  ·  ');
+  if(learnVoice){
+    Object.keys(state.map).forEach(k=>{if(+k===n)delete state.map[k];});
+    state.map[n]=learnVoice; save(); toast(VOICES[learnVoice].n+' ← note '+n); learnVoice=null; render(); return;
+  }
+  if(v)hit(v,vel,t);
+}
+
+/* ============ AUDIO ============ */
+let ac=null, noiseBuf=null;
+function audio(){
+  if(!ac){ac=new (window.AudioContext||window.webkitAudioContext)();
+    noiseBuf=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+  if(ac.state==='suspended')ac.resume();
+  return ac;
+}
+function env(g,t,peak,dec){g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+0.002);g.gain.exponentialRampToValueAtTime(0.0001,t+dec);}
+function click(t,kind,nodes){
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.frequency.value=kind==='acc'?1600:kind==='sub'?900:1100;
+  const vol=state.set.vol*(kind==='acc'?1:kind==='sub'?0.3:0.65);
+  env(g,t,Math.max(vol,0.0002),0.05);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+0.06);nodes.push(o);
+}
+function drum(v,t,nodes){
+  const g=ac.createGain();g.connect(ac.destination);
+  if(v==='K'||v==='T1'||v==='T2'||v==='T3'){
+    const o=ac.createOscillator();const f={K:[120,45],T1:[260,170],T2:[200,130],T3:[150,95]}[v];
+    o.frequency.setValueAtTime(f[0],t);o.frequency.exponentialRampToValueAtTime(f[1],t+0.15);
+    env(g,t,0.9,v==='K'?0.35:0.3);o.connect(g);o.start(t);o.stop(t+0.4);nodes.push(o);
+  }else{
+    const s=ac.createBufferSource();s.buffer=noiseBuf;const fl=ac.createBiquadFilter();
+    if(v==='S'){fl.type='bandpass';fl.frequency.value=1800;env(g,t,0.8,0.18);}
+    else if(v==='HH'||v==='HP'){fl.type='highpass';fl.frequency.value=7000;env(g,t,0.45,0.05);}
+    else{fl.type='highpass';fl.frequency.value=4500;env(g,t,0.4,v==='C'?1.0:0.4);}
+    s.connect(fl).connect(g);s.start(t);s.stop(t+1.1);nodes.push(s);
+  }
+}
+
+/* ============ PRACTICE ENGINE ============ */
+let L=null, exI=0, bpm=60, run=null, preview=null, lastFeed=0, flashes={}, wake=null;
+const cv=$('#cv'), cx=cv.getContext('2d');
+
+function buildRun(lesson,ex,bpmv,base,opts={}){
+  const sub=ex.sub, spb=4*sub, patSteps=spb*ex.bars;
+  const beatMs=60000/bpmv, stepMs=beatMs/sub;
+  let reps;
+  if(lesson.loop===1||opts.calib)reps=1;
+  else{const want=Math.max(state.set.bars,ex.bars);reps=Math.ceil(want/ex.bars);if(lesson.call&&reps%2)reps++;}
+  const cin=(opts.calib?1:state.set.countin)*4;
+  const evs=[];
+  for(let r=0;r<reps;r++){
+    const listen=lesson.call&&r%2===0;
+    for(const v in ex.v){const s=ex.v[v];
+      for(let i=0;i<patSteps;i++){const c=s[i];if(!c||c==='.')continue;
+        const step=r*patSteps+i;
+        evs.push({v,t:base+cin*beatMs+step*stepMs,acc:c==='X',ghost:c==='g',st:ex.st?ex.st[i%ex.st.length]:'',listen,hide:lesson.call&&!listen,step,bar:Math.floor(step/spb)});
+      }}
+  }
+  evs.sort((a,b)=>a.t-b.t);
+  const totalBeats=cin+reps*ex.bars*4;
+  return{lesson,ex,bpm:bpmv,base,beatMs,stepMs,sub,cin,reps,evs,totalBeats,end:base+totalBeats*beatMs,extras:[],nodes:[],calib:!!opts.calib,spb};
+}
+
+function openPractice(id){
+  L=LBY[id]; const p=P(id); exI=Math.min(p.ex||0,L.ex.length-1); bpm=p.bpm||L.bpm[0];
+  $('#prac').classList.remove('hidden'); $('#result').classList.add('hidden');
+  $('#ptitle').textContent=L.id+'  '+L.t;
+  renderPracBar(); renderPads(L.ex[exI]); sizeCv(); makePreview(); draw();
+}
+function renderPracBar(){
+  $('#exsel').innerHTML=L.ex.length>1?L.ex.map((e,i)=>`<button class="${i===exI?'on':''}" data-act="ex" data-i="${i}">${esc(e.n)}</button>`).join(''):`<span class="mut">${esc(L.ex[0].n)}</span>`;
+  $('#bpmv').textContent=bpm;
+  if(L.calib){$('#pdots').innerHTML='<span>Latency test</span>';return;}
+  const p=P(L.id);
+  $('#pdots').innerHTML=`<span>${p.status==='mastered'?'Mastered':'Passes'}</span>`+[0,1,2].map(i=>`<i class="${i<p.streak||p.status==='mastered'?'f':''}"></i>`).join('')+`<span>@ ${p.bpm} · goal ${L.bpm[1]}</span>`;
+}
+function renderPads(ex){
+  const vs=LANES.filter(v=>ex.v[v]);
+  $('#pads').classList.toggle('hidden',!state.set.pads);
+  $('#pads').innerHTML=vs.map(v=>`<button data-pad="${v}" style="border-color:${VOICES[v].c}">${VOICES[v].n}</button>`).join('');
+}
+function sizeCv(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d,0,0,d,0,0);}
+function makePreview(){preview=buildRun(L,L.ex[exI],bpm,0,{calib:L.calib});}
+
+async function startRun(){
+  const a=audio(); if(a.state!=='running'){try{await a.resume();}catch(e){}}
+  const t0=a.currentTime+0.3; const pNow=performance.now(), cNow=a.currentTime;
+  const outLat=((a.outputLatency||0)+(a.baseLatency||0))*1000;
+  const base=pNow+(t0-cNow)*1000+outLat;
+  run=buildRun(L,L.ex[exI],bpm,base,{calib:L.calib});
+  run.t0=t0; run.startPerf=performance.now();
+  const bs=run.beatMs/1000;
+  for(let b=0;b<run.totalBeats;b++){
+    const t=t0+b*bs; click(t,b%4===0?'acc':'beat',run.nodes);
+    if(state.set.subclick&&run.sub>1)for(let s=1;s<run.sub;s++)click(t+s*bs/run.sub,'sub',run.nodes);
+  }
+  run.evs.forEach(e=>{if(e.listen)drum(e.v,t0+(e.t-base)/1000,run.nodes);});
+  flashes={}; $('#pfeed').textContent=''; $('#go').textContent='Stop'; $('#result').classList.add('hidden');
+  try{if(navigator.wakeLock&&!wake)wake=await navigator.wakeLock.request('screen');}catch(e){}
+  requestAnimationFrame(loop);
+}
+function stopRun(save_=true){
+  if(!run)return; run.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
+  if(save_&&!run.calib){addTime(L.id,performance.now()-run.startPerf);save();}
+  run=null; $('#go').textContent='Start'; draw();
+}
+function loop(){
+  if(!run)return; draw(); const now=performance.now();
+  if(now>run.end+350){finish();return;}
+  requestAnimationFrame(loop);
+}
+function hit(v,vel,tp){
+  flashes[v]=performance.now();
+  if(!run||$('#prac').classList.contains('hidden'))return;
+  const lat=run.calib?0:state.lat;
+  const t=tp-lat;
+  const start=run.base+run.cin*run.beatMs;
+  if(t<start-state.set.win)return; // ignore count-in
+  if(run.lesson.call){const repMs=run.stepMs*run.spb*run.ex.bars;const r=Math.floor((t-start)/repMs);if(r%2===0&&t<start+(r+1)*repMs-state.set.win)return;} // listening bars
+  let best=null,bd=1e9;
+  for(const e of run.evs){if(e.listen||e.v!==v||e.hitT!=null)continue;const d=Math.abs(t-e.t);if(d<bd&&d<=state.set.win){bd=d;best=e;}}
+  if(best){best.hitT=t;best.dt=t-best.t;best.vel=vel;feed(best.dt);}
+  else{run.extras.push({v,t});feedTxt('Extra '+VOICES[v].n,'#ef6b6b');}
+}
+function feed(dt){
+  const a=Math.abs(dt),tol=state.set.tol;
+  if(a<=tol)feedTxt('On time '+(dt>=0?'+':'')+Math.round(dt)+' ms','#5ad1a0');
+  else feedTxt((dt<0?'Early ':'Late ')+Math.round(a)+' ms',dt<0?'#6aa8ff':'#f0a35a');
+}
+function feedTxt(t,c){const f=$('#pfeed');f.textContent=t;f.style.color=c;lastFeed=performance.now();}
+
+function draw(){
+  const W=cv.clientWidth,H=cv.clientHeight; if(!W||!H)return;
+  cx.clearRect(0,0,W,H);
+  const R=run||preview; if(!R)return;
+  const now=run?performance.now():(R.base+R.cin*R.beatMs-R.beatMs*0.6);
+  const vs=LANES.filter(v=>R.ex.v[v]); const n=vs.length; const top=34, lh=(H-top-6)/n;
+  const hitX=Math.max(110,W*0.17); const barMs=R.beatMs*4; const ppm=(W-hitX)*0.62/barMs;
+  // lanes
+  vs.forEach((v,i)=>{const y=top+i*lh;cx.fillStyle=i%2?'#14171d':'#171a21';cx.fillRect(0,y,W,lh);
+    const fl=flashes[v]&&performance.now()-flashes[v]<140;
+    cx.fillStyle=fl?VOICES[v].c:'#8b93a3';cx.font='600 14px system-ui';cx.textBaseline='middle';cx.fillText(VOICES[v].n,10,y+lh/2);
+    if(fl){cx.fillStyle=VOICES[v].c+'55';cx.fillRect(hitX-30,y,60,lh);}
+  });
+  // beat lines
+  for(let b=0;b<R.totalBeats+1;b++){const t=R.base+b*R.beatMs;const x=hitX+(t-now)*ppm;if(x<hitX-200||x>W)continue;
+    const isBar=b>=R.cin&&(b-R.cin)%4===0;cx.strokeStyle=isBar?'#3a414f':'#242934';cx.lineWidth=isBar?2:1;cx.beginPath();cx.moveTo(x,top);cx.lineTo(x,H);cx.stroke();}
+  // hit line
+  cx.strokeStyle='#e9ecf1';cx.lineWidth=3;cx.beginPath();cx.moveTo(hitX,top-4);cx.lineTo(hitX,H);cx.stroke();
+  // notes
+  const rad=Math.min(lh*0.32,18);
+  for(const e of R.evs){
+    const x=hitX+(e.t-now)*ppm; if(x<hitX-120||x>W+30)continue;
+    const i=vs.indexOf(e.v); const y=top+i*lh+lh/2;
+    if(e.hide&&run&&e.hitT==null){ if(x>hitX){cx.strokeStyle='#2c313c';cx.setLineDash([4,4]);cx.beginPath();cx.arc(x,y,rad*0.7,0,7);cx.stroke();cx.setLineDash([]);} continue; }
+    let col=VOICES[e.v].c, alpha=e.listen?0.35:1;
+    if(e.hitT!=null){const a=Math.abs(e.dt);col=a<=state.set.tol?'#5ad1a0':(e.dt<0?'#6aa8ff':'#f0a35a');}
+    else if(run&&!e.listen&&x<hitX-state.set.win*ppm)col='#4a505c';
+    cx.globalAlpha=alpha;cx.fillStyle=col;cx.beginPath();cx.arc(x,y,e.acc?rad*1.15:e.ghost?rad*0.6:rad,0,7);cx.fill();
+    if(e.st&&e.st!=='.'){cx.fillStyle='#0f1115';cx.font='700 13px system-ui';cx.textAlign='center';cx.fillText(e.st,x,y+1);cx.textAlign='left';}
+    cx.globalAlpha=1;
+  }
+  // header info
+  cx.fillStyle='#8b93a3';cx.font='600 13px system-ui';cx.textBaseline='middle';
+  if(run){
+    const beat=Math.floor((now-R.base)/R.beatMs);
+    if(beat<R.cin&&beat>=0){cx.fillStyle='#e9ecf1';cx.font='800 72px system-ui';cx.textAlign='center';cx.fillText(String(beat%4+1),W/2,H/2);cx.textAlign='left';}
+    else if(beat>=R.cin){const bar=Math.floor((beat-R.cin)/4);const totalBars=R.reps*R.ex.bars;
+      let lab='Bar '+Math.min(bar+1,totalBars)+' / '+totalBars;
+      if(R.lesson.call){lab+=Math.floor(bar/R.ex.bars)%2===0?'   ·   LISTEN':'   ·   YOUR TURN';}
+      cx.fillText(lab,hitX,16);}
+  }else{cx.fillText(L&&L.calib?'Play the snare on every click':'Tap Start (or hit any pad and then Start). Count-in: '+(state.set.countin)+' bar.',hitX,16);}
+  if(performance.now()-lastFeed>900)$('#pfeed').textContent='';
+}
+
+function finish(){
+  const R=run; R.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
+  const elapsed=performance.now()-R.startPerf; run=null; $('#go').textContent='Start';
+  const sc=R.evs.filter(e=>!e.listen);
+  if(R.calib){
+    const ds=sc.filter(e=>e.hitT!=null).map(e=>e.dt).sort((a,b)=>a-b);
+    if(ds.length<8){showResult(`<h2>Not enough hits</h2><p class="mut">Hit the snare on every click (got ${ds.length} of ${sc.length}).</p>`);return;}
+    const med=ds[Math.floor(ds.length/2)]; state.lat=Math.round(med); state.done['0.7.01']=true; save();
+    showResult(`<h2>Latency set: ${state.lat} ms</h2><p class="mut">Median offset of ${ds.length} hits. Scores now subtract this. Spread: ${Math.round(ds[0])} to ${Math.round(ds[ds.length-1])} ms.</p>`,true);return;
+  }
+  const tol=state.set.tol;
+  const hits=sc.filter(e=>e.hitT!=null), on=hits.filter(e=>Math.abs(e.dt)<=tol);
+  const miss=sc.length-hits.length, ext=R.extras.length;
+  const score=Math.round(100*on.length/Math.max(1,sc.length+ext));
+  const avg=hits.length?hits.reduce((a,e)=>a+e.dt,0)/hits.length:0;
+  const per={};sc.forEach(e=>{const p=per[e.v]||(per[e.v]={n:0,on:0,hit:0,sum:0});p.n++;if(e.hitT!=null){p.hit++;p.sum+=e.dt;if(Math.abs(e.dt)<=tol)p.on++;}});
+  R.extras.forEach(x=>{const p=per[x.v]||(per[x.v]={n:0,on:0,hit:0,sum:0});p.ext=(p.ext||0)+1;});
+  const p=P(L.id); p.attempts++; p.last=Date.now(); p.ex=exI; addTime(L.id,elapsed);
+  if(p.status==='new')p.status='progress';
+  let msg='';
+  const passed=score>=state.set.pass;
+  if(passed){p.bestBpm=Math.max(p.bestBpm,R.bpm);
+    if(R.bpm>=p.bpm){p.streak++;
+      if(p.streak>=3){p.streak=0;
+        if(p.bpm>=L.bpm[1]){if(p.status!=='mastered'){p.status='mastered';msg='🎉 Lesson mastered at '+p.bpm+' BPM!';}else msg='Still mastered. Nice.';}
+        else{p.bpm=Math.min(L.bpm[1],p.bpm+L.step);msg='Tempo up! Next target: '+p.bpm+' BPM';bpm=p.bpm;}
+      }else msg='Pass '+p.streak+' of 3 at '+p.bpm+' BPM';
+    }else msg='Passed, but below your current target ('+p.bpm+' BPM), so it doesn’t count toward the streak.';
+  }else{if(R.bpm>=p.bpm)p.streak=0;msg='Need '+state.set.pass+'% to pass. Streak reset.';}
+  p.best=Math.max(p.best,score);
+  state.sessions.push({ts:Date.now(),id:L.id,ex:exI,bpm:R.bpm,score,on:on.length,n:sc.length,ext,miss,avg:Math.round(avg)});
+  if(state.sessions.length>3000)state.sessions=state.sessions.slice(-3000);
+  save(); renderPracBar();
+  const tend=Math.abs(avg)<8?'Centred on the beat':avg<0?'Rushing: '+Math.round(-avg)+' ms ahead on average':'Dragging: '+Math.round(avg)+' ms behind on average';
+  const rows=LANES.filter(v=>per[v]).map(v=>{const q=per[v];const a=q.hit?Math.round(q.sum/q.hit):0;
+    return `<tr><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td>${q.n?Math.round(100*q.on/q.n)+'%':'–'}</td><td>${q.on}/${q.n}</td><td>${q.n-q.hit}</td><td>${q.ext||0}</td><td>${q.hit?(a>0?'+':'')+a+' ms':'–'}</td></tr>`;}).join('');
+  showResult(`<div class="row"><div class="score" style="color:${passed?'#5ad1a0':'#f0a35a'}">${score}%</div><div><div style="font-weight:700;font-size:20px">${passed?'Pass':'Not yet'}</div><div class="mut">${esc(msg)}</div></div></div>
+   <p>${on.length} of ${sc.length} notes on time (±${tol} ms) · ${miss} missed · ${ext} extra · ${tend}</p>
+   <table><tr><th>Pad</th><th>On time</th><th>Hits</th><th>Missed</th><th>Extra</th><th>Avg timing</th></tr>${rows}</table>`);
+}
+function showResult(html,calib){
+  const r=$('#result');r.classList.remove('hidden');
+  r.innerHTML=`<div class="in"><div class="row" style="margin-bottom:18px"><button class="pri" data-act="again" style="font-size:20px;padding:14px 30px">${calib?'Run again':'Again'}</button>${calib?'':'<button data-act="bpm-">−5 BPM</button><button data-act="bpm+">+5 BPM</button>'}<span class="sp"></span><button data-act="pexit">Done</button></div>${html}</div>`;
+  makePreview();draw();
+}
+
+/* ============ VIEWS ============ */
+let cur='home', openL=null, openLv={0:true,1:true,2:true};
+const view=$('#view');
+function go(v){cur=v;openL=null;render();scrollTo(0,0);}
+function render(){
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.go===cur&&!openL));
+  if(openL)return renderLesson(openL);
+  ({home:renderHome,lessons:renderLessons,songs:renderSongs,kit:renderKit})[cur]();
+}
+function nextLesson(){return LESSONS.find(l=>statusOf(l)!=='ms')||LESSONS[LESSONS.length-1];}
+function weekStart(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d;}
+function streakDays(){let n=0;const d=new Date();if(!state.days[dkey(d)])d.setDate(d.getDate()-1);while(state.days[dkey(d)]){n++;d.setDate(d.getDate()-1);}return n;}
+function renderHome(){
+  const ws=weekStart();let wk=0;for(let i=0;i<7;i++){const d=new Date(ws);d.setDate(ws.getDate()+i);wk+=state.days[dkey(d)]||0;}
+  const doneN=LESSONS.filter(l=>statusOf(l)==='ms').length;
+  const nx=nextLesson();
+  const last=[...state.sessions].reverse().find(s=>LBY[s.id]);
+  const days=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push({k:dkey(d),m:(state.days[dkey(d)]||0)/60000,l:'SMTWTFS'[d.getDay()]});}
+  const mx=Math.max(10,...days.map(d=>d.m));
+  const rusty=LESSONS.filter(l=>l.type==='play'&&statusOf(l)==='ms'&&Date.now()-(P(l.id).last||0)>14*864e5).slice(0,4);
+  const recent=[...state.sessions].reverse().slice(0,8);
+  view.innerHTML=`<h1>Practice</h1>
+  <div class="grid">
+    <div class="card"><div class="mut">Streak</div><div class="big">${streakDays()} day${streakDays()===1?'':'s'}</div></div>
+    <div class="card"><div class="mut">This week (Sun–Sat)</div><div class="big">${mins(wk)} min</div></div>
+    <div class="card"><div class="mut">Lessons done (L0–L2)</div><div class="big">${doneN} / ${LESSONS.length}</div><div class="bar"><i style="width:${100*doneN/LESSONS.length}%"></i></div></div>
+    <div class="card"><div class="mut">Runs logged</div><div class="big">${state.sessions.length}</div></div>
+  </div>
+  <h2>Up next</h2>
+  <div class="card row"><div><span class="idx">${nx.id}</span> <b>${esc(nx.t)}</b><div class="mut">${LEVELS[nx.lv]}</div></div><span class="sp"></span>
+    ${last&&last.id!==nx.id?`<button data-open="${last.id}">Resume ${last.id}</button>`:''}
+    <button class="pri" data-open="${nx.id}">Open lesson</button></div>
+  ${rusty.length?`<h2>Quick review (not played in 14+ days)</h2><div class="card">${rusty.map(l=>`<div class="lrow" data-open="${l.id}"><span class="idx">${l.id}</span>${esc(l.t)}</div>`).join('')}</div>`:''}
+  <h2>Last 14 days (minutes)</h2>
+  <div class="card" style="padding-bottom:28px"><div class="bars14">${days.map(d=>`<div style="height:${100*d.m/mx}%" title="${d.k}: ${Math.round(d.m)} min"><span>${d.l}</span></div>`).join('')}</div></div>
+  <h2>Recent runs</h2>
+  <div class="card">${recent.length?`<table><tr><th>When</th><th>Lesson</th><th>BPM</th><th>Score</th><th>Timing</th></tr>${recent.map(s=>`<tr data-open="${s.id}" style="cursor:pointer"><td>${new Date(s.ts).toLocaleString([], {weekday:'short',hour:'2-digit',minute:'2-digit'})}</td><td><span class="idx">${s.id}</span> ${esc(LBY[s.id]?LBY[s.id].t:'')}</td><td>${s.bpm}</td><td>${s.score}%</td><td>${s.avg>0?'+':''}${s.avg} ms</td></tr>`).join('')}</table>`:'<span class="mut">No runs yet. Start with Level 0 to set up, then 1.2.02.</span>'}</div>`;
+}
+function renderLessons(){
+  const all=[...LESSONS,...LATER]; let html='<h1>Lessons</h1><p class="mut">Everything is unlocked: start at the top and move on when you feel ready. Levels 0–2 are playable now; Levels 3–10 are indexed and will be added next.</p>';
+  for(let lv=0;lv<=10;lv++){
+    const ls=all.filter(l=>l.lv===lv);const done=ls.filter(l=>statusOf(l)==='ms').length;const play=lv<=2;
+    html+=`<div class="lvl"><div class="lvlh" data-lv="${lv}"><span>Level ${lv}: ${LEVELS[lv]}</span><span class="sp"></span>${play?`<span class="mut">${done}/${ls.length}</span>`:'<span class="chip">Coming</span>'}<span>${openLv[lv]?'▾':'▸'}</span></div>`;
+    if(openLv[lv]){
+      const sds=[...new Set(ls.map(l=>l.sd))].sort((a,b)=>a-b);
+      sds.forEach(sd=>{html+=`<div class="strand">${sd}. ${STRANDS[sd]}</div>`;
+        ls.filter(l=>l.sd===sd).sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true})).forEach(l=>{
+          const s=statusOf(l),p=state.prog[l.id];
+          html+=`<div class="lrow ${l.later?'dim':''}" ${l.later?'':`data-open="${l.id}"`}><span class="idx">${l.id}</span><span>${esc(l.t)}</span><span class="sp"></span>
+          ${l.bpm?`<span class="mut" style="font-size:14px">${p?p.bpm:l.bpm[0]} → ${l.bpm[1]} BPM${p&&p.best?' · best '+p.best+'%':''}</span>`:l.type&&l.type!=='play'?`<span class="mut" style="font-size:14px">${{info:'Read & check',tool:'Setup',song:'Song'}[l.type]}</span>`:''}${chip(s)}</div>`;});
+      });
+    }
+    html+='</div>';
+  }
+  view.innerHTML=html;
+}
+function patText(ex){
+  const n=ex.sub*4*ex.bars;
+  const cnt=Array.from({length:n},(_,i)=>{const b=i%(ex.sub*4);if(b%ex.sub===0)return String(b/ex.sub+1);return ex.sub===2?'&':ex.sub===3?(b%3===1?'t':'l'):['','e','&','a'][b%4];});
+  const fmt=a=>a.map((c,i)=>(i&&i%(ex.sub*4)===0?'| ':'')+c).join(' ');
+  let lines=['       '+fmt(cnt)];
+  if(ex.st)lines.push('Stick  '+fmt(Array.from({length:n},(_,i)=>ex.st[i%ex.st.length]||'.')));
+  LANES.filter(v=>ex.v[v]).forEach(v=>lines.push(VOICES[v].n.padEnd(7).slice(0,7)+fmt(ex.v[v].slice(0,n).split('').map(c=>c==='.'?'·':c==='X'?'>':'x'))));
+  return lines.join('\n');
+}
+function renderLesson(id){
+  const l=LBY[id];const s=statusOf(l);
+  const songs=state.songs.filter(x=>x.tags.includes(id));
+  let body='';
+  if(l.type==='play'){const p=P(id);
+    body=`<div class="grid"><div class="card"><div class="mut">Current target</div><div class="big">${p.bpm} BPM</div><div class="mut">goal ${l.bpm[1]} · +${l.step} per 3 passes</div></div>
+      <div class="card"><div class="mut">Best score</div><div class="big">${p.best}%</div><div class="mut">best passing tempo ${p.bestBpm||'–'}</div></div>
+      <div class="card"><div class="mut">Practice</div><div class="big">${mins(p.ms)} min</div><div class="mut">${p.attempts} runs</div></div></div>
+      <h2>Exercises</h2>${l.ex.map(e=>`<div class="card" style="margin-bottom:10px"><b>${esc(e.n)}</b> <span class="mut">· ${e.sub===1?'quarter notes':e.sub===2?'8th notes':e.sub===3?'triplets':'16th notes'}${e.bars>1?' · '+e.bars+' bars':''}</span><div class="pat">${esc(patText(e))}</div></div>`).join('')}
+      <div class="row" style="margin-top:14px"><button class="pri" style="font-size:20px;padding:14px 34px" data-play="${id}">Practise</button>${s==='ms'?'<button data-reset="'+id+'">Reset progress</button>':''}</div>`;
+  }else{
+    const ck=state.done[id+'_ck']||{};
+    body=`${l.check?`<div class="card">${l.check.map((c,i)=>`<label class="row" style="padding:8px 0;cursor:pointer"><input type="checkbox" data-ck="${id}" data-i="${i}" ${ck[i]?'checked':''} style="width:22px;height:22px"> ${esc(c)}</label>`).join('')}</div>`:''}
+      <div class="row" style="margin-top:14px">
+      ${l.tool==='kit'?'<button class="pri" data-go="kit">Open Kit & Settings</button>':''}
+      ${l.tool==='latency'?'<button class="pri" data-act="latency">Run latency test</button>':''}
+      ${l.type==='song'?'<button class="pri" data-go="songs">Open Songs</button>':''}
+      <button data-done="${id}">${state.done[id]?'Mark not done':'Mark done'}</button></div>`;
+  }
+  view.innerHTML=`<button class="ghost sm" data-back>← Lessons</button>
+   <h1><span class="idx">${l.id}</span> ${esc(l.t)} ${chip(s)}</h1>
+   <div class="mut">Level ${l.lv}: ${LEVELS[l.lv]} · ${STRANDS[l.sd]}</div>
+   <p style="font-size:17px">${esc(l.d)}</p>${body}
+   <h2>Songs using this lesson</h2>
+   <div class="card">${songs.length?songs.map(x=>`<div class="row" style="padding:6px 0"><b>${esc(x.title)}</b><span class="mut">${esc(x.artist)}</span><span class="sp"></span><span class="mut">${Math.round(songReady(x)*100)}% ready</span></div>`).join(''):'<span class="mut">No songs tagged yet. Tag songs in Songs.</span>'}</div>`;
+}
+function renderSongs(){
+  const list=state.songs.map((s,i)=>{const r=songReady(s);return `<div class="card" style="margin-bottom:10px">
+   <div class="row"><div><b style="font-size:18px">${esc(s.title)}</b> <span class="mut">${esc(s.artist)}${s.bpm?' · ~'+esc(s.bpm)+' BPM':''}</span></div><span class="sp"></span>
+   ${s.link?`<a href="${esc(s.link)}" target="_blank" rel="noopener" style="color:var(--blue)">Open track</a>`:''}
+   <button class="sm" data-edit="${i}">Edit</button><button class="sm ghost" data-del="${i}">Delete</button></div>
+   <div class="row" style="margin:8px 0">${s.tags.map(t=>`<span class="chip tag" data-open="${esc(t)}">${esc(t)} ${LBY[t]?esc(LBY[t].t):''} ${LBY[t]&&statusOf(LBY[t])==='ms'?'✓':''}</span>`).join('')}</div>
+   <div class="row"><div class="bar" style="flex:1"><i style="width:${r*100}%"></i></div><span class="mut">${Math.round(r*100)}% ready (${s.tags.filter(t=>LBY[t]&&statusOf(LBY[t])==='ms').length}/${s.tags.length} lessons done)</span></div>
+   ${s.notes?`<div class="mut" style="margin-top:6px">${esc(s.notes)}</div>`:''}</div>`;}).join('');
+  const have=new Set(state.songs.map(s=>s.title.toLowerCase()));
+  const sug=SUGGEST.filter(s=>!have.has(s.title.toLowerCase()));
+  view.innerHTML=`<h1>Songs</h1><p class="mut">Each song is tagged with the lessons it uses. Readiness = share of those lessons you’ve finished. Play along to your own audio (Spotify, YouTube…).</p>
+   <div class="row" style="margin-bottom:14px"><button class="pri" data-edit="-1">+ Add song</button></div>
+   ${list||'<div class="card mut">No songs yet. Add your own, or pick from the starter list below.</div>'}
+   ${sug.length?`<h2>Starter suggestions</h2><div class="card">${sug.map(s=>`<div class="lrow" style="cursor:default"><div><b>${esc(s.title)}</b> <span class="mut">${esc(s.artist)} · ~${s.bpm} BPM</span><div class="mut" style="font-size:14px">${esc(s.notes)} Tags: ${s.tags.join(', ')}</div></div><span class="sp"></span><button class="sm" data-addsug="${esc(s.title)}">Add</button></div>`).join('')}</div><p class="mut" style="font-size:13px">Tempos are approximate; tags are a starting point, edit them as you learn the songs.</p>`:''}`;
+}
+function songModal(i){
+  const s=i>=0?state.songs[i]:{title:'',artist:'',bpm:'',link:'',tags:[],notes:''};
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="card"><h2 style="margin-top:0">${i>=0?'Edit':'Add'} song</h2>
+   <label class="f">Title</label><input id="s_t" value="${esc(s.title)}">
+   <label class="f">Artist</label><input id="s_a" value="${esc(s.artist)}">
+   <label class="f">Approx. BPM</label><input id="s_b" type="number" value="${esc(s.bpm)}">
+   <label class="f">Link to the track (optional)</label><input id="s_l" value="${esc(s.link)}" placeholder="https://…">
+   <label class="f">Lessons used (tap to toggle)</label>
+   <div id="s_tags" style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px">${LESSONS.filter(l=>l.type==='play').map(l=>`<label class="row" style="padding:3px 0"><input type="checkbox" value="${l.id}" ${s.tags.includes(l.id)?'checked':''}> <span class="idx">${l.id}</span> ${esc(l.t)}</label>`).join('')}</div>
+   <label class="f">Notes</label><textarea id="s_n" rows="2">${esc(s.notes)}</textarea>
+   <div class="row" style="margin-top:14px"><button class="pri" id="s_save">Save</button><button id="s_x">Cancel</button></div></div>`;
+  document.body.appendChild(m);
+  $('#s_x',m).onclick=()=>m.remove();
+  $('#s_save',m).onclick=()=>{const t=$('#s_t',m).value.trim();if(!t){toast('Add a title');return;}
+    const o={title:t,artist:$('#s_a',m).value.trim(),bpm:$('#s_b',m).value,link:$('#s_l',m).value.trim(),notes:$('#s_n',m).value.trim(),tags:[...m.querySelectorAll('#s_tags input:checked')].map(x=>x.value)};
+    if(o.link&&!/^https?:\/\//.test(o.link))o.link='https://'+o.link;
+    if(i>=0)state.songs[i]=o;else state.songs.push(o);save();m.remove();render();};
+}
+function renderKit(){
+  const byV={};Object.entries(state.map).forEach(([n,v])=>{(byV[v]=byV[v]||[]).push(n);});
+  const st=state.set;
+  view.innerHTML=`<h1>Kit &amp; Settings</h1>
+  <div class="card"><div class="row"><b>MIDI</b><span class="mut">${inputs.length?esc(inputs.map(i=>i.name).join(', ')):'Not connected'}</span><span class="sp"></span><button class="pri" data-act="midi">${inputs.length?'Reconnect':'Connect kit'}</button></div>
+   <p class="mut" style="margin:8px 0 0">Plug the Nitro’s USB port into the tablet (USB-B to USB-C OTG cable), switch the module on, then tap Connect and allow MIDI access.</p>
+   <div class="mon" id="mon" style="margin-top:8px">${monitor.length?'':'Hit a pad to see it here.'}</div></div>
+  <h2>Pad mapping</h2>
+  <div class="card"><p class="mut" style="margin-top:0">Defaults follow the General MIDI layout the Nitro uses. To confirm, tap Learn and hit that pad. Hi-hat can hold several notes (open / closed): learn it twice, once each way.</p>
+   <table>${LANES.map(v=>`<tr class="${learnVoice===v?'learn':''}"><td><b style="color:${VOICES[v].c}">${VOICES[v].n}</b></td><td class="mut">${(byV[v]||[]).map(n=>'note '+n).join(', ')||'–'}</td><td style="text-align:right"><button class="sm" data-learn="${v}">${learnVoice===v?'Hit the pad…':'Learn'}</button> <button class="sm ghost" data-unmap="${v}">Clear</button></td></tr>`).join('')}</table>
+   <div class="row" style="margin-top:10px"><button class="sm" data-act="resetmap">Restore defaults</button></div></div>
+  <h2>Timing</h2>
+  <div class="card"><div class="row"><div><b>Latency offset: ${state.lat} ms</b><div class="mut">Subtracted from every hit. Measure it with the test.</div></div><span class="sp"></span><button data-act="lat-">−5</button><button data-act="lat+">+5</button><button class="pri" data-act="latency">Run latency test</button></div></div>
+  <h2>Practice settings</h2>
+  <div class="card grid">
+   <div><label class="f">On-time window (± ms)</label><input type="number" data-set="tol" value="${st.tol}"></div>
+   <div><label class="f">Pass score (%)</label><input type="number" data-set="pass" value="${st.pass}"></div>
+   <div><label class="f">Bars per run</label><select data-set="bars">${[2,4,8,16].map(b=>`<option ${b===st.bars?'selected':''}>${b}</option>`).join('')}</select></div>
+   <div><label class="f">Count-in bars</label><select data-set="countin">${[1,2].map(b=>`<option ${b===st.countin?'selected':''}>${b}</option>`).join('')}</select></div>
+   <div><label class="f">Click volume</label><input type="range" min="0" max="1" step="0.05" data-set="vol" value="${st.vol}"></div>
+   <div><label class="f">Subdivision clicks</label><select data-set="subclick"><option value="false">Off</option><option value="true" ${st.subclick?'selected':''}>On</option></select></div>
+   <div><label class="f">On-screen pads</label><select data-set="pads"><option value="true">Show</option><option value="false" ${st.pads?'':'selected'}>Hide</option></select></div>
+   <div><label class="f">Match window (± ms)</label><input type="number" data-set="win" value="${st.win}"></div>
+  </div>
+  <h2>Backup</h2>
+  <div class="card row"><button data-act="export">Export backup</button><button data-act="import">Import backup</button><span class="sp"></span><button class="ghost" data-act="wipe" style="color:var(--bad)">Reset all progress</button></div>
+  <p class="mut" style="font-size:13px">${cloud?'Progress is saved to your Claude account and on this device.':'Progress is saved on this device. Export a backup now and then.'}</p>`;
+}
+
+/* ============ EVENTS ============ */
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-go],[data-open],[data-play],[data-act],[data-lv],[data-back],[data-done],[data-learn],[data-unmap],[data-edit],[data-del],[data-addsug],[data-reset],[data-ex]');
+  if(!t)return; const d=t.dataset;
+  if(d.go){go(d.go);return;}
+  if(d.open){if(!LBY[d.open])return;openL=d.open;render();scrollTo(0,0);return;}
+  if(d.back!==undefined){openL=null;cur='lessons';render();return;}
+  if(d.lv){openLv[d.lv]=!openLv[d.lv];render();return;}
+  if(d.play){openPractice(d.play);return;}
+  if(d.done){state.done[d.done]=!state.done[d.done];save();render();return;}
+  if(d.reset){if(await confirmBox('Reset progress for '+d.reset+'?')){delete state.prog[d.reset];save();render();}return;}
+  if(d.learn){learnVoice=learnVoice===d.learn?null:d.learn;if(!midi)await connectMidi();render();return;}
+  if(d.unmap){Object.keys(state.map).forEach(k=>{if(state.map[k]===d.unmap)delete state.map[k];});save();render();return;}
+  if(d.edit!==undefined){songModal(+d.edit);return;}
+  if(d.del!==undefined){if(await confirmBox('Delete this song?')){state.songs.splice(+d.del,1);save();render();}return;}
+  if(d.addsug){const s=SUGGEST.find(x=>x.title===d.addsug);state.songs.push({title:s.title,artist:s.artist,bpm:s.bpm,link:'',tags:[...s.tags],notes:s.notes});save();render();return;}
+  const a=d.act;
+  if(a==='ex'){if(run)return;exI=+d.i;P(L.id).ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
+  if(a==='go'){if(run)stopRun();else startRun();return;}
+  if(a==='again'){$('#result').classList.add('hidden');startRun();return;}
+  if(a==='pexit'){stopRun();$('#prac').classList.add('hidden');try{wake&&wake.release();}catch(_){}wake=null;const back=L&&L.calib?null:L&&L.id;L=null;if(back){openL=back;}render();return;}
+  if(a==='bpm-'||a==='bpm+'){if(run)return;bpm=Math.max(30,Math.min(300,bpm+(a==='bpm+'?5:-5)));$('#bpmv').textContent=bpm;makePreview();draw();return;}
+  if(a==='midi'){connectMidi();return;}
+  if(a==='latency'){L={id:'latency',t:'Latency test',calib:true,bpm:[90,90],ex:[X('Snare on the click',1,{S:'x'.repeat(16)},{bars:4})],loop:1};exI=0;bpm=90;
+    $('#prac').classList.remove('hidden');$('#result').classList.add('hidden');$('#ptitle').textContent='Latency test: hit the snare exactly on each click';renderPracBar();renderPads(L.ex[0]);sizeCv();makePreview();draw();return;}
+  if(a==='lat-'||a==='lat+'){state.lat+=a==='lat+'?5:-5;save();render();return;}
+  if(a==='resetmap'){state.map={...DEFAULT_MAP};save();render();return;}
+  if(a==='export'){exportData();return;}
+  if(a==='import'){importData();return;}
+  if(a==='wipe'){if(await confirmBox('Erase all progress, sessions and songs? Export a backup first if unsure.')){const m=state.map,l=state.lat,s=state.set;state=freshState();state.map=m;state.lat=l;state.set=s;save();render();}return;}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','bars','countin','win'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
+  if(t.dataset.ck){const id=t.dataset.ck;const ck=state.done[id+'_ck']=state.done[id+'_ck']||{};ck[t.dataset.i]=t.checked;
+    const l=LBY[id];if(l.check&&l.check.every((_,i)=>ck[i]))state.done[id]=true;save();render();}
+});
+document.addEventListener('pointerdown',e=>{const p=e.target.closest('[data-pad]');if(p){e.preventDefault();hit(p.dataset.pad,100,performance.now());}});
+const KEYS={f:'K',j:'S',k:'HH',d:'HP',u:'T1',i:'T2',l:'T3',o:'C',p:'R'};
+document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea'))return;if($('#prac').classList.contains('hidden'))return;
+  if(e.code==='Space'){e.preventDefault();if(run)stopRun();else startRun();return;}
+  const v=KEYS[e.key];if(v)hit(v,100,performance.now());});
+addEventListener('resize',()=>{if(!$('#prac').classList.contains('hidden')){sizeCv();draw();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&run)stopRun();});
+
+function confirmBox(msg){return new Promise(res=>{const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="card"><p style="font-size:17px">${esc(msg)}</p><div class="row"><button class="pri" id="cy">Yes</button><button id="cn">Cancel</button></div></div>`;
+  document.body.appendChild(m);$('#cy',m).onclick=()=>{m.remove();res(true);};$('#cn',m).onclick=()=>{m.remove();res(false);};});}
+function exportData(){
+  const json=JSON.stringify(state);const name='drumpath-backup-'+today()+'.json';
+  const framed=window.self!==window.top;
+  if(!framed){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast('Backup downloaded');return;}
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="card"><h2 style="margin-top:0">Backup</h2><p class="mut">Copy this text and keep it somewhere safe.</p><textarea rows="8" style="width:100%" readonly>${esc(json)}</textarea><div class="row" style="margin-top:10px"><button class="pri" id="bc">Copy</button><button id="bx">Close</button></div></div>`;
+  document.body.appendChild(m);$('#bx',m).onclick=()=>m.remove();
+  $('#bc',m).onclick=async()=>{try{await navigator.clipboard.writeText(json);toast('Copied');}catch(_){$('textarea',m).select();toast('Select all and copy');}};
+}
+function importData(){
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="card"><h2 style="margin-top:0">Import backup</h2><p class="mut">Choose a backup file or paste its text. This replaces current progress.</p><input type="file" accept=".json,application/json" id="if"><textarea id="it" rows="6" style="width:100%;margin-top:10px" placeholder="…or paste backup text"></textarea><div class="row" style="margin-top:10px"><button class="pri" id="ig">Import</button><button id="ix">Cancel</button></div></div>`;
+  document.body.appendChild(m);$('#ix',m).onclick=()=>m.remove();
+  $('#if',m).onchange=async ev=>{const f=ev.target.files[0];if(f)$('#it',m).value=await f.text();};
+  $('#ig',m).onclick=()=>{try{const d=JSON.parse($('#it',m).value);if(!d.v)throw 0;state=Object.assign(freshState(),d);state.set=Object.assign({...DEF_SET},state.set);save();m.remove();render();toast('Backup restored');}catch(_){toast('That doesn’t look like a DrumPath backup');}};
+}
+
+/* ============ BOOT ============ */
+render();
+if(navigator.permissions&&navigator.requestMIDIAccess){navigator.permissions.query({name:'midi'}).then(p=>{if(p.state==='granted')connectMidi();}).catch(()=>{});}
+</script>
+</body>
+</html>
