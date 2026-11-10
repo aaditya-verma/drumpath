@@ -224,6 +224,13 @@ table.mtx tr.foot td,table.mtx tr.foot th{background:var(--L2);font-weight:700;p
   background:color-mix(in srgb,#f0b429 24%,var(--L0));color:inherit;border:1px solid color-mix(in srgb,#f0b429 65%,transparent);font-size:14px}
 .sbxbar span{flex:1 1 14em;min-width:0}.sbxbar b{white-space:nowrap}
 
+/* header stays on one line on phones (owner T4 note, 11 Nov): chips shrink first, Drive chip drops to its dot */
+.brand-row{flex-wrap:nowrap;min-width:0}.brand{flex:none}.brand-row .sync{flex:0 1 auto;min-width:0}.brand-row .pbtn{flex:none}
+@media (max-width:460px){#dtxt{display:none}#dchip{flex:none;overflow:visible}.brand-row{gap:8px}}
+.brand-row .sync>span:last-child{overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* test result lines (long JSON details) wrap inside their card */
+[id$="tests"] div{overflow-wrap:anywhere;min-width:0}
+
 @media (max-width:699px){.smap{grid-template-columns:minmax(84px,118px) repeat(8,minmax(32px,1fr));gap:3px}.smap .lv{gap:5px;font-size:12.5px;padding:2px}.smap .lv svg{width:28px;height:28px}.smap .c{min-height:40px;font-size:12px;border-radius:8px}.smap .hd{font-size:10.5px}}
 /* very narrow phones: level name only, no progress line */
 @media (max-width:460px){.smap .hd .sh{display:none}.smap .hd b{font-size:13px}.smap{grid-template-columns:36px repeat(8,minmax(28px,1fr));gap:3px}.smap .lv>div{display:none}.smap .lv{padding:0;justify-content:center}.smap .c{font-size:11px;min-height:36px}.smap .hd{font-size:9.5px}.smap .hd b{font-size:12px}}

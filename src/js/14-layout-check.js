@@ -42,6 +42,10 @@ async function layoutSweep(){
     ['A lesson',()=>openLesson(lesson.id)],['Progress',()=>go('progress')],['Songs',()=>go('songs',{view:'all',id:null})],['Song matrix',()=>go('songs',{view:'matrix',id:null})],
     ['A song',()=>go('songs',{id:firstSong.id})],['Compare',()=>go('compare')],['Studio',()=>go('studio')],['Kit',()=>go('kit')],['Settings',()=>go('settings')]];
   for(const [n,f] of screens){try{f();await wait();out.push([n,layoutAudit(view)]);}catch(e){out.push([n,[{kind:'error',what:e.message}]]);}}
+  // header: everything in the brand row must stay on one line
+  {const row=document.querySelector('.brand-row');const kids=row?[...row.children].filter(e=>e.offsetParent&&e.getBoundingClientRect().width>0):[];
+   const tops=kids.map(e=>{const r=e.getBoundingClientRect();return r.top+r.height/2;});const bad=tops.length&&Math.max(...tops)-Math.min(...tops)>8;
+   out.push(['Header',bad?[{kind:'wrap',what:'header buttons wrap onto a second line'}]:[]]);}
   try{openPractice(lesson.id);await wait();out.push(['Practice screen',layoutAudit($('#prac'))]);}catch(e){}
   $('#prac').classList.add('hidden');
   const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);go(keep.cur==='practise'?'settings':'settings');
