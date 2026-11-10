@@ -38,7 +38,7 @@ function layoutReport(){const is=layoutAudit(view);const box=openSheet('Layout c
 async function layoutSweep(){
   const keep={cur,vp:JSON.stringify({lessons:VP.lessons,songs:VP.songs,progress:VP.progress})};const out=[];const wait=()=>new Promise(r=>setTimeout(r,120));
   const firstSong=allSongs()[0],lesson=LESSONS.find(l=>l.type==='play');
-  const screens=[['Home',()=>go('home')],['Practise',()=>go('practise')],['Skill map',()=>go('lessons',{lv:null,sd:null,id:null})],['Level 3',()=>go('lessons',{lv:3,sd:null,id:null},{keep:true})],
+  const screens=[['Home',()=>go('home')],['Practise',()=>go('practise')],['Skill map',()=>go('lessons',{lv:null,sd:null,id:null})],['Level 3',()=>go('lessons',{lv:3,sd:null,id:null},{keep:true})],['Level 4',()=>go('lessons',{lv:4,sd:null,id:null},{keep:true})],
     ['A lesson',()=>openLesson(lesson.id)],['Progress',()=>go('progress')],['Songs',()=>go('songs',{view:'all',id:null})],['Song matrix',()=>go('songs',{view:'matrix',id:null})],
     ['A song',()=>go('songs',{id:firstSong.id})],['Compare',()=>go('compare')],['Studio',()=>go('studio')],['Kit',()=>go('kit')],['Settings',()=>go('settings')]];
   for(const [n,f] of screens){try{f();await wait();out.push([n,layoutAudit(view)]);}catch(e){out.push([n,[{kind:'error',what:e.message}]]);}}

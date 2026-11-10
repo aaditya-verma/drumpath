@@ -34,6 +34,10 @@ Run **Kit & Settings → Kit check**, copy the log and record the results here.
 Open `?test=1`: lesson-data check on the Lessons page and a **Simulate** button on the practice screen
 (jitter, wrong dynamics, wrong sound, no graces). Every Level 3 exercise passed perfect / wrong-dynamics / wrong-sound /
 missing-grace simulations on 10 Nov 2026; Levels 0–2 still score 100% on perfect runs.
+**Level 4** (11 Nov 2026, `lessons/L4.js`, 35 lessons / 114 exercises): every exercise simulated at its goal tempo — perfect and
+±15 ms jitter score 100%, wrong dynamics fail the dynamics column, wrong sound fails; Levels 0–3 re-simulated with identical
+scores. New engine pieces: per-note match window from Level 4 (half the gap to the lane's neighbouring note), `meter` and
+`labels` shown on the practice screen, and **routine mode** (`routine:{min:10}`, 4.2.07) — see `build/pattern-spec.md`.
 
 **Testing mode** (v16, D-022): nothing is saved or synced — no IndexedDB/localStorage writes, no Drive sync, no Claude-account
 `db` writes, Export backup blocked. It is forced on by `?test=1`, on by default in DrumPath on claude.ai, and can be switched

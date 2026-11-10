@@ -31,6 +31,23 @@ function drum(v,t,nodes){
 }
 
 /* ============ PRACTICE ENGINE ============ */
+/* Routine mode (4.2.07 and later daily challenges): the lesson's exercises play one after another, with a short
+   break, until the timer runs out. Every run is scored and saved by the normal rules (tempo climbs +5 after 3 passes). */
+const ROUTINE={on:false,endAt:0,runs:0,passes:0,next:null,startAt:0};
+const mmss=ms=>{ms=Math.max(0,ms);const s=Math.ceil(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+const ROUTINE_GAP=4000;
+function routineStart(){if(!L||!L.routine)return;ROUTINE.on=true;ROUTINE.startAt=performance.now();ROUTINE.endAt=ROUTINE.startAt+(L.routine.min||10)*60000;ROUTINE.runs=0;ROUTINE.passes=0;
+  $('#result').classList.add('hidden');renderPracBar();startRun();}
+function routineStop(){clearTimeout(ROUTINE.next);ROUTINE.next=null;if(ROUTINE.on){ROUTINE.on=false;if(L)renderPracBar();}}
+function routineAfter(passed){
+  if(!ROUTINE.on)return '';ROUTINE.runs++;if(passed)ROUTINE.passes++;
+  const left=ROUTINE.endAt-performance.now();
+  if(left<=ROUTINE_GAP+5000){const took=mmss(performance.now()-ROUTINE.startAt);routineStop();
+    return `<p style="margin-top:10px"><b>Routine done</b> · ${ROUTINE.runs} runs, ${ROUTINE.passes} passed, ${took} min.</p>`;}
+  const nx=(exI+1)%L.ex.length;
+  ROUTINE.next=setTimeout(()=>{ROUTINE.next=null;if(!ROUTINE.on||run||!L)return;exI=nx;P(L.id).ex=exI;$('#result').classList.add('hidden');renderPracBar();renderPads(L.ex[exI]);makePreview();startRun();},ROUTINE_GAP);
+  return `<p style="margin-top:10px"><b>Routine</b> · next: ${esc(L.ex[nx].n)} in ${ROUTINE_GAP/1000} s · ${mmss(left)} left · <button class="sm" data-act="routinestop">Stop routine</button></p>`;
+}
 let stretchMode=false, lastRunTs=0, L=null, exI=0, bpm=60, run=null, preview=null, lastFeed=0, flashes={}, wake=null;
 const cv=$('#cv'), cx=cv.getContext('2d');
 
@@ -54,6 +71,10 @@ function buildRun(lesson,ex,bpmv,base,opts={}){
       }}
   }
   evs.sort((a,b)=>a.t-b.t);
+  // Level 4+ (D-023): a hit only counts for a note less than half the gap to that lane's neighbouring note, so fast
+  // passages (16ths at 140, 32nd rolls) can't be scored against the wrong note. Levels 0–3 keep the plain ±win.
+  if((lesson.lv||0)>=4){const byV={};evs.forEach(e=>(byV[e.v]=byV[e.v]||[]).push(e));
+    Object.values(byV).forEach(a=>a.forEach((e,i)=>{const g=Math.min(i?e.t-a[i-1].t:1e9,i<a.length-1?a[i+1].t-e.t:1e9);e.win=Math.min(state.set.win,Math.max(20,g/2));}));}
   // clicks + grid lines (relative ms from base)
   const beats=beatStepsOf(ex), mode=ex.click||'all';
   const play=mode==='24'?beats.filter((_,i)=>i===1||i===3):mode==='1'?[0]:beats;
@@ -88,6 +109,7 @@ function renderPracBar(){
   const p=P(L.id);
   const sx=stretchMax(L.id),cs=canStretch(L.id);
   $('#stretchwrap').innerHTML=sx&&cs?`<button class="sm ${stretchMode?'pri':''}" data-act="stretch" title="Keep climbing +${L.step} BPM above the lesson goal, up to the fastest song that uses this lesson">${stretchMode?'Stretch on · '+(p.stretchBpm||L.bpm[1]+L.step)+' → '+sx:'Stretch to song tempo → '+sx}</button>`:'';
+  if(L.routine)$('#stretchwrap').innerHTML=ROUTINE.on?`<button class="sm pri" data-act="routinestop">Stop routine</button>`:`<button class="sm" data-act="routine" title="Plays every exercise in turn until the timer runs out; every run counts as normal">Start ${L.routine.min||10}-min routine</button>`;
   if(stretchMode&&cs){$('#pdots').innerHTML=`<span>Stretch</span>`+[0,1,2].map(i=>`<i class="${i<(p.sStreak||0)?'f':''}"></i>`).join('')+`<span>@ ${p.stretchBpm||L.bpm[1]+L.step} · songs ${sx}</span>`;return;}
   $('#pdots').innerHTML=`<span>${p.status==='mastered'?'Mastered':'Passes'}</span>`+[0,1,2].map(i=>`<i class="${i<p.streak||p.status==='mastered'?'f':''}"></i>`).join('')+`<span>@ ${p.bpm} · goal ${L.bpm[1]}</span>`;
 }
@@ -140,7 +162,7 @@ function hit(v,vel,tp,art){
     if(gap>=0&&gap<=90&&e.graces.length<e.gr&&Math.abs(t-e.t)<=state.set.win){e.graces.push({t:e.hitT,vel:e.vel});e.hitT=t;e.dt=t-e.t;e.vel=vel;e.hitArt=art;
       const g=e.graces[e.graces.length-1];feed(e.dt,state.set.graceMode==='lenient'?'':(t-g.t<12?'flat flam':g.vel>vel*0.8?'grace too loud':'grace ✓'));return;}}
   let best=null,bd=1e9;
-  for(const e of run.evs){if(e.listen||e.v!==v||e.hitT!=null)continue;const d=Math.abs(t-e.t);if(d<bd&&d<=state.set.win){bd=d;best=e;}}
+  for(const e of run.evs){if(e.listen||e.v!==v||e.hitT!=null)continue;const d=Math.abs(t-e.t);if(d<bd&&d<=(e.win||state.set.win)){bd=d;best=e;}}
   if(best){best.hitT=t;best.dt=t-best.t;best.vel=vel;best.hitArt=art;
     let extra='';
     if(best.art&&art&&state.set.scoreArt!==false&&best.art!==art){best.artOk=false;feed(best.dt,art+', should be '+best.art);return;}
@@ -223,10 +245,12 @@ function draw(){
     const rel=now-R.base;
     if(rel>=0&&rel<R.cinMs){const c=R.clicks.filter(c=>c.cin&&c.t<=rel).pop();if(c){cx.fillStyle=TH.ink;cx.font='800 90px '+TH.display;cx.textAlign='center';cx.fillText(String(c.n),W/2,H/2);cx.textAlign='left';}}
     else if(rel>=R.cinMs){const bar=Math.floor((rel-R.cinMs)/R.barMs);const totalBars=R.reps*R.ex.bars;
-      let lab='Bar '+Math.min(bar+1,totalBars)+' / '+totalBars;
+      let lab=(R.ex.meter?R.ex.meter+'   ·   ':'')+'Bar '+Math.min(bar+1,totalBars)+' / '+totalBars;
+      if(R.ex.labels){const bl=R.ex.labels[Math.min(bar,totalBars-1)%R.ex.bars];if(bl)lab+='   ·   '+bl;}
+      if(ROUTINE.on)lab+='   ·   Routine '+mmss(ROUTINE.endAt-performance.now())+' left';
       if(R.lesson.call){lab+=Math.floor(bar/R.ex.bars)%2===0?'   ·   LISTEN':'   ·   YOUR TURN';}
       cx.fillText(lab,hitX,16);}
-  }else{cx.fillText(L&&L.calib?'Play the snare on every click':'Tap Start (or hit any pad and then Start). Count-in: '+(state.set.countin)+' bar.',hitX,16);}
+  }else{cx.fillText(L&&L.calib?'Play the snare on every click':(L&&L.ex[exI]&&L.ex[exI].meter?L.ex[exI].meter+'   ·   ':'')+'Tap Start (or hit any pad and then Start). Count-in: '+(state.set.countin)+' bar.',hitX,16);}
   if(performance.now()-lastFeed>900)$('#pfeed').textContent='';
 }
 
@@ -314,7 +338,7 @@ function finish(){
    <table><tr><th>Pad</th><th>On time</th><th>Hits</th><th>Missed</th><th>Extra</th><th>Avg timing</th>${dynOn?'<th>Dynamics</th>':''}${grCol?'<th>Graces</th>':''}${sndCol?'<th>Sound</th>':''}</tr>${rows}</table>
    ${R.graceWarn?'<p style="color:var(--warn)">No grace notes arrived from the kit in this run. If you did play them, the module may be merging the two hits: set <b>Grace notes</b> to <b>Lenient</b> in Kit &amp; Settings, or lower the snare’s retrigger/mask time on the module.</p>':''}
    ${sndCol&&!R.evs.some(e=>e.hitArt)?'<p class="mut">Open/closed and rim/head weren’t reported for these hits (on-screen pads), so they weren’t checked.</p>':''}
-   ${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}`);
+   ${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}${routineAfter(passed)}`);
 }
 function showResult(html,calib){
   const r=$('#result');r.classList.remove('hidden');

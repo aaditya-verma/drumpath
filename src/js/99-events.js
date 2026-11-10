@@ -54,14 +54,16 @@ document.addEventListener('click',async e=>{
   if(a==='more'){if($('#msheet').classList.contains('hidden'))openMore();else closeMore();return;}
   if(a==='search'){closeMore();openSearch();return;}
   if(a==='theme'){cycleTheme();return;}
-  if(a==='ex'){if(run)return;exI=+d.i;P(L.id).ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
+  if(a==='ex'){if(run||ROUTINE.on)return;exI=+d.i;P(L.id).ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
   if(a==='stretch'){if(run)return;stretchMode=!stretchMode;const p=P(L.id);bpm=stretchMode?(p.stretchBpm||Math.min(L.bpm[1]+5,stretchMax(L.id)||L.bpm[1]+5)):p.bpm;$('#bpmv').textContent=bpm;renderPracBar();makePreview();draw();return;}
-  if(a==='go'){if(run)stopRun();else startRun();return;}
+  if(a==='go'){if(run){routineStop();stopRun();}else startRun();return;}
+  if(a==='routine'){if(!run)routineStart();return;}
+  if(a==='routinestop'){routineStop();if(run)stopRun();return;}
   if(a==='subclick'){if(run)return;state.set.subclick=!state.set.subclick;save();renderPracBar();makePreview();draw();return;}
   if(a==='simulate'){if(run)return;simulate(+$('#simj').value,$('#simm').value);return;}
   if(a==='velcheck'){velCheckStart();return;}
   if(a==='again'){$('#result').classList.add('hidden');startRun();return;}
-  if(a==='pexit'){stopRun();$('#prac').classList.add('hidden');try{wake&&wake.release();}catch(_){}wake=null;L=null;render();return;}
+  if(a==='pexit'){routineStop();stopRun();$('#prac').classList.add('hidden');try{wake&&wake.release();}catch(_){}wake=null;L=null;render();return;}
   if(a==='bpm-'||a==='bpm+'){if(run)return;bpm=Math.max(30,Math.min(300,bpm+(a==='bpm+'?5:-5)));$('#bpmv').textContent=bpm;makePreview();draw();return;}
   if(a==='midi'){connectMidi();return;}
   if(a==='latency'){L={id:'latency',t:'Latency test',calib:true,bpm:[90,90],ex:[X('Snare on the click',1,{S:'x'.repeat(16)},{bars:4})],loop:1};exI=0;bpm=90;
@@ -109,10 +111,10 @@ const KEYS={f:'K',j:'S',k:'HH',d:'HP',u:'T1',i:'T2',l:'T3',o:'C',p:'R'};
 document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select'))return;
   if(e.key==='Escape'){if(document.querySelector('.modal')){closeSheets();return;}if(!$('#msheet').classList.contains('hidden')){closeMore();return;}}
   if($('#prac').classList.contains('hidden'))return;
-  if(e.code==='Space'){e.preventDefault();if(run)stopRun();else startRun();return;}
+  if(e.code==='Space'){e.preventDefault();if(run){routineStop();stopRun();}else startRun();return;}
   const v=KEYS[e.key];if(v)hit(v,100,performance.now());});
 addEventListener('resize',()=>{if(!$('#prac').classList.contains('hidden')){sizeCv();draw();}});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&run)stopRun();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&(run||ROUTINE.on)){routineStop();if(run)stopRun();}});
 
 function confirmBox(msg){return new Promise(res=>{const m=document.createElement('div');m.className='modal';
   m.innerHTML=`<div class="card sheet" style="max-width:480px"><p style="font-size:17px">${esc(msg)}</p><div class="row"><button class="pri" id="cy">Yes</button><button id="cn">Cancel</button></div></div>`;
