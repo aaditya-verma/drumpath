@@ -103,6 +103,7 @@ function renderSong(song){
   ${x.next?`<div class="card" style="margin-top:12px"><span class="note-k" style="color:var(--accent)">Next step</span><div style="font-size:17px;margin-top:4px"><b>${x.next.id}</b> ${esc(tagName(x.next.id))}${x.next.coming?' — coming in Level '+lessonLevel(x.next.id):x.T?' → '+x.T+' BPM':''}</div></div>`:''}
   <h2>Skills</h2><div class="list" style="overflow-x:auto"><table><tr><th>Lesson</th><th>Weight</th><th>Status</th><th>Skill</th><th class="n">Best / target</th><th class="n">Last 5</th><th>Trend</th><th></th></tr>${rows}</table></div>
   ${analysisCard(song)}
+  ${typeof libSongCard==='function'?libSongCard(song):''}
   <h2>By strand</h2><div class="card">${strandBars}</div>
   <h2>Play-along log</h2><div class="card"><p class="mut" style="margin-top:0">Played it along to the record? Log it: plays count separately from readiness.</p>
    <div class="row"><label class="row" style="gap:6px">Minutes <input type="number" id="lgm" value="4" min="1" style="width:80px"></label><span>Rating</span><div class="seg" id="lgr">${[1,2,3,4,5].map(n=>`<button class="${n===3?'on':''}" data-rate="${n}">${n}★</button>`).join('')}</div><button class="pri" data-logplay="${esc(song.id)}">Log a play</button></div>

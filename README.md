@@ -88,6 +88,23 @@ Needed only if you ever recreate it. Use the **personal** Google account that ow
 
 While the app is in Testing mode only listed test users can sign in, and Google may ask you to re-approve access about once a week. That's expected for a personal app.
 
+## Drive library (S3, 11 Nov 2026, D-024)
+**Library** (More › Library, and a **Files** section on each song page) lists MIDI files, audio and documents from the
+Drive folder. With the `drive.file` scope the app sees only files it created or files you pick, so files uploaded to
+Drive by hand are added with **Add from Drive** (Google Picker, multi-select; views for DrumPath › midi, › songs, the
+DrumPath folder and My Drive). A file whose name contains exactly one song title is linked to that song automatically.
+- **Index**: `state.lib` `{fileId: {id,name,size,mime,kind,songs,lessons,tags,pinned,addedAt,updatedAt}}` plus
+  `state.libDel` tombstones; synced with the Drive backup (merge by file id, newer `updatedAt` wins).
+- **Cache**: IndexedDB `files` store — `drv:<fileId>` holds the bytes, `cache:index` holds size + last use per file
+  (per device, never synced). A file downloads the first time it's opened and is kept for offline use. Past the limit
+  (Settings › Storage, default 500 MB) the least recently used files are dropped from the tablet (not from Drive);
+  pinned files never are; a file bigger than the limit opens but isn't kept.
+- **Analyse & tag › From a MIDI file** can pick a library file. Opening an unlinked MIDI offers its songs or a new song
+  named from the file ("Queen - Bohemian Rhapsody.mid" → *Bohemian Rhapsody* by *Queen*).
+- **Testing mode**: the library is read-only — nothing is added, linked, pinned or cached.
+- File contents never go into this repo. Tests: `?test=1` › Settings › **Run library tests** (13 checks, mock Drive +
+  throwaway IndexedDB).
+
 ## Analyse & tag and Studio — one app, two homes (D-021)
 
 DrumPath runs in two places from the same code:

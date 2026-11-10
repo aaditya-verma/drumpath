@@ -30,6 +30,7 @@ const ICONS={
   kit:'<ellipse cx="12" cy="9" rx="8" ry="3"/><path d="M4 9v6c0 1.7 3.6 3 8 3s8-1.3 8-3V9"/><path d="M2 3l6 5M22 3l-6 5"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  library:'<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="M15.5 5.2l3.9-1 3.1 14.6-3.9 1z"/>',
   more:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   back:'<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
@@ -48,14 +49,16 @@ const NAVI={
   compare:['Compare','Crosstab any measure'],
   kit:['Kit','Your kit, pads, kit check, latency'],
   studio:['Studio','Tag songs with lessons (Claude)'],
+  library:['Library','MIDI, audio and docs from Drive'],
   settings:['Settings','Scoring, theme, backup'],
 };
 const PRIMARY=['home','practise','lessons','progress','songs'];
-const ALLNAV=['home','practise','lessons','progress','songs','compare','studio','kit','settings'];
+const ALLNAV=['home','practise','lessons','progress','songs','library','compare','studio','kit','settings'];
 
 /* ---------- view state + back stack ---------- */
 let cur='home';
 const VP={
+  library:{kind:'all'},
   lessons:{lv:null,sd:null,id:null},
   progress:{mode:'timeline',path:[],calY:null,calM:null,day:null,padPer:'8w'},
   compare:{r:'strand',c:'month',m:'timing',per:'all'},
@@ -126,7 +129,8 @@ function openSearch(){
 /* ---------- render ---------- */
 const view=$('#view');
 function render(){
-  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,kit:renderKit,settings:renderSettings}[cur]||renderHome;
+  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,library:renderLibrary,kit:renderKit,settings:renderSettings}[cur]||renderHome;
   try{f();}catch(e){console.error(e);view.innerHTML=`<div class="card"><b>Something went wrong drawing this page.</b><p class="mut">${esc(e.message)}</p></div>`;}
   syncNav();
+  if(typeof fillLibStatus==='function'&&document.querySelector('[data-libst]'))fillLibStatus().catch(()=>{});
 }

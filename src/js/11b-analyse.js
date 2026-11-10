@@ -35,9 +35,10 @@ function midiHelpHtml(){return `<div class="card" style="margin-top:10px"><b>Fre
   <p class="mut" style="margin-bottom:0;font-size:13px">DrumPath only points to free sources. Song files are for your own practice and stay on this tablet.</p></div>`;}
 /* ---------- route 1: MIDI file ---------- */
 function midiRoute(s,body){
-  body.innerHTML=`<div class="card" style="margin-top:10px"><div class="grid"><div><label class="f">MIDI file (.mid)</label><input type="file" id="an_file" accept=".mid,.midi,audio/midi,audio/x-midi"></div>
+  body.innerHTML=`<div class="card" style="margin-top:10px">${typeof libMidiPicker==='function'?libMidiPicker(s):''}<div class="grid"><div><label class="f">MIDI file (.mid)</label><input type="file" id="an_file" accept=".mid,.midi,audio/midi,audio/x-midi"></div>
     <div><label class="f">Where it’s from</label><select id="an_src">${['Lakh MIDI','Groove MIDI','Made it myself (MuseScore Studio)','TuxGuitar export','Other'].map(x=>`<option>${x}</option>`).join('')}</select></div></div>
     <p class="mut" id="an_msg" style="font-size:13px;margin-bottom:0">The whole file stays on this tablet. Only the result (tags, tempo, short groove patterns) is saved with the song.</p></div>`;
+  const lg=$('#an_libgo',body);if(lg)lg.onclick=()=>libAnalyse($('#an_lib',body).value,s.id,$('#an_msg',body));
   $('#an_file',body).onchange=async ev=>{const f=ev.target.files[0];if(!f)return;const msg=$('#an_msg',body);msg.textContent='Analysing…';
     try{const buf=new Uint8Array(await f.arrayBuffer());const a=MidiAnalyse.analyse(buf,{lessons:LESSONS.filter(l=>l.ex),title:s.title});
       await putFile('midi:'+s.id,{name:f.name,size:f.size,source:$('#an_src',body).value,date:today(),bytes:buf.buffer}).catch(()=>{});

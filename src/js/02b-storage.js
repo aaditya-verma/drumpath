@@ -45,7 +45,7 @@ function storeSave(){ // coalescing queue: never two writes at once, never a los
 }
 function normaliseState(s){
   s=Object.assign(freshState(),s||{});s.set=Object.assign({...DEF_SET},s.set);s.art=Object.assign({...DEFAULT_ART},s.art||{});
-  if(!Array.isArray(s.sessions))s.sessions=[];if(!s.songDel||typeof s.songDel!=='object')s.songDel={};if(typeof s.rev!=='number')s.rev=0;
+  if(!Array.isArray(s.sessions))s.sessions=[];if(!s.songDel||typeof s.songDel!=='object')s.songDel={};if(typeof s.rev!=='number')s.rev=0;if(!s.lib||typeof s.lib!=='object')s.lib={};if(!s.libDel||typeof s.libDel!=='object')s.libDel={};
   if(typeof songStateFill==='function')songStateFill(s);return s;
 }
 async function storageInit(){

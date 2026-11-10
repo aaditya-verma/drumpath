@@ -92,6 +92,7 @@ document.addEventListener('click',async e=>{
   if(a==='antest'){const el=$('#antests');el.innerHTML='Running…';const t=await analyseTests();render();const e2=$('#antests');if(e2)e2.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
   if(a==='sbxtest'){const el=$('#sbxtests');el.innerHTML='Running…';const t=await sandboxTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
+  if(a==='libtest'){const el=$('#libtests');el.innerHTML='Running…';const t=await libTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='stortest'){const el=$('#stortests');el.innerHTML='Running…';const t=await storageTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
   if(a==='kitcopy'){const txt=kitLogText()||'(empty)';try{await navigator.clipboard.writeText(txt);toast('Log copied: paste it to Claude');}catch(_){openSheet('Kit log',`<p class="mut">Select all and copy:</p><textarea rows="12" style="width:100%">${esc(txt)}</textarea>`);}return;}
@@ -102,7 +103,7 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.sf){const k=t.dataset.sf;VP.songs[k]=t.type==='checkbox'?t.checked:t.value;render();return;}
   if(t.dataset.cmp){VP.compare[t.dataset.cmp]=t.value;render();return;}
-  if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','dynPass','bars','countin','win','hhOpenCC'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
+  if(t.dataset.set){const k=t.dataset.set;let v=t.value;if(['tol','pass','dynPass','bars','countin','win','hhOpenCC','cacheMB'].includes(k))v=+v;else if(k==='vol')v=+v;else if(v==='true'||v==='false')v=v==='true';state.set[k]=v;save();return;}
   if(t.dataset.ck){const id=t.dataset.ck;const ck=state.done[id+'_ck']=state.done[id+'_ck']||{};ck[t.dataset.i]=t.checked;
     const l=LBY[id];if(l.check&&l.check.every((_,i)=>ck[i])&&(!l.quiz||l.quiz.every((q,i)=>(state.done[id+'_qa']||{})[i]===q.c)))state.done[id]=true;save();render();}
 });

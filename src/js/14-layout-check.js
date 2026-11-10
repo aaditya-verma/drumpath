@@ -40,7 +40,7 @@ async function layoutSweep(){
   const firstSong=allSongs()[0],lesson=LESSONS.find(l=>l.type==='play');
   const screens=[['Home',()=>go('home')],['Practise',()=>go('practise')],['Skill map',()=>go('lessons',{lv:null,sd:null,id:null})],['Level 3',()=>go('lessons',{lv:3,sd:null,id:null},{keep:true})],['Level 4',()=>go('lessons',{lv:4,sd:null,id:null},{keep:true})],
     ['A lesson',()=>openLesson(lesson.id)],['Progress',()=>go('progress')],['Songs',()=>go('songs',{view:'all',id:null})],['Song matrix',()=>go('songs',{view:'matrix',id:null})],
-    ['A song',()=>go('songs',{id:firstSong.id})],['Compare',()=>go('compare')],['Studio',()=>go('studio')],['Kit',()=>go('kit')],['Settings',()=>go('settings')]];
+    ['A song',()=>go('songs',{id:firstSong.id})],['Compare',()=>go('compare')],['Studio',()=>go('studio')],['Library',()=>go('library')],['Kit',()=>go('kit')],['Settings',()=>go('settings')]];
   for(const [n,f] of screens){try{f();await wait();out.push([n,layoutAudit(view)]);}catch(e){out.push([n,[{kind:'error',what:e.message}]]);}}
   // header: everything in the brand row must stay on one line
   {const row=document.querySelector('.brand-row');const kids=row?[...row.children].filter(e=>e.offsetParent&&e.getBoundingClientRect().width>0):[];

@@ -65,10 +65,10 @@ function renderSettings(){
    <div><label class="f">Pedal threshold (0–127)</label><input type="number" data-set="hhOpenCC" value="${st.hhOpenCC}"></div></div>
   <h2>Appearance</h2><div class="card row"><span>Theme</span><div class="seg">${[['system','Device'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${tm===k?'on':''}" data-themeset="${k}">${l}</button>`).join('')}</div></div>
   <h2>Google Drive</h2>${driveCard()}${TEST?'<div class="card" style="margin-top:10px"><button class="sm" data-act="layouttest">Check layout on every screen</button><span class="mut" style="font-size:13px"> (this device, current orientation; rotate and run again)</span><div id="laytests"></div></div>':''}${TEST?'<div class="card" style="margin-top:10px"><button class="sm" data-act="drivetest">Run Drive sync tests</button><div id="drvtests"></div></div>':''}
-  <h2>Storage</h2>${storageCard()}${TEST?'<div class="card" style="margin-top:10px"><button class="sm" data-act="stortest">Run storage tests</button><div id="stortests"></div></div>':''}
+  <h2>Storage</h2>${storageCard()}${typeof libCacheCard==='function'?libCacheCard():''}${TEST?'<div class="card" style="margin-top:10px"><button class="sm" data-act="stortest">Run storage tests</button><div id="stortests"></div></div>':''}${TEST?'<div class="card" style="margin-top:10px"><button class="sm" data-act="libtest">Run library tests</button><div id="libtests"></div></div>':''}
   <h2>Backup</h2><div class="card row"><button data-act="export">Export backup</button><button data-act="import">Import backup</button><span class="sp"></span><button class="ghost" data-act="wipe" style="color:var(--bad)">Reset all progress</button></div>
   <p class="mut" style="font-size:13px">${cloud?'Progress is saved to your Claude account and on this device.':'Progress is saved on this device'+(driveOn()?' and synced to Google Drive.':' (in this browser). Connect Google Drive above, or export a backup now and then.')+''}</p>`;
-  fillStorageCard();
+  fillStorageCard();if(typeof fillLibStatus==='function')fillLibStatus();
 }
 
 /* Testing mode card (02-state.js SANDBOX) */

@@ -55,6 +55,7 @@ const DriveReal={
   async update(id,text){return (await gfetch(`${API_U}/${id}?uploadType=media&fields=id,modifiedTime`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:text})).json();},
   async meta(id){return (await gfetch(`${API_D}/${id}?fields=id,name,modifiedTime,trashed`)).json();},
   async read(id){return (await gfetch(`${API_D}/${id}?alt=media`)).text();},
+  async readBytes(id){return (await gfetch(`${API_D}/${id}?alt=media`)).arrayBuffer();},
   async del(id){await gfetch(`${API_D}/${id}`,{method:'DELETE'});},
 };
 let Drive=DriveReal;
@@ -95,11 +96,15 @@ function mergeStates(A,B){
     [...((a.songLog||{})[id]||[]),...((b.songLog||{})[id]||[])].forEach(r=>{const k=JSON.stringify(r);if(!seen.has(k)){seen.add(k);out.push(r);}});m.songLog[id]=out.sort((x,y)=>String(x[0]).localeCompare(String(y[0])));});
   m.songHist={};new Set([...Object.keys(a.songHist||{}),...Object.keys(b.songHist||{})]).forEach(id=>{const by={};
     [...((a.songHist||{})[id]||[]),...((b.songHist||{})[id]||[])].forEach(([d,v])=>{by[d]=Math.max(by[d]||0,v);});m.songHist[id]=Object.entries(by).sort().slice(-365);});
+  // library index (S3): by file id, newer updatedAt wins; removals kept as tombstones
+  m.libDel=Object.assign({},older.libDel||{},newer.libDel||{});Object.keys(older.libDel||{}).forEach(k=>{m.libDel[k]=Math.max(m.libDel[k]||0,older.libDel[k]);});
+  const lib={};[older.lib||{},newer.lib||{}].forEach(o=>Object.values(o).forEach(e=>{const c=lib[e.id];if(!c||(e.updatedAt||0)>=(c.updatedAt||0))lib[e.id]=e;}));
+  Object.keys(lib).forEach(k=>{if(m.libDel[k]&&m.libDel[k]>=(lib[k].updatedAt||0))delete lib[k];});m.lib=lib;
   m.lastBackup=Math.max(a.lastBackup||0,b.lastBackup||0)||undefined;
   m.rev=Math.max(a.rev||0,b.rev||0)+1;m.savedAt=Math.max(a.savedAt||0,b.savedAt||0);
   return m;
 }
-const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs);
+const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs)&&JSON.stringify(x.lib||{})===JSON.stringify(y.lib||{});
 
 /* ---------- folder layout ---------- */
 async function ensureLayout(){
@@ -130,7 +135,7 @@ async function syncNow(opts={}){
       if(DRV.lastSnapDay!==today()){DRV.lastSnapDay=today();const all=(await Drive.list(DRV.snapId)).filter(f=>/^\d{4}-\d\d-\d\d\.json$/.test(f.name)).sort((x,y)=>x.name.localeCompare(y.name));
         for(const f of all.slice(0,Math.max(0,all.length-KEEP_SNAPS)))await Drive.del(f.id);}
       DS.dirty=false;}
-    if(rmod)DRV.lastRemote=rmod;DRV.lastSync=Date.now();drvSaveCfg();setDrive('synced');
+    if(rmod)DRV.lastRemote=rmod;DRV.lastSync=Date.now();drvSaveCfg();setDrive('synced');if(!opts.test)try{dispatchEvent(new Event('drumpath:synced'));}catch(_){}
   }catch(e){DS.lastErr=e.message||String(e);
     if(/needs a tap|not granted|closed|sign-in|401/.test(DS.lastErr))setDrive('reconnect',DS.lastErr);
     else if(!navigator.onLine||/Failed to fetch|NetworkError|offline/i.test(DS.lastErr))setDrive('offline');
@@ -191,7 +196,7 @@ function mockDrive(){const files={},kids={};let n=0,clock=Date.parse('2026-11-10
     list:async p=>(kids[p]||[]).filter(i=>files[i]).map(i=>({id:i,name:files[i].name,modifiedTime:files[i].modifiedTime})),
     mkdir:async(p,nm)=>mk(p,nm,FOLDER_MIME),create:async(p,nm,t)=>mk(p,nm,'application/json',t),
     update:async(id,t)=>{files[id].text=t;files[id].modifiedTime=now();return {id,modifiedTime:files[id].modifiedTime};},
-    meta:async id=>({id,modifiedTime:files[id].modifiedTime,trashed:false}),read:async id=>files[id].text,del:async id=>{delete files[id];}};}
+    meta:async id=>({id,modifiedTime:files[id].modifiedTime,trashed:false}),read:async id=>files[id].text,readBytes:async id=>{if(!files[id])throw new Error('Drive: 404');return new TextEncoder().encode(files[id].text||'').buffer;},del:async id=>{delete files[id];}};}
 async function driveTests(){
   const out=[],T=(name,pass,det)=>out.push({name,pass:!!pass,det:det||''});
   const run=(ts,id,score,bpm)=>({ts,id,score,bpm:bpm||70,ex:0});
