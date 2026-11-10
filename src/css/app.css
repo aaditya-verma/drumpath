@@ -220,6 +220,10 @@ table.mtx tr.gh th.rh{background:var(--L3);text-transform:uppercase;font-size:11
 table.mtx tr.gh td{background:var(--L3)}
 table.mtx tr.foot td,table.mtx tr.foot th{background:var(--L2);font-weight:700;position:sticky;bottom:0}
 
+.sbxbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;box-sizing:border-box;width:calc(100% - 2*var(--gutter));max-width:var(--maxw);margin:10px auto 0;padding:8px 12px;border-radius:12px;
+  background:color-mix(in srgb,#f0b429 24%,var(--L0));color:inherit;border:1px solid color-mix(in srgb,#f0b429 65%,transparent);font-size:14px}
+.sbxbar span{flex:1 1 14em;min-width:0}.sbxbar b{white-space:nowrap}
+
 @media (max-width:699px){.smap{grid-template-columns:minmax(84px,118px) repeat(8,minmax(32px,1fr));gap:3px}.smap .lv{gap:5px;font-size:12.5px;padding:2px}.smap .lv svg{width:28px;height:28px}.smap .c{min-height:40px;font-size:12px;border-radius:8px}.smap .hd{font-size:10.5px}}
 /* very narrow phones: level name only, no progress line */
 @media (max-width:460px){.smap .hd .sh{display:none}.smap .hd b{font-size:13px}.smap{grid-template-columns:36px repeat(8,minmax(28px,1fr));gap:3px}.smap .lv>div{display:none}.smap .lv{padding:0;justify-content:center}.smap .c{font-size:11px;min-height:36px}.smap .hd{font-size:9.5px}.smap .hd b{font-size:12px}}

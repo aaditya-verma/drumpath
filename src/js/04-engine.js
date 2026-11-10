@@ -319,6 +319,7 @@ function finish(){
 function showResult(html,calib){
   const r=$('#result');r.classList.remove('hidden');
   r.innerHTML=`<div class="in"><div class="row" style="margin-bottom:18px"><button class="pri" data-act="again" style="font-size:20px;padding:14px 30px">${calib?'Run again':'Again'}</button>${calib?'':'<button data-act="bpm-">−5 BPM</button><button data-act="bpm+">+5 BPM</button>'+(lastRunTs?`<button data-run="${lastRunTs}">Run detail</button>`:'')}<span class="sp"></span><button data-act="pexit">Done</button></div>${html}</div>`;
+  if(SANDBOX&&!calib&&!r.querySelector('.sbxnote'))r.querySelector('.in').insertAdjacentHTML('beforeend','<p class="mut sbxnote" style="font-size:13px;margin-top:12px">Testing mode: this run isn’t saved and doesn’t count towards progress, streaks or readiness.</p>');
   makePreview();draw();
 }
 

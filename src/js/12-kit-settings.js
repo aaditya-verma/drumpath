@@ -45,6 +45,7 @@ function renderSettings(){
   const st=state.set,tm=themeMode();
   const sel=(k,opts)=>`<select data-set="${k}">${opts.map(([v,l])=>`<option value="${v}" ${String(st[k])===String(v)?'selected':''}>${l}</option>`).join('')}</select>`;
   view.innerHTML=`<h1>Settings</h1>
+  <h2>Testing mode</h2>${sandboxCard()}${TEST?'<div class="card" style="margin-top:10px"><button class="sm" data-act="sbxtest">Run testing-mode checks</button><div id="sbxtests"></div></div>':''}
   <h2>Scoring</h2><div class="card grid">
    <div><label class="f">On-time window (± ms)</label><input type="number" data-set="tol" value="${st.tol}"></div>
    <div><label class="f">Match window (± ms)</label><input type="number" data-set="win" value="${st.win}"></div>
@@ -68,4 +69,35 @@ function renderSettings(){
   <h2>Backup</h2><div class="card row"><button data-act="export">Export backup</button><button data-act="import">Import backup</button><span class="sp"></span><button class="ghost" data-act="wipe" style="color:var(--bad)">Reset all progress</button></div>
   <p class="mut" style="font-size:13px">${cloud?'Progress is saved to your Claude account and on this device.':'Progress is saved on this device'+(driveOn()?' and synced to Google Drive.':' (in this browser). Connect Google Drive above, or export a backup now and then.')+''}</p>`;
   fillStorageCard();
+}
+
+/* Testing mode card (02-state.js SANDBOX) */
+function sandboxCard(){
+  const host=HOST_CLAUDE?'DrumPath on claude.ai':'this tab';
+  if(SANDBOX==='test')return `<div class="card"><p style="margin:0 0 6px"><b>On</b> — forced by <code>?test=1</code> in the address.</p><p class="mut" style="margin:0;font-size:14px">Runs, progress, streaks, song tags and settings changed here are kept only until you reload. Nothing is written to this device, Google Drive or your Claude account. Open the app without <code>?test=1</code> to practise for real.</p></div>`;
+  if(SANDBOX)return `<div class="card"><p style="margin:0 0 6px"><b>On</b> in ${host}.</p><p class="mut" style="margin:0 0 10px;font-size:14px">Runs, progress, streaks, song tags and settings changed here are kept only until you reload. Nothing is written to this device, Google Drive or your Claude account, so the tablet’s progress is never touched.</p><button data-act="sbxoff">Turn off and save from now on</button></div>`;
+  return `<div class="card"><p style="margin:0 0 10px;font-size:14px">${HOST_CLAUDE?'Off: runs here are saved to DrumPath on claude.ai (never to the tablet or Drive).':'Off: runs count towards your progress as normal.'} Turn it on to try features without anything being saved or synced.</p><button data-act="sbxon">Turn on testing mode</button></div>`;
+}
+function sandboxBar(){if(!SANDBOX||$('#sbxbar'))return;const h=document.querySelector('header.top');if(!h)return;
+  h.insertAdjacentHTML('afterend',`<div id="sbxbar" class="sbxbar" role="status"><b>Testing mode</b><span>Runs, progress and changes here aren’t saved or synced.</span><button class="sm" data-nav="settings">${SANDBOX==='test'?'Details':'Turn off'}</button></div>`);}
+function setSandbox(on){try{localStorage.setItem(SBX_KEY,on?'1':'0');}catch(_){toast('This browser blocked the setting');return;}location.reload();}
+async function sandboxTests(){
+  const out=[],T=(name,pass,det)=>out.push({name,pass:!!pass,det:det||''});
+  T('Testing mode is on in this tab',!!SANDBOX,SANDBOX||'off');
+  const readRev=async()=>{if(!STORE.db)return null;const {tx,done}=idbTx(STORE.db,['state'],'readonly');const r=await idbReq(tx.objectStore('state').get('main'));await done;return r?{rev:r.rev||0,saved:r.savedAt||0}:null;};
+  const ls0=(()=>{try{return localStorage.getItem(KEY);}catch(_){return null;}})(),db0=await readRev();
+  const keep=JSON.stringify({prog:state.prog,done:state.done,days:state.days,n:state.sessions.length});
+  const id='0.2.01';state.sessions.push({ts:Date.now(),id,bpm:60,score:100,sbx:1});state.prog[id]=Object.assign({},state.prog[id],{bestBpm:999});save();
+  const dirty0=typeof DS!=='undefined'?DS.dirty:false;drivePushSoon();
+  await new Promise(r=>setTimeout(r,600));
+  const db1=await readRev(),ls1=(()=>{try{return localStorage.getItem(KEY);}catch(_){return null;}})();
+  T('A run and a progress change are not written to this device',JSON.stringify(db0)===JSON.stringify(db1),db0?('stored rev '+db0.rev+' → '+(db1&&db1.rev)):'no stored copy');
+  T('Old browser storage untouched',ls0===ls1,'');
+  T('Nothing queued for Google Drive',typeof DS==='undefined'||DS.dirty===dirty0,'');
+  T('Nothing sent to the Claude account',!cloud||!saveT,'');
+  let threw=false;try{await idbWrite();}catch(_){threw=true;}T('Direct device writes are refused',threw,'');
+  const ip=importPayload([{title:'T',artist:'',genre:'Other',bpm:100,bpmSource:'midi',meter:'4/4',feel:'',tags:[]}]);T('Studio import codes are marked as test data',ip.test===1,'');
+  // undo the in-memory test change
+  const k=JSON.parse(keep);state.sessions=state.sessions.filter(r=>!r.sbx);state.prog=k.prog;
+  return out;
 }

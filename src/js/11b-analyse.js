@@ -118,6 +118,8 @@ function importTarget(x){if(x.songId&&songById(x.songId))return songById(x.songI
 async function handleImport(code,opts={}){
   let p;try{p=await unpackCode(code);}catch(e){if(!opts.quiet)toast('That import code didn’t open: '+e.message);throw e;}
   const list=Array.isArray(p.songs)?p.songs:[p];const done=[];
+  if(p.test&&!SANDBOX&&!opts.apply){const ok=await new Promise(res=>{const m=openSheet('Made in testing mode',`<p>This import code was made while DrumPath was in <b>testing mode</b>. Adding it here changes your real song tags.</p><div class="row" style="margin-top:12px"><button class="pri" id="tm_go">Add anyway</button><button id="tm_no">Cancel</button></div>`);
+    $('#tm_go',m).onclick=()=>{closeSheets();res(true);};$('#tm_no',m).onclick=()=>{closeSheets();res(false);};});if(!ok)return done;}
   for(let i=0;i<list.length;i++){const x=list[i];let s=importTarget(x),created=null;
     if(!s){const u={id:'u'+Date.now().toString(36)+done.length,catId:'',title:x.title||'Untitled',artist:x.artist||'',genre:x.genre||'Other',bpm:x.bpm||'',bpmSure:false,meter:x.meter||'4/4',link:x.link||'',notes:'',core:[],support:[],tags:[],updatedAt:Date.now()};
       state.songs.push(u);s=songById(u.id);created=u.id;}
@@ -128,10 +130,11 @@ async function handleImport(code,opts={}){
       if(res!=='applied'&&created){const k=state.songs.findIndex(y=>y.id===created);if(k>=0)state.songs.splice(k,1);continue;}}
     done.push(s.id);}
   if(!opts.apply&&done.length===1)go('songs',{id:done[0]},{keep:true});
+  if(!opts.apply&&done.length&&opts.fromLink&&!SANDBOX)setTimeout(()=>toast('Saved. If this tab opened from Studio, you can close it — your other DrumPath tab picks this up.',6000),400);
   return done;
 }
 function checkImportHash(){const h=location.hash;if(!/^#import=/.test(h))return;history.replaceState(null,'',location.pathname+location.search);
-  handleImport(h.slice(8)).catch(()=>{});}
+  handleImport(h.slice(8),{fromLink:true}).catch(()=>{});}
 function pasteImportSheet(){const m=openSheet('Paste import code',`<p class="mut">Paste a code or link from DrumPath Studio.</p><textarea id="pi_t" rows="5" style="width:100%"></textarea><div class="row" style="margin-top:10px"><button class="pri" id="pi_go">Open</button></div>`);
   $('#pi_go',m).onclick=async()=>{const v=$('#pi_t',m).value;closeSheets();try{await handleImport(v);}catch(_){}};}
 

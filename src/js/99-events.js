@@ -72,6 +72,8 @@ document.addEventListener('click',async e=>{
   if(a==='drivechip'){if(DS.status==='reconnect'||DS.status==='off')driveConnect();else if(DS.status==='error'||DS.status==='offline')syncNow();else go('settings');return;}
   if(a==='driveconnect'){await driveConnect();render();return;}
   if(a==='drivefolder'){await driveChooseFolder();return;}
+  if(a==='sbxon'){setSandbox(true);return;}
+  if(a==='sbxoff'){setSandbox(false);return;}
   if(a==='drivesync'){await syncNow({force:true});render();toast(DS.status==='synced'?'Synced with Drive':'Drive: '+(DS.lastErr||DS.status));return;}
   if(a==='drivedisconnect'){if(await confirmBox('Stop syncing this device with Google Drive? Your Drive files and the progress on this device both stay as they are.')){driveDisconnect();render();}return;}
   if(a==='drivetest'){const el=$('#drvtests');el.innerHTML='Running…';const t=await driveTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
@@ -87,6 +89,7 @@ document.addEventListener('click',async e=>{
   if(a==='pasteimport'){pasteImportSheet();return;}
   if(a==='antest'){const el=$('#antests');el.innerHTML='Running…';const t=await analyseTests();render();const e2=$('#antests');if(e2)e2.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
+  if(a==='sbxtest'){const el=$('#sbxtests');el.innerHTML='Running…';const t=await sandboxTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='stortest'){const el=$('#stortests');el.innerHTML='Running…';const t=await storageTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
   if(a==='kitcopy'){const txt=kitLogText()||'(empty)';try{await navigator.clipboard.writeText(txt);toast('Log copied: paste it to Claude');}catch(_){openSheet('Kit log',`<p class="mut">Select all and copy:</p><textarea rows="12" style="width:100%">${esc(txt)}</textarea>`);}return;}
@@ -115,6 +118,7 @@ function confirmBox(msg){return new Promise(res=>{const m=document.createElement
   m.innerHTML=`<div class="card sheet" style="max-width:480px"><p style="font-size:17px">${esc(msg)}</p><div class="row"><button class="pri" id="cy">Yes</button><button id="cn">Cancel</button></div></div>`;
   document.body.appendChild(m);$('#cy',m).onclick=()=>{m.remove();res(true);};$('#cn',m).onclick=()=>{m.remove();res(false);};});}
 async function exportData(){
+  if(SANDBOX){toast('Testing mode: nothing to back up — test runs aren’t saved. Export from the tablet app.',4500);return;}
   state.lastBackup=Date.now();save();
   const json=JSON.stringify(state);const name='drumpath-backup-'+today()+'.json';
   const framed=window.self!==window.top;
@@ -130,8 +134,12 @@ function importData(){
 }
 /* ---------- boot ---------- */
 buildShell();applyTheme();view.innerHTML='<p class="mut">Loading your logbook…</p>';
+sandboxBar();
+// name the tablet tab so Studio's 'Send to the tablet app' links can reuse it where the browser allows (best effort; other tabs merge anyway)
+if(HOST_PAGES&&!window.name)try{window.name='drumpath-tablet';}catch(_){}
 storageInit().catch(e=>{STORE.err=String(e&&e.message||e);}).finally(()=>{bootReady=true;if(bootPending){bootPending=false;save();}render();if(!isClaudeHost())driveStart();checkImportHash();studioHash();setTimeout(studioHash,1500);});
 addEventListener('hashchange',()=>{if(bootReady){checkImportHash();studioHash();}});
 addEventListener('pagehide',()=>{if(STORE.mode==='idb')storeSave();});
 if(navigator.permissions&&navigator.requestMIDIAccess){navigator.permissions.query({name:'midi'}).then(p=>{if(p.state==='granted')connectMidi();}).catch(()=>{});}
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(L)draw();});
+

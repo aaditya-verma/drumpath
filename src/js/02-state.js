@@ -10,18 +10,26 @@ state=Object.assign(freshState(),loadLocal()||{});
 state.set=Object.assign({...DEF_SET},state.set);
 state.art=Object.assign({...DEFAULT_ART},state.art||{});
 if(state.map[37]==null&&!Object.values(state.map).includes('__none'))state.map[37]='S';
+/* Testing mode (sandbox): the app runs normally but NOTHING is written — not to this device, not to Google Drive,
+   not to the Claude account. Forced by ?test=1; on by default in DrumPath on claude.ai; a switch in Settings on the tablet. */
+const HOST_PAGES=/(^|\.)github\.io$/i.test(location.hostname);
+const HOST_CLAUDE=location.protocol==='https:'&&!HOST_PAGES;
+const SBX_KEY='drumpath.sandbox';
+const SANDBOX=(()=>{const forced=/[?&]test=1\b/.test(location.search);let pref=null;try{pref=localStorage.getItem(SBX_KEY);}catch(_){}
+  return forced?'test':pref==='1'?'on':pref==='0'?'':HOST_CLAUDE?'on':'';})();
 let cloud=null, saveT=null, saving=false, dirty=false;
 let bootReady=false,bootPending=false;
 function save(){
   if(!bootReady){bootPending=true;return;}      // nothing is written until storage has loaded (02b-storage.js)
   state.savedAt=Date.now();state.rev=(state.rev||0)+1;
+  if(SANDBOX)return;                              // testing mode: keep changes in memory only
   if(STORE.mode==='idb')storeSave();
   else try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}
   if(typeof drivePushSoon==='function')drivePushSoon();
   if(cloud){clearTimeout(saveT);saveT=setTimeout(pushCloud,2500);}
 }
 async function pushCloud(){
-  if(!cloud)return; if(saving){dirty=true;return;}
+  if(!cloud||SANDBOX)return; if(saving){dirty=true;return;}
   saving=true;
   try{await cloud.set(JSON.parse(JSON.stringify(state)));}catch(e){console.warn('cloud save',e);}
   saving=false; if(dirty){dirty=false;pushCloud();}
@@ -37,7 +45,7 @@ async function pushCloud(){
     let r=await d.get(); let data=r&&(typeof r.data==='function'?r.data():(r.data!==undefined?r.data:r));
     cloud=d;
     if(data&&data.v&&(data.savedAt||0)>(state.savedAt||0)){state=Object.assign(freshState(),data);state.set=Object.assign({...DEF_SET},state.set);if(typeof songStateFill==='function')songStateFill(state);save();render();}
-    else pushCloud();
+    else if(!SANDBOX)pushCloud();
   }catch(e){console.warn('cloud',e);}
 })();
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}

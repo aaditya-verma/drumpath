@@ -78,13 +78,19 @@ async function analyseSong(inp,onStep,ask){
     tags,rejected:ct.bad,grooves:midi?{main:midi.patterns.main,second:midi.patterns.second,fill:midi.patterns.fill}:{main:cleanPattern(g.main),fill:cleanPattern(g.fill)},
     kitNotes:(f&&f.doubleBass?'Fast double kicks thinned for one pedal. ':'')+(r.kitNotes||''),plan:(r.plan||[]).filter(p=>p&&knownTag(p.id)).slice(0,6),notes:r.notes||'',
     known:r.known!==false,link:inp.link||'',src:midi?'midi':inp.images&&inp.images.length?'image':'title',when:Date.now()};
+  // 'To be ready' targets = the song's tempo, exactly as the tablet scores readiness (11a songScore: T = song BPM, else the lesson goal)
+  out.plan=out.plan.map(p=>({id:p.id,bpm:out.bpm||(LBY[p.id]&&LBY[p.id].bpm?LBY[p.id].bpm[1]:+p.bpm||0)}));
   return out;
 }
+// readiness line: use this device's tempo for the song when it has one (same number the tablet's song page uses)
+function planTarget(r){const loc=localTarget(r);return (loc&&songBpm(loc))||r.bpm||0;}
+function planLine(r){const T=planTarget(r);const ids=r.plan.map(x=>x.id);
+  return `<p class="mut" style="font-size:13px">To be ready: ${T?`play ${ids.join(' · ')} at ${T} BPM (the song’s tempo)`:r.plan.map(x=>x.id+(x.bpm?' → '+x.bpm:'')).join(' · ')}</p>`;}
 // Studio result → the shared review card's input (11b-analyse.js)
 function resultToReview(r){return {src:'studio',bpm:r.bpm||0,bpmNote:r.bpmSource+(r.bpmSource==='estimated by Studio'?' (Studio can’t hear audio — confirm with Tap tempo)':''),
   bpmConf:r.bpmConfidence,meter:r.meter,meterConf:r.src==='midi'?0.95:0.6,feel:r.feel,genre:r.genre,level:r.level,difficulty:r.difficulty,sections:r.sections,
   tags:r.tags.map(t=>Object.assign({},t)),patterns:r.grooves&&(r.grooves.main||r.grooves.fill)?r.grooves:null};}
-const importPayload=list=>({v:1,songs:list.map(r=>({songId:r.songId||undefined,title:r.title,artist:r.artist,genre:r.genre,bpm:r.bpm||0,bpmSource:r.bpmSource==='midi'?'midi':r.bpmSource,
+const importPayload=list=>({v:1,...(SANDBOX?{test:1}:{}),songs:list.map(r=>({songId:r.songId||undefined,title:r.title,artist:r.artist,genre:r.genre,bpm:r.bpm||0,bpmSource:r.bpmSource==='midi'?'midi':r.bpmSource,
   meter:r.meter,feel:r.feel,link:r.link||undefined,tags:r.tags.filter(t=>t.weight>0).map(t=>({id:t.id,weight:t.weight,reason:t.reason,confidence:Math.round(t.confidence*100)/100})),
   grooves:r.grooves&&(r.grooves.main||r.grooves.fill)?r.grooves:undefined,sections:r.sections&&r.sections.length?r.sections:undefined}))});
 // local target for a result: same song id, or the same title + artist, or none (→ new song)
@@ -142,7 +148,7 @@ function renderStudio(){
       <div class="row" style="margin-top:12px"><button class="pri" data-act="stgo" ${off||p.busy?'disabled':''}>Analyse</button><button data-act="stclear">Clear</button><span class="mut" id="st_busy">${esc(p.busy||'')}</span></div>
       ${off?'<p style="color:var(--warn);margin-bottom:0">Analysis isn’t allowed in this view. Open DrumPath on claude.ai and allow it when asked.</p>':''}</div>
      ${p.results.map((r,i)=>resultCard(r,i,'res')).join('')}
-     ${p.results.filter(r=>!r.error).length>1?`<div class="card"><div class="row" style="margin-top:0"><b>All ${p.results.filter(r=>!r.error).length} songs</b><span class="sp"></span><a class="btn pri" data-sendall href="#" target="_blank" rel="noopener">Send all to the tablet app ↗</a><button data-act="stcopyall">Copy import code</button></div></div>`:''}`;
+     ${p.results.filter(r=>!r.error).length>1?`<div class="card"><div class="row" style="margin-top:0"><b>All ${p.results.filter(r=>!r.error).length} songs</b><span class="sp"></span><a class="btn pri" data-sendall href="#" target="drumpath-tablet">Send all to the tablet app ↗</a><button data-act="stcopyall">Copy import code</button></div></div>`:''}`;
   }else if(p.tab==='suggest'){
     const opts=[1,2,3,4,5,6,7,8,9,10].map(L=>{const ls=[...LESSONS,...LATER.filter(l=>!LBY[l.id])].filter(l=>l.lv===L&&(!l.type||l.type==='play'));return ls.length?`<optgroup label="Level ${L}">${ls.map(l=>`<option value="${l.id}" ${p.sugLesson===l.id?'selected':''}>${l.id} ${esc(l.t)}</option>`).join('')}</optgroup>`:'';}).join('');
     body=`<div class="card" style="margin-top:12px"><div class="grid"><div><label class="f">For lesson</label><select id="sg_l"><option value="">Lessons with no songs yet</option>${opts}</select></div><div><label class="f">Genre or mood (optional)</label><input id="sg_g" value="${esc(p.sugGenre)}" placeholder="e.g. 80s pop, Bollywood, funk"></div></div>
@@ -165,8 +171,8 @@ function resultCard(r,i){
     <div class="chips" style="margin-top:8px">${r.tags.slice().sort((a,b)=>b.weight-a.weight).map(t=>`<span class="chip" title="${esc(t.reason)}" style="${t.weight===2?'border-color:var(--accent);color:var(--accent)':''}">${t.weight===2?'★ ':''}${t.id} ${esc((tagLesson(t.id)||{}).t||'')}</span>`).join('')}</div>
     ${r.rejected&&r.rejected.length?`<p class="mut" style="font-size:12px">Ignored unknown lesson ids: ${r.rejected.map(esc).join(', ')}</p>`:''}
     ${r.grooves&&r.grooves.main?`<div class="pat" style="margin-top:8px">${esc(patText(Object.assign({bars:1},r.grooves.main)))}</div>`:''}
-    ${r.plan&&r.plan.length?`<p class="mut" style="font-size:13px">To be ready: ${r.plan.map(x=>x.id+(x.bpm?' → '+x.bpm:'')).join(' · ')}</p>`:''}
-    <div class="row" style="margin-top:10px"><a class="btn pri" data-sendlink="${i}" href="#" target="_blank" rel="noopener">Send to the tablet app ↗</a>
+    ${r.plan&&r.plan.length?planLine(r):''}
+    <div class="row" style="margin-top:10px"><a class="btn pri" data-sendlink="${i}" href="#" target="drumpath-tablet">Send to the tablet app ↗</a>
      <button data-stapply="${i}">${here?'Review &amp; apply here':'Add here'}</button><button data-stcopy="${i}">Copy import code</button></div></div>`;
 }
 async function studioRun(){
