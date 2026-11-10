@@ -29,9 +29,10 @@ function renderLessons(){
   if(p.id&&LBY[p.id])return renderLesson(p.id);
   if(p.lv!=null)return renderLevel(p.lv,p.sd);
   const all=ALL_L(),done=LESSONS.filter(l=>statusOf(l)==='ms').length;
-  let g=`<div class="hd"></div>`+Object.keys(STRANDS).map(k=>`<div class="hd">${k}. ${STRANDS[k]}</div>`).join('');
+  const SHORT={1:'Theory',2:'Tech\u00ADnique',3:'Rudi\u00ADments',4:'Inde\u00ADpen\u00ADdence',5:'Grooves',6:'Fills',7:'Time',8:'Songs'};
+  let g=`<div class="hd"></div>`+Object.keys(STRANDS).map(k=>`<div class="hd" title="${k}. ${STRANDS[k]}"><b>${k}</b><span class="sh">${SHORT[k]}</span><span class="fl">${STRANDS[k]}</span></div>`).join('');
   for(let lv=0;lv<=10;lv++){const ls=all.filter(l=>l.lv===lv),f=doneFrac(ls),later=ls.every(l=>l.later);
-    g+=`<div class="lv" data-lvl="${lv}">${later?ring(0,38,5,lv):ring(f,38,5,lv)}<div>${esc(LEVELS[lv])}<small>${later?'coming':Math.round(f*100)+'% · '+ls.length+' lessons'}</small></div></div>`;
+    g+=`<div class="lv" data-lvl="${lv}" title="Level ${lv} · ${esc(LEVELS[lv])}">${later?ring(0,38,5,lv):ring(f,38,5,lv)}<div><span class="lvn">${esc(LEVELS[lv])}</span><small>${later?'coming':Math.round(f*100)+'% · '+ls.length+' lessons'}</small></div></div>`;
     for(let sd=1;sd<=8;sd++){const c=ls.filter(l=>l.sd===sd);
       if(!c.length){g+=`<div class="c e"></div>`;continue;}
       const cl=c.every(l=>l.later),cf=doneFrac(c),dn=c.filter(l=>statusOf(l)==='ms').length,ipn=c.filter(l=>statusOf(l)==='ip').length;
@@ -41,7 +42,7 @@ function renderLessons(){
   const ipl=LESSONS.filter(l=>statusOf(l)==='ip').sort((a,b)=>(state.prog[b.id].last||0)-(state.prog[a.id].last||0)).slice(0,6);
   view.innerHTML=`<h1>Lessons</h1><p class="sub">${done} of ${LESSONS.length} playable lessons done · every lesson is unlocked; start at the top and move on when you’re ready. Levels 4–10 are indexed and coming next.</p>
    ${TEST?testBanner():''}
-   <h2>Skill map</h2><p class="sub">Rows are levels, columns are strands. Shading = share of lessons done. Tap a level or a cell.</p>
+   <h2>Skill map</h2><p class="sub">Rows are levels, columns are strands (1 Theory · 2 Technique · 3 Rudiments · 4 Independence · 5 Grooves · 6 Fills · 7 Time · 8 Songs). Shading = share of lessons done. Tap a level or a cell.</p>
    <div class="card"><div class="smap">${g}</div></div>
    ${ipl.length?`<h2>In progress</h2><div class="list">${ipl.map(lessonRow).join('')}</div>`:''}
    <h2>All levels</h2>
