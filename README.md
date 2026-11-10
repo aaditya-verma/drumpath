@@ -88,7 +88,7 @@ Needed only if you ever recreate it. Use the **personal** Google account that ow
 
 While the app is in Testing mode only listed test users can sign in, and Google may ask you to re-approve access about once a week. That's expected for a personal app.
 
-## Drive library (S3, 11 Nov 2026, D-024)
+## Drive library (S3, 11 Nov 2026, D-025)
 **Library** (More › Library, and a **Files** section on each song page) lists MIDI files, audio and documents from the
 Drive folder. With the `drive.file` scope the app sees only files it created or files you pick, so files uploaded to
 Drive by hand are added with **Add from Drive** (Google Picker, multi-select; views for DrumPath › midi, › songs, the

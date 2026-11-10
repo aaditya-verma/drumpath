@@ -1,4 +1,4 @@
-/* DrumPath — storage S3: Google Drive as the library for big files (build/storage-plan.md §S3, D-024).
+/* DrumPath — storage S3: Google Drive as the library for big files (build/storage-plan.md §S3, D-025).
    Index  = state.lib {fileId: entry} (+ state.libDel tombstones); synced with the Drive backup like everything else.
    Cache  = IndexedDB `files` store: 'drv:<fileId>' → {bytes,…}; 'cache:index' → {fileId:{size,lastUsed,cachedAt}}
             (per device, never synced). Least-recently-used files are dropped past the limit (Settings › Storage,
