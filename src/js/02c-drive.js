@@ -139,7 +139,7 @@ async function syncNow(opts={}){
 }
 // called from save(): push 30 s after the last change
 function drivePushSoon(){if(!driveOn())return;DS.dirty=true;if(DS.status==='synced')setDrive('pending');clearTimeout(DS.timer);DS.timer=setTimeout(()=>syncNow(),PUSH_DELAY);}
-async function driveStart(){if(!driveOn()){renderDriveChip();return;}
+async function driveStart(){if(typeof isClaudeHost==='function'&&isClaudeHost())return;if(!driveOn()){renderDriveChip();return;}
   if(!DS.token){try{await getToken(false);}catch(e){setDrive('reconnect',e.message);return;}}
   syncNow();}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&driveOn()&&DS.dirty){clearTimeout(DS.timer);syncNow();}
@@ -174,6 +174,7 @@ function renderDriveChip(){const c=$('#dchip');if(!c)return;if(!driveOn()){c.cla
   $('#ddot').classList.toggle('ok',!!ok);$('#dtxt').textContent=txt;c.title=DS.msg||'Google Drive sync';}
 setInterval(()=>{if(driveOn()&&(DS.status==='synced'||DS.status==='pending'))renderDriveChip();},60000);
 function driveCard(){
+  if(typeof isClaudeHost==='function'&&isClaudeHost())return `<div class="card"><p style="margin:0">Google Drive sync runs in the <a href="${TABLET_URL}" target="_blank" rel="noopener">tablet app</a> (GitHub Pages). This claude.ai copy keeps its own data in your Claude account; send Studio results to the tablet app with <b>Send to the tablet app ↗</b>.</p></div>`;
   if(!driveOn())return `<div class="card"><p style="margin-top:0">Back up and sync your progress to your own Google Drive. Pick the folder <b>My Drive › Projects › DrumPath</b>; the app only sees files it creates there (and files you pick).</p><button class="pri" data-act="driveconnect">Connect Google Drive</button></div>`;
   return `<div class="card"><div class="grid">
    <div class="stat"><div class="k">Folder</div><div class="v" style="font-size:20px">${esc(DRV.folderName||'DrumPath')}</div><div class="d">backup/ · midi/ · songs/</div></div>

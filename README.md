@@ -77,11 +77,21 @@ Needed only if you ever recreate it. Use the **personal** Google account that ow
 
 While the app is in Testing mode only listed test users can sign in, and Google may ask you to re-approve access about once a week. That's expected for a personal app.
 
-## Analyse & tag and DrumPath Studio
+## Analyse & tag and Studio — one app, two homes (D-021)
 
-Every song page has **Analyse & tag**: (1) **From a MIDI file**, analysed on the tablet with `src/js/midi-analyse.js` (the file stays on the device);
-(2) **From my playing**, which records the kit along to the song and runs the same analyser; (3) **Analyse with Studio**, a claude.ai artifact
-(https://claude.ai/artifact/F7ud2c2UJMVNYU4C9Pp67B, source in `studio/`). Free sources only: From my playing, Lakh MIDI, Groove MIDI Dataset,
-MuseScore Studio (free app) exports, TuxGuitar (free) exports.
+DrumPath runs in two places from the same code:
+
+| Home | Address | What it's for |
+|---|---|---|
+| **Tablet app** (GitHub Pages) | https://aaditya-verma.github.io/drumpath/ | Practice with the kit (USB-MIDI), Google Drive sync, everything day to day |
+| **DrumPath on claude.ai** (artifact) | https://claude.ai/artifact/A4goxQDpCkAaK7wLE81eFx | **Studio** with inline analysis (Claude, via the artifact `sample` capability); browsing your songs and lessons |
+
+GitHub Pages can't call Claude, and a claude.ai page can't reach Google (Drive) and may not reach USB-MIDI, so each home does what it can and they pass songs with codes and links:
+
+- **Every song page → Analyse & tag:** (1) **From a MIDI file**, analysed on the device with `src/js/midi-analyse.js` (the file stays on the device); (2) **From my playing**, which records the kit along to the song; (3) **Analyse with Studio**: on claude.ai it runs right there and opens the review card; on the tablet it copies a request code and opens DrumPath on claude.ai at **Studio** (`#studio`).
+- **Studio** (More › Studio): Analyse & add (one song or a list; title, MIDI file, photo of a drum sheet, pasted notes), Suggest songs, Analysed history. Each result: **Send to the tablet app ↗** (an `#import=` link the tablet reviews before applying), **Add here / Review & apply here**, or **Copy import code** (tablet: Songs › Paste import code).
+- Free sources only (RULES §F): From my playing, Lakh MIDI, Groove MIDI Dataset, MuseScore Studio (free app) exports, TuxGuitar (free) exports.
+
+**Republish the claude.ai copy** after a change: `node tools/build-artifact.mjs` bundles everything into `dist/drumpath-claude.html`; publish that as the DrumPath artifact's `index.html`. Declared capabilities: `sample` (`images: true`), `db` + `user` (that copy's progress, in your Claude account), `downloads` (Export backup).
 
 **Credits:** Groove MIDI Dataset by Google Magenta (Gillick, Roberts, Engel, Eck, Bamman, "Learning to Groove with Inverse Sequence Transformations", ICML 2019), CC BY 4.0, used at build time for analyser calibration (1,150 / 1,150 files parse; BPM within ±2: 100%; meter: 100%; beat/fill: 93%).

@@ -17,6 +17,12 @@ document.addEventListener('click',async e=>{
   const ce=T.closest('[data-cell]');if(ce){const [a,b]=ce.dataset.cell.split('.').map(Number);go('lessons',{lv:a,sd:b,id:null},{keep:true});return;}
   const pr=T.closest('[data-preset]');if(pr){Object.assign(VP.compare,JSON.parse(pr.dataset.preset));render();return;}
   const rn=T.closest('[data-run]');if(rn){openRun(rn.dataset.run);return;}
+  const stt=T.closest('[data-stab]');if(stt){VP.studio.tab=stt.dataset.stab;render();return;}
+  const stm=T.closest('[data-smode]');if(stm){VP.studio.mode=stm.dataset.smode;render();return;}
+  const sta=T.closest('[data-stapply]');if(sta){await applyResultHere(VP.studio.results[+sta.dataset.stapply]);return;}
+  const stc=T.closest('[data-stcopy]');if(stc){const c=await packCode(importPayload([VP.studio.results[+stc.dataset.stcopy]]));try{await navigator.clipboard.writeText(c);toast('Import code copied: Songs › Paste import code in the tablet app');}catch(_){openSheet('Import code',`<textarea rows="6" style="width:100%" readonly>${esc(c)}</textarea>`);}return;}
+  const sga=T.closest('[data-sgadd]');if(sga){const g=VP.studio.sug[+sga.dataset.sgadd];Object.assign(VP.studio,{tab:'analyse',mode:'one',req:{title:g.title,artist:g.artist,bpm:g.bpm?Math.round(g.bpm):null}});render();await studioRun();return;}
+  const sth=T.closest('[data-sthist]');if(sth){VP.studio.results=[studioHist.get()[+sth.dataset.sthist]];VP.studio.tab='analyse';render();return;}
   const an=T.closest('[data-analyse]');if(an){closeSheets();analyseSheet(an.dataset.analyse);return;}
   const sg=T.closest('[data-song]');if(sg){closeSheets();go('songs',{id:sg.dataset.song});return;}
   const sv=T.closest('[data-sview]');if(sv){VP.songs.view=sv.dataset.sview;render();return;}
@@ -70,7 +76,13 @@ document.addEventListener('click',async e=>{
   if(a==='drivedisconnect'){if(await confirmBox('Stop syncing this device with Google Drive? Your Drive files and the progress on this device both stay as they are.')){driveDisconnect();render();}return;}
   if(a==='drivetest'){const el=$('#drvtests');el.innerHTML='Running…';const t=await driveTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='cmptest'){const t=compareTests();render();const el=$('#cmptests');if(el)el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
-  if(a==='batchstudio'){if(!STUDIO_URL)return;sendToStudio({batch:allSongs().filter(x=>!songHasTags(x)).map(x=>({songId:x.id,title:x.title,artist:x.artist,bpm:songBpm(x)||null,meter:x.meter||'4/4'}))});return;}
+  if(a==='batchstudio'){const ut=allSongs().filter(x=>!songHasTags(x));if(isClaudeHost()){VP.studio.mode='batch';VP.studio.tab='analyse';VP.studio.req={batch:ut.map(x=>({songId:x.id,title:x.title,artist:x.artist,bpm:songBpm(x)||null,meter:x.meter||'4/4'}))};go('studio');return;}sendToStudio({batch:allSongs().filter(x=>!songHasTags(x)).map(x=>({songId:x.id,title:x.title,artist:x.artist,bpm:songBpm(x)||null,meter:x.meter||'4/4'}))});return;}
+  if(a==='streq'){try{const r=await readRequest($('#st_code').value);VP.studio.req=r;VP.studio.mode=Array.isArray(r.batch)?'batch':'one';VP.studio.results=[];render();toast(Array.isArray(r.batch)?r.batch.length+' songs loaded':'Song loaded from the tablet');}catch(e){toast('That code didn’t open: '+(e.message||e));}return;}
+  if(a==='stgo'){await studioRun();return;}
+  if(a==='stclear'){Object.assign(VP.studio,{req:null,results:[]});render();return;}
+  if(a==='sggo'){await studioSuggest();return;}
+  if(a==='stcopyall'){const c=await packCode(importPayload(VP.studio.results.filter(r=>!r.error)));try{await navigator.clipboard.writeText(c);toast('Import code copied: Songs › Paste import code in the tablet app');}catch(_){openSheet('Import code',`<textarea rows="6" style="width:100%" readonly>${esc(c)}</textarea>`);}return;}
+  if(a==='sttest'){const el=$('#sttests');el.innerHTML='Running…';const t=await studioTests();render();const e2=$('#sttests');if(e2)e2.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='pasteimport'){pasteImportSheet();return;}
   if(a==='antest'){const el=$('#antests');el.innerHTML='Running…';const t=await analyseTests();render();const e2=$('#antests');if(e2)e2.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
@@ -101,10 +113,11 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&run)stopRu
 function confirmBox(msg){return new Promise(res=>{const m=document.createElement('div');m.className='modal';
   m.innerHTML=`<div class="card sheet" style="max-width:480px"><p style="font-size:17px">${esc(msg)}</p><div class="row"><button class="pri" id="cy">Yes</button><button id="cn">Cancel</button></div></div>`;
   document.body.appendChild(m);$('#cy',m).onclick=()=>{m.remove();res(true);};$('#cn',m).onclick=()=>{m.remove();res(false);};});}
-function exportData(){
+async function exportData(){
   state.lastBackup=Date.now();save();
   const json=JSON.stringify(state);const name='drumpath-backup-'+today()+'.json';
   const framed=window.self!==window.top;
+  if(framed&&isClaudeHost()){try{const dl=await window.claude.use('downloads');if(dl){await dl.save({filename:name,data:new Blob([json],{type:'application/json'})});toast('Backup saved');return;}}catch(_){}}
   if(!framed){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast('Backup downloaded');return;}
   const m=openSheet('Backup',`<p class="mut">Copy this text and keep it somewhere safe.</p><textarea rows="8" style="width:100%" readonly>${esc(json)}</textarea><div class="row" style="margin-top:10px"><button class="pri" id="bc">Copy</button></div>`);
   $('#bc',m).onclick=async()=>{try{await navigator.clipboard.writeText(json);toast('Copied');}catch(_){$('textarea',m).select();toast('Select all and copy');}};
@@ -116,8 +129,8 @@ function importData(){
 }
 /* ---------- boot ---------- */
 buildShell();applyTheme();view.innerHTML='<p class="mut">Loading your logbook…</p>';
-storageInit().catch(e=>{STORE.err=String(e&&e.message||e);}).finally(()=>{bootReady=true;if(bootPending){bootPending=false;save();}render();driveStart();checkImportHash();});
-addEventListener('hashchange',()=>{if(bootReady)checkImportHash();});
+storageInit().catch(e=>{STORE.err=String(e&&e.message||e);}).finally(()=>{bootReady=true;if(bootPending){bootPending=false;save();}render();if(!isClaudeHost())driveStart();checkImportHash();studioHash();setTimeout(studioHash,1500);});
+addEventListener('hashchange',()=>{if(bootReady){checkImportHash();studioHash();}});
 addEventListener('pagehide',()=>{if(STORE.mode==='idb')storeSave();});
 if(navigator.permissions&&navigator.requestMIDIAccess){navigator.permissions.query({name:'midi'}).then(p=>{if(p.state==='granted')connectMidi();}).catch(()=>{});}
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{if(L)draw();});

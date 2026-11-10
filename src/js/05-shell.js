@@ -20,6 +20,7 @@ try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if
 
 /* ---------- icons ---------- */
 const ICONS={
+  studio:'<path d="M12 3l1.8 4.6L18.5 9l-4.7 1.5L12 15l-1.8-4.5L5.5 9l4.7-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>',
   home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   practise:'<circle cx="12" cy="13" r="7"/><path d="M5 13h14M12 6v14"/><path d="M4 4l4 3M20 4l-4 3"/>',
   lessons:'<path d="M4 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a3 3 0 0 0-3 3"/><path d="M20 5v13h-7"/>',
@@ -46,10 +47,11 @@ const NAVI={
   songs:['Songs','Song library, readiness and matrix'],
   compare:['Compare','Crosstab any measure'],
   kit:['Kit','Your kit, pads, kit check, latency'],
+  studio:['Studio','Tag songs with lessons (Claude)'],
   settings:['Settings','Scoring, theme, backup'],
 };
 const PRIMARY=['home','practise','lessons','progress','songs'];
-const ALLNAV=['home','practise','lessons','progress','songs','compare','kit','settings'];
+const ALLNAV=['home','practise','lessons','progress','songs','compare','studio','kit','settings'];
 
 /* ---------- view state + back stack ---------- */
 let cur='home';
@@ -124,7 +126,7 @@ function openSearch(){
 /* ---------- render ---------- */
 const view=$('#view');
 function render(){
-  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,kit:renderKit,settings:renderSettings}[cur]||renderHome;
+  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,kit:renderKit,settings:renderSettings}[cur]||renderHome;
   try{f();}catch(e){console.error(e);view.innerHTML=`<div class="card"><b>Something went wrong drawing this page.</b><p class="mut">${esc(e.message)}</p></div>`;}
   syncNav();
 }

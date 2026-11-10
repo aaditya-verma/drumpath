@@ -54,7 +54,7 @@ function renderSongs(){
     <div class="card stat"><div class="k">Curriculum</div><div class="v">${LESSONS.filter(l=>statusOf(l)==='ms').length}<small>/ ${LESSONS.length} lessons</small></div><div class="d">${lvDone.map(([lv,d,n])=>`L${lv} ${d}/${n}`).join(' · ')}</div></div>
     <div class="card stat" style="grid-column:span 2"><div class="k">Biggest unlocks</div>${top3.length?top3.map(u=>`<div class="row" style="margin-top:6px;flex-wrap:nowrap;cursor:pointer" data-open="${u.id}"><b>${u.id}</b><span style="flex:1">${esc(tagName(u.id))}</span><span class="mut" style="font-size:13px">raises ${u.songs} song${u.songs===1?'':'s'}</span></div>`).join(''):'<div class="d">Play a few lessons to see which ones open the most songs.</div>'}</div>
    </div>
-   <div class="row" style="margin-top:16px">${seg}<span class="sp"></span>${(()=>{const n=allSongs().filter(x=>!songHasTags(x)).length;return n?`<button class="sm" ${STUDIO_URL?'':'disabled title="Studio not set up yet"'} data-act="batchstudio">Analyse untagged songs (${n})${STUDIO_URL?'':' · Studio not set up yet'}</button>`:'';})()}<button class="sm" data-act="pasteimport">Paste import code</button><button class="pri" data-songedit="">+ Add song</button></div>
+   <div class="row" style="margin-top:16px">${seg}<span class="sp"></span>${(()=>{const n=allSongs().filter(x=>!songHasTags(x)).length;return n?`<button class="sm" data-act="batchstudio">Analyse untagged songs (${n})</button>`:'';})()}<button class="sm" data-act="pasteimport">Paste import code</button><button class="pri" data-songedit="">+ Add song</button></div>
    ${filters}${TEST?songTestBanner():''}${body}`;
   view.querySelectorAll('[data-mcell]').forEach(td=>td.addEventListener('click',e=>{e.stopPropagation();const [sid,lid]=td.dataset.mcell.split('|');if(LBY[lid])openLesson(lid,sid);else toast(lid+' is coming in Level '+lessonLevel(lid));}));
   view.querySelectorAll('[data-mrow]').forEach(th=>th.addEventListener('click',()=>go('songs',{id:th.dataset.mrow},{keep:true})));
@@ -77,7 +77,7 @@ function matrixHtml(stats,group){
 }
 function songTestBanner(){const t=songTests();const bad=t.filter(x=>!x.pass);
   return `<div class="card" style="border:1px solid ${bad.length?'var(--warn)':'var(--accent)'};margin:10px 0"><b>Test mode · song checks: ${bad.length?bad.length+' failing':'all '+t.length+' pass ✓'}</b>${t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('')}
-   <div style="margin-top:8px"><button class="sm" data-act="antest">Run Analyse &amp; tag tests</button><div id="antests"></div></div></div>`;}
+   <div style="margin-top:8px"><button class="sm" data-act="antest">Run Analyse &amp; tag tests</button><div id="antests"></div><button class="sm" data-act="sttest" style="margin-top:6px">Run Studio tests</button><div id="sttests"></div></div></div>`;}
 /* ---------- song page ---------- */
 function renderSong(song){
   const ctx=songCtx(),x=songStats(ctx,song),pl=songPlays(song.id),hist=state.songHist[song.id]||[];

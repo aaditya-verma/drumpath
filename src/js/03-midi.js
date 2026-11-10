@@ -3,11 +3,11 @@
 /* ============ MIDI ============ */
 let midi=null, inputs=[], learnVoice=null, monitor=[];
 async function connectMidi(){
-  if(!navigator.requestMIDIAccess){setMidiStatus(false,'MIDI not available here');toast('This browser/page cannot use MIDI. Open DrumPath in Chrome on the tablet.',5000);return;}
+  if(!navigator.requestMIDIAccess){setMidiStatus(false,'MIDI not available here');toast(typeof isClaudeHost==='function'&&isClaudeHost()?'The kit can’t connect inside claude.ai. Practise in the tablet app: aaditya-verma.github.io/drumpath':'This browser/page cannot use MIDI. Open DrumPath in Chrome on the tablet.',6000);return;}
   try{
     midi=await navigator.requestMIDIAccess({sysex:false});
     midi.onstatechange=bindInputs; bindInputs();
-  }catch(e){setMidiStatus(false,'MIDI blocked');toast('MIDI permission was blocked: '+e.message,5000);}
+  }catch(e){setMidiStatus(false,'MIDI blocked');toast(typeof isClaudeHost==='function'&&isClaudeHost()?'The kit can’t connect inside claude.ai. Practise in the tablet app: aaditya-verma.github.io/drumpath':'MIDI permission was blocked: '+e.message,6000);}
 }
 function bindInputs(){
   inputs=[];midi.inputs.forEach(i=>{i.onmidimessage=onMidi;inputs.push(i);});

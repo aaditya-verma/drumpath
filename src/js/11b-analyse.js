@@ -3,7 +3,7 @@
    · 3 DrumPath Studio (import link with songId). Apply merges tags; it never silently overwrites tags set by hand.
    Full MIDI files stay on this device (IndexedDB "files"); songs keep only the analysis summary + short groove patterns. */
 'use strict';
-const STUDIO_URL='https://claude.ai/artifact/F7ud2c2UJMVNYU4C9Pp67B';   // DrumPath Studio (published 10 Nov 2026; source in studio/)
+const STUDIO_URL='https://claude.ai/artifact/A4goxQDpCkAaK7wLE81eFx#studio';   // DrumPath on claude.ai, opened at Studio (D-021)
 const GM_OUT={K:36,S:38,'S:rim':37,HH:42,'HH:open':46,HP:44,T1:48,T2:45,T3:43,C:49,R:51};
 const METERS=['4/4','3/4','6/8','12/8','5/4','7/8'];
 const knownTag=id=>!!tagLesson(id);
@@ -17,14 +17,14 @@ function analyseSheet(songId){
    <div class="list">
     <div class="lrow" style="cursor:pointer" id="an_midi"><span class="idx">1</span><div style="flex:1"><b>From a MIDI file</b><div class="mut" style="font-size:13px">Most accurate. Analysed on this tablet; the file stays here. <a href="#" id="an_help">Free ways to get MIDI</a></div></div><span>›</span></div>
     <div class="lrow" style="cursor:pointer" id="an_play"><span class="idx">2</span><div style="flex:1"><b>From my playing</b><div class="mut" style="font-size:13px">Play the song once on the kit with the click; the app records and analyses your notes.</div></div><span>›</span></div>
-    <div class="lrow dim" id="an_studio" ${STUDIO_URL?'style="cursor:pointer"':''}><span class="idx">3</span><div style="flex:1"><b>Analyse with Studio</b><div class="mut" style="font-size:13px">${STUDIO_URL?'Copies a code and opens DrumPath Studio: paste the code there. The result comes back to this song.':'Studio not set up yet.'}</div></div><span>${STUDIO_URL?'›':''}</span></div>
+    <div class="lrow" id="an_studio" style="cursor:pointer"><span class="idx">3</span><div style="flex:1"><b>Analyse with Studio</b><div class="mut" style="font-size:13px">${isClaudeHost()?'Studio looks the song up and suggests lessons, right here. Review before applying.':'Copies a code and opens DrumPath on claude.ai at Studio: paste the code there. The result comes back to this song.'}</div><div class="mut" id="an_st" style="font-size:13px;color:var(--accent)"></div></div><span>›</span></div>
    </div>
    <div id="an_body"></div>`);
   const body=$('#an_body',m);
   $('#an_midi',m).onclick=()=>midiRoute(s,body);
   $('#an_play',m).onclick=()=>playRoute(s,body);
   $('#an_help',m).onclick=e=>{e.preventDefault();e.stopPropagation();body.innerHTML=midiHelpHtml();};
-  if(STUDIO_URL)$('#an_studio',m).onclick=()=>sendToStudio(studioRequest(s));
+  $('#an_studio',m).onclick=()=>{if(isClaudeHost()){$('#an_st',m).textContent='Analysing…';studioInline(s.id,$('#an_st',m));}else sendToStudio(studioRequest(s));};
 }
 function midiHelpHtml(){return `<div class="card" style="margin-top:10px"><b>Free ways to tag a song</b><ul style="margin:6px 0 0;padding-left:20px;line-height:1.5">
   <li><b>No file needed:</b> use <b>From my playing</b> (route 2). Play along to the song on the kit for 8 bars or more; the app tags it from your notes.</li>
@@ -105,7 +105,7 @@ const requestCode=obj=>b64u(new TextEncoder().encode(JSON.stringify(obj)));
 async function sendToStudio(obj){
   const code=requestCode(obj);
   try{await navigator.clipboard.writeText(code);closeSheets();toast('Code copied — paste it in Studio',4000);window.open(STUDIO_URL,'_blank','noopener');}
-  catch(_){closeSheets();const m=openSheet('Analyse with Studio',`<p class="mut" style="margin-top:0">Copy this code, open Studio, and paste it under <b>From DrumPath: paste the code it copied</b>.</p>
+  catch(_){closeSheets();const m=openSheet('Analyse with Studio',`<p class="mut" style="margin-top:0">Copy this code, open DrumPath on claude.ai (it opens at Studio), and paste it under <b>Paste a code from the tablet</b>.</p>
      <textarea id="sc_t" rows="5" style="width:100%" readonly>${esc(code)}</textarea>
      <div class="row" style="margin-top:10px"><button class="pri" id="sc_c">Copy</button><button id="sc_o">Open Studio ↗</button></div>`);
     $('#sc_o',m).onclick=()=>window.open(STUDIO_URL,'_blank','noopener');
