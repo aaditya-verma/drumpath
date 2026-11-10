@@ -35,6 +35,13 @@ Open `?test=1`: lesson-data check on the Lessons page and a **Simulate** button 
 (jitter, wrong dynamics, wrong sound, no graces). Every Level 3 exercise passed perfect / wrong-dynamics / wrong-sound /
 missing-grace simulations on 10 Nov 2026; Levels 0–2 still score 100% on perfect runs.
 
+**Testing mode** (v16, D-022): nothing is saved or synced — no IndexedDB/localStorage writes, no Drive sync, no Claude-account
+`db` writes, Export backup blocked. It is forced on by `?test=1`, on by default in DrumPath on claude.ai, and can be switched
+on/off in Settings › Testing mode (`localStorage drumpath.sandbox`). A yellow banner shows while it's on; Studio import codes
+made in it carry `test:1` and the tablet asks before applying them. Checks: `?test=1` › Settings › Run testing-mode checks.
+Two tabs of the tablet app no longer overwrite each other: before writing, a tab merges in any newer save from another tab
+(`mergeStates`), and tabs refresh each other over `BroadcastChannel('drumpath')`.
+
 ## Storage (S1, 10 Nov 2026)
 
 Progress lives in **IndexedDB** (database `drumpath`, stores `state`, `runs`, `files`), not in `localStorage`.
