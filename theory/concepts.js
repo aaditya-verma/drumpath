@@ -1,6 +1,8 @@
 /* DrumPath Theory — concept tags → cards (theory-brief §B). Lessons are tagged automatically from their exercise
    data (17-theory.js thTagsOf); `_lessons` is the small hand map for what the data can't show.
-   A tag whose cards aren't written yet names the part that will teach it (`later`). */
+   A tag whose cards aren't written yet names the part that will teach it (`later`).
+   Tags are instrument-neutral (rhythm, feel, form ideas, not pads), so other instruments (e.g. cajon, build/cajon-brief.md)
+   can later map their own exercises to the same cards. */
 'use strict';
 /* TX = X() for theory cards: a lane or sticking written for one bar is repeated to fill every bar (never changes the lesson helpers' objects) */
 var TX=(n,sub,v,o={})=>{const e=Object.assign({n,sub,bars:1},o,{v:Object.assign({},v)}),len=(e.steps||4*sub)*e.bars,fill=x=>x.length<len?x.repeat(Math.ceil(len/x.length)).slice(0,len):x;

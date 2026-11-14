@@ -1,6 +1,6 @@
 /* DrumPath — Theory section (T2, D-030, build/theory-course-plan.md §9).
    Reader: Theory home (Continue, rings per tier, index by tier or thread, search, bookmarks, Remember deck),
-   card view (one screen + More), diagrams v1, Hear it (kit synth + click, visual / spoken / konnakol count),
+   card view (one screen + More), diagrams v1, Hear it (kit synth + click, visual / spoken count, 1 e & a or takadimi),
    Try it (the normal engine, kind:'theory' runs: minutes + streak only), Check, statuses, review queue.
    Content lives in theory/*.js (DP_THEORY parts) and theory/concepts.js (concept → cards, lesson hand map).
    Theory never blocks a lesson and never changes lesson progress, readiness or status (D-028 f). */
@@ -14,7 +14,9 @@ const TH_PLAN=[['A1','R','Sound, beat and time'],['A2','R','Reading rhythm 1'],[
   ['B1','R','Reading rhythm 2'],['B2','R','Triplets and swing'],['B3','R','Meter 2'],['B4','R','The drum chart 2'],['B5','H','Minor keys and more scales'],['B6','H','Intervals'],['B7','H','Harmony and function'],['B8','H','7th chords'],['B9','F','Song form 2'],['B10','G','Styles 1'],['B11','E','Listening 2'],['B12','B','Playing with others 2'],
   ['C1','R','Odd meters'],['C2','R','Groupings and displacement'],['C3','R','Polyrhythm 1'],['C4','R','Advanced reading'],['C5','H','Modes'],['C6','H','Advanced harmony'],['C7','H','Modulation'],['C8','G','Jazz language'],['C9','G','Styles 2'],['C10','F','Arranging for drums'],['C11','E','Listening 3'],
   ['D1','R','Indian rhythm: konnakol compositions'],['D2','R','Metric modulation and tempo'],['D3','R','Polyrhythm 2 and polymeter'],['D4','F','Form analysis'],['D5','H','Chromatic and modern harmony'],['D6','B','Improvisation and soloing'],['D7','G','Groove science'],['D8','E','Producer’s ear']];
-const TH_KON={1:['ta'],2:['ta','ka'],3:['ta','ki','ta'],4:['ta','ka','di','mi'],6:['ta','ki','ta','ta','ki','ta'],8:['ta','ka','di','mi','ta','ka','ju','no']};
+/* Tier A spoken count = TAKADIMI (each syllable names a position in the beat: “di” is always halfway), shown next to 1 e & a.
+   Konnakol proper (tala, jathis, tihai) starts in Tier B. */
+const TH_SYL={1:['ta'],2:['ta','di'],3:['ta','ki','da'],4:['ta','ka','di','mi'],6:['ta','va','ki','di','da','ma'],8:['ta','','ka','','di','','mi','']};
 
 /* ---------- content index ---------- */
 const THP=(typeof DP_THEORY!=='undefined'?DP_THEORY:[]).slice().sort((a,b)=>TH_PLAN.findIndex(p=>p[0]===a.id)-TH_PLAN.findIndex(p=>p[0]===b.id));
@@ -105,7 +107,7 @@ const thSvg=(w,h,body,cls)=>`<svg class="thsvg ${cls||''}" viewBox="0 0 ${w} ${h
 const TH_DG={
   nt(dg,key){const W=thW(),zoom=W>=600?1.15:1;const lay=ntBuild(dg.ex,W/zoom,{noRepeat:!dg.repeat});TH_LAY[key]=lay;lay.zoom=zoom;
     return `<div class="thnt">${lay.svg.replace(/^<svg([^>]*?) width="(\d+)" height="(\d+)"/,(m,a,ww,hh)=>`<svg${a} width="${Math.ceil(ww*zoom)}" height="${Math.ceil(hh*zoom)}"`)}</div>`;},
-  count(dg,key){ // count grid: Western count over konnakol syllables, notes as dots
+  count(dg,key){ // count grid: Western count over takadimi syllables, notes as dots
     const ex=dg.ex,sub=ex.sub,spb=ex.steps||4*sub,bars=ex.bars||1,n=spb*bars,mts=ntMeters(ex),W=thW();
     const cw=Math.max(18,Math.min(54,(W-8)/n)),w=Math.ceil(cw*n+8),lanes=LANES.filter(v=>ex.v[v]&&/[^.]/.test(ex.v[v]));
     const kon=dg.kon!==false,rowN=26,rowD=rowN+Math.max(16,lanes.length*9+8),h=rowD+(kon?22:4);let s='';
@@ -115,9 +117,9 @@ const TH_DG={
       const word=(mt.full||mt.count)[j]||'';s+=`<text class="thcw${beat?' b':''}" x="${x+cw/2}" y="18">${esc(word)}</text>`;
       lanes.forEach((v,li)=>{const c=ex.v[v][i];if(!c||c==='.')return;const yy=rowN+6+li*9,r=c==='X'?4.6:c==='g'?2.4:3.4;
         s+=c==='o'?`<circle cx="${x+cw/2}" cy="${yy}" r="3.4" fill="none" stroke="${VOICES[v].c}" stroke-width="1.6"/>`:`<circle cx="${x+cw/2}" cy="${yy}" r="${r}" fill="${VOICES[v].c}"/>`;});
-      if(kon){const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0],syl=(TH_KON[g]||[])[j-grp[0]]||'';s+=`<text class="thkw" x="${x+cw/2}" y="${h-8}">${syl}</text>`;}}
+      if(kon){const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0],syl=(TH_SYL[g]||[])[j-grp[0]]||'';s+=`<text class="thkw" x="${x+cw/2}" y="${h-8}">${syl}</text>`;}}
     if(lanes.length>1)s+='';
-    return thSvg(w,h,s)+(lanes.length>1?`<div class="thleg">${lanes.map(v=>`<span><i style="background:${VOICES[v].c}"></i>${VOICES[v].n}</span>`).join('')}</div>`:'')+(kon?'<div class="thleg mut">top: count · bottom: konnakol syllables</div>':'');},
+    return thSvg(w,h,s)+(lanes.length>1?`<div class="thleg">${lanes.map(v=>`<span><i style="background:${VOICES[v].c}"></i>${VOICES[v].n}</span>`).join('')}</div>`:'')+(kon?'<div class="thleg mut">top: count · bottom: takadimi syllables</div>':'');},
   tree(dg){ // note-value tree: each row splits the one above in two
     const rows=dg.rows||[1,2,4,8],W=Math.min(thW(),560),lab=74,w=W,rh=42,h=rows.length*rh+6;let s='';
     rows.forEach((d,ri)=>{const y=ri*rh+26,cw=(w-lab-6)/d;s+=`<text class="thtl" x="0" y="${y+4}">${{1:'whole',2:'half',4:'quarter',8:'8th',16:'16th'}[d]}</text>`;
@@ -217,7 +219,7 @@ function thHearPlan(sp){
     const ramp=sp.ramp?sp.ramp[0]+(sp.ramp[1]-sp.ramp[0])*((r*n+i)/Math.max(1,reps*n-1)):1;
     for(const v in ex.v){const c=ex.v[v][i];if(!c||c==='.')continue;evs.push({t,v,ch:c,gain:(c==='X'?1:c==='g'?0.22:0.62)*ramp*(sp.gain||1)});}
     if(mode!=='none'&&beats.includes(j)&&(mode==='all'||(mode==='24'&&(j===beats[1]||j===beats[3]))||(mode==='1'&&j===0)))clicks.push({t,k:j===0?'acc':'beat'});
-    const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0];words.push({t,i,w:(mt.full||mt.count)[j]||'',kon:(TH_KON[g]||[])[j-grp[0]]||'',beat:j===grp[0],bn:mt.beatOf[j]+1});}
+    const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0];words.push({t,i,w:(mt.full||mt.count)[j]||'',kon:(TH_SYL[g]||[])[j-grp[0]]||'',beat:j===grp[0],bn:mt.beatOf[j]+1});}
   return{evs,clicks,words,stepS,total:cinS+reps*n*stepS,cinS,n};
 }
 async function thHear(id,idx){
@@ -332,7 +334,7 @@ function thRenderCard(k){
    <h1 class="tht">${esc(k.t)}</h1>
    <p class="thidea">${esc(k.idea)}</p>
    ${thDiagram(k,k.dg)}
-   ${hs.length||k.try?`<div class="thact">${hs.map((h,i)=>{const lab=(h.l?esc(h.l):'▶ Hear it');return `<button class="sm" data-thhear="${k.id}:${i}" data-lab="${lab}">${lab}</button>`;}).join('')}${hs.length&&k.dg&&/^(count|nt)$/.test(k.dg.type)?`<button class="sm ghost ${state.set.thKon?'on':''}" data-thkon title="Count shown as numbers or as konnakol syllables">Count: ${state.set.thKon?'ta ka di mi':'1 e & a'}</button>`:''}${hs.length?'<span id="thbig" class="thbig"></span>':''}${k.try?`<span class="sp"></span><button class="sm pri" data-thtry="${k.id}">${icon('play',14)} Try it</button>`:''}</div>`:''}
+   ${hs.length||k.try?`<div class="thact">${hs.map((h,i)=>{const lab=(h.l?esc(h.l):'▶ Hear it');return `<button class="sm" data-thhear="${k.id}:${i}" data-lab="${lab}">${lab}</button>`;}).join('')}${hs.length&&k.dg&&/^(count|nt)$/.test(k.dg.type)?`<button class="sm ghost ${state.set.thKon?'on':''}" data-thkon title="Count shown as numbers or as takadimi syllables">Count: ${state.set.thKon?'ta ka di mi':'1 e & a'}</button>`:''}${hs.length?'<span id="thbig" class="thbig"></span>':''}${k.try?`<span class="sp"></span><button class="sm pri" data-thtry="${k.id}">${icon('play',14)} Try it</button>`:''}</div>`:''}
    ${k.rem?`<div class="threm"><span class="note-k">Remember</span><span>${esc(k.rem)}</span></div>`:''}
    ${k.more?`<div class="thmore"><button class="thmt ghost" data-thmore aria-expanded="${VP.theory.more===k.id}">${VP.theory.more===k.id?'Less ▴':'More ▾'}</button><div class="thmb${VP.theory.more===k.id?'':' hidden'}">${[].concat(k.more).map(x=>`<p>${esc(x)}</p>`).join('')}${k.see?`<div class="chips">${k.see.filter(s=>THC[s]).map(s=>`<button class="sm ghost" data-thcard="${s}">See: ${esc(THC[s].t)}</button>`).join('')}</div>`:''}</div></div>`:''}
    ${k.check?`<div class="thcheck"><div class="note-k">Check</div>${thCheckHtml(k,k.check)}</div>`:''}
@@ -400,9 +402,10 @@ async function theoryTests(){
     const nch=THP.reduce((a,p)=>a+p.ch.length,0);
     T('Content: '+THP.length+' parts, '+nch+' chapters, '+ids.length+' cards; every card complete',!bad.length,bad.slice(0,6).join(' · '));}
   T('Tier A parts A1–A4 are all there',['A1','A2','A3','A4'].every(id=>THP.some(p=>p.id===id)),THP.map(p=>p.id).join(' '));
-  // 2. diagrams + konnakol counts
+  // 2. diagrams + takadimi counts
   {const bad=[];TH_ORDER.forEach(k=>{const h=thDiagram(k,k.dg);if(!/<svg/.test(h)||/can’t draw/.test(h))bad.push(k.id);});T('Every card’s diagram draws',!bad.length,bad.slice(0,8).join(' '));}
-  {const rc=TH_ORDER.filter(k=>k.part.th==='R'&&k.dg.type==='count');const bad=rc.filter(k=>k.dg.kon===false||!/thkw/.test(thDiagram(k,k.dg)));T('Count grids show konnakol syllables ('+rc.length+' grids)',rc.length&&!bad.length,bad.map(k=>k.id).join(' '));}
+  {const rc=TH_ORDER.filter(k=>k.part.th==='R'&&k.dg.type==='count');const bad=rc.filter(k=>k.dg.kon===false||!/thkw/.test(thDiagram(k,k.dg)));T('Count grids show takadimi syllables ('+rc.length+' grids)',rc.length&&!bad.length,bad.map(k=>k.id).join(' '));}
+  T('Takadimi: 8ths ta-di, 16ths ta-ka-di-mi, triplets ta-ki-da (“di” always halfway)',TH_SYL[2].join(' ')==='ta di'&&TH_SYL[4].join(' ')==='ta ka di mi'&&TH_SYL[3].join(' ')==='ta ki da'&&TH_SYL[4][2]===TH_SYL[2][1],'');
   // 3. Hear it plans
   {const bad=[];let n=0;TH_ORDER.forEach(k=>thHearSpecs(k).forEach((sp,i)=>{n++;try{const P0=thHearPlan(sp);if(!(P0.total>0)||P0.words.length!==P0.n*Math.round((P0.total-P0.cinS)/(P0.n*P0.stepS)))bad.push(k.id+':'+i);}catch(e){bad.push(k.id+':'+i+' '+e.message);}}));
     T('Every Hear it plays in time ('+n+' sounds), count words line up with steps',!bad.length,bad.slice(0,6).join(' '));}
