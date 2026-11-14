@@ -191,8 +191,38 @@ svg.chart text{font-family:var(--f-mono);font-size:11px;fill:var(--muted)}
 .exsel{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;flex:1 1 160px;min-width:0;scrollbar-width:thin}
 .exsel button{padding:6px 11px;font-size:14px;white-space:nowrap;flex:none}
 .exsel button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.cvwrap{flex:1;position:relative;min-height:200px}
+.cvwrap{flex:1;position:relative;min-height:200px;display:flex;flex-direction:column}
+.cvbox{flex:1;position:relative;min-height:110px}
 #cv{position:absolute;inset:0;width:100%;height:100%}
+/* staff notation (Theory T1): Grid · Notation · Both */
+.nvsel{flex:none}.nvsel button{padding:6px 12px}
+#nota{flex:none;max-height:50%;overflow:auto;background:var(--L1);border-bottom:1px solid var(--line);padding:6px 10px 2px;position:relative}
+#prac.nv-g #nota{display:none}
+#prac.nv-n #nota{flex:1;max-height:none;border-bottom:0}
+#prac.nv-n .cvbox{display:none}
+#nst{display:none;font-weight:800;font-size:17px;min-height:26px;color:var(--muted)}
+#prac.nv-n #nst{display:block}
+#ntsv{min-width:0}
+.ntsvg{display:block;color:var(--ink);overflow:visible;touch-action:manipulation}
+.ntsvg .nsl{stroke:currentColor;stroke-width:1;opacity:.55}
+.ntsvg .nfill{fill:currentColor}
+.ntsvg .nline{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+.ntsvg .nxh{stroke-width:2}.ntsvg .nhol{stroke-width:1.6}.ntsvg .nqr{stroke-width:2.6;stroke-linejoin:round}.ntsvg .nflag{stroke-width:2.2}.ntsvg .ntb{stroke-width:1.2;opacity:.8}
+.ntsvg .nstem{stroke:currentColor;stroke-width:1.4}
+.ntsvg .nts{font-family:var(--f-display);font-weight:800;font-size:22px;fill:currentColor;text-anchor:middle}
+.ntsvg .ntup{font-size:11px;font-style:italic;font-weight:700;fill:currentColor;text-anchor:middle}
+.ntsvg .nlab{font-size:12px;font-weight:700;fill:var(--muted)}.ntsvg .nbl{fill:var(--accent)}
+.ntsvg .ncnt{font-size:11.5px;font-weight:600;fill:var(--muted);text-anchor:middle;cursor:pointer}
+.ntsvg .ncnt.nbeat{font-weight:800;fill:var(--ink)}
+.ntsvg .ncnt.on{fill:var(--accent);font-weight:800}
+.ntsvg .nstk{font-size:11px;font-weight:700;fill:var(--blue);text-anchor:middle}
+.ntsvg .ncol{fill:transparent;cursor:pointer}
+.ntsvg .nsel{fill:var(--accent-soft);opacity:.7}
+.ntsvg .nph{stroke:var(--accent);stroke-width:3;stroke-linecap:round}
+.ntsvg .nh.ok{color:var(--good)}.ntsvg .nh.early{color:var(--blue)}.ntsvg .nh.late{color:var(--warn)}.ntsvg .nh.bad{color:var(--bad)}.ntsvg .nh.miss{color:var(--muted);opacity:.5}
+#nexp{position:absolute;left:10px;right:66px;bottom:10px;max-width:620px;z-index:3;background:var(--L2);border:1px solid var(--line);border-radius:14px;padding:10px 44px 10px 14px;font-size:14px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+#nexp .nxh1{font-weight:800;margin-bottom:3px}
+#nexp .nxx{position:absolute;top:6px;right:6px;padding:4px 10px}
 #pfeed{position:absolute;top:8px;right:16px;font-size:20px;font-weight:800;text-align:right;pointer-events:none}
 #pads{display:flex;gap:6px;padding:8px;background:var(--L1)}
 #pads button{flex:1;padding:18px 4px;font-weight:700;font-size:14px;border-width:2px}

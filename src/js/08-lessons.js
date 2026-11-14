@@ -48,7 +48,7 @@ function renderLessons(){
    <h2>All levels</h2>
    <div class="grid2">${Array.from({length:11},(_,lv)=>{const ls=all.filter(l=>l.lv===lv),later=ls.every(l=>l.later);return `<div class="card tap row" data-lvl="${lv}">${ring(later?0:doneFrac(ls),54,6,later?'–':null)}<div style="flex:1"><div class="note-k mut">Level ${lv}</div><b style="font-size:17px">${esc(LEVELS[lv])}</b><div class="mut" style="font-size:13px">${ls.length} lessons${later?' · coming':''}</div></div></div>`;}).join('')}</div>`;
 }
-function testBanner(){const vi=validateLessons();return `<div class="card" style="border-color:${vi.length?'var(--warn)':'var(--accent)'};margin-bottom:12px"><b>Test mode</b> · lesson data check: ${vi.length?vi.length+' issue(s)':'all patterns valid ✓'}${vi.length?`<div class="pat" style="margin-top:8px;max-height:200px;overflow:auto">${esc(vi.join('\n'))}</div>`:''}</div>`;}
+function testBanner(){const vi=validateLessons().concat(typeof validateNotation==='function'?validateNotation().map(x=>'notation · '+x):[]);return `<div class="card" style="border-color:${vi.length?'var(--warn)':'var(--accent)'};margin-bottom:12px"><b>Test mode</b> · lesson data check: ${vi.length?vi.length+' issue(s)':'all patterns valid and drawn as notation ✓'}${vi.length?`<div class="pat" style="margin-top:8px;max-height:200px;overflow:auto">${esc(vi.join('\n'))}</div>`:''}</div>`;}
 function renderLevel(lv,sd){
   const ls=ALL_L().filter(l=>l.lv===lv&&(!sd||l.sd===sd)).sort((a,b)=>a.id.localeCompare(b.id,undefined,{numeric:true}));
   const lvAll=ALL_L().filter(l=>l.lv===lv),later=lvAll.every(l=>l.later);

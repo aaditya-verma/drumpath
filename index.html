@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/css/app.css?v=19">
+<link rel="stylesheet" href="src/css/app.css?v=20">
 </head>
 <body>
 <header class="top"><div class="top-in">
@@ -33,6 +33,7 @@
     <button class="ghost" data-act="pexit" title="Close">✕</button>
     <div class="ptitle" id="ptitle"></div>
     <div class="exsel" id="exsel"></div>
+    <div class="seg nvsel" id="nvsel" role="group" aria-label="View"><button data-nview="grid">Grid</button><button data-nview="notation">Notation</button><button data-nview="both">Both</button></div>
     <button class="sm ghost" id="subbtn" data-act="subclick">Sub-click: Off</button>
     <span id="simwrap"></span>
     <span id="stretchwrap"></span>
@@ -40,35 +41,36 @@
     <div class="bpmc"><button data-act="bpm-">−</button><span id="bpmv">60</span><button data-act="bpm+">+</button><small class="mut">BPM</small></div>
     <button class="pri" id="go" data-act="go">Start</button>
   </div>
-  <div class="cvwrap"><canvas id="cv"></canvas><div id="pfeed"></div><div id="result" class="hidden"></div></div>
+  <div class="cvwrap"><div id="nota"><div id="nst"></div><div id="ntsv"></div></div><div class="cvbox"><canvas id="cv"></canvas></div><div id="nexp" class="hidden"></div><div id="pfeed"></div><div id="result" class="hidden"></div></div>
   <div id="pads"></div>
 </div>
 
-<script src="lessons/lib.js?v=19"></script>
-<script src="lessons/L0-2.js?v=19"></script>
-<script src="lessons/L3.js?v=19"></script>
-<script src="lessons/L4.js?v=19"></script>
-<script src="lessons/songs.js?v=19"></script>
-<script src="src/js/01-data.js?v=19"></script>
-<script src="src/js/02-state.js?v=19"></script>
-<script src="src/js/02b-storage.js?v=19"></script>
-<script src="src/js/02c-drive.js?v=19"></script>
-<script src="src/js/03-midi.js?v=19"></script>
-<script src="src/js/04-engine.js?v=19"></script>
-<script src="src/js/05-shell.js?v=19"></script>
-<script src="src/js/06-charts-agg.js?v=19"></script>
-<script src="src/js/07-home.js?v=19"></script>
-<script src="src/js/08-lessons.js?v=19"></script>
-<script src="src/js/09-progress.js?v=19"></script>
-<script src="src/js/10-compare.js?v=19"></script>
-<script src="src/js/midi-analyse.js?v=19"></script>
-<script src="src/js/11a-songs-model.js?v=19"></script>
-<script src="src/js/11-songs.js?v=19"></script>
-<script src="src/js/11b-analyse.js?v=19"></script>
-<script src="src/js/13-studio.js?v=19"></script>
-<script src="src/js/14-layout-check.js?v=19"></script>
-<script src="src/js/15-library.js?v=19"></script>
-<script src="src/js/12-kit-settings.js?v=19"></script>
-<script src="src/js/99-events.js?v=19"></script>
+<script src="lessons/lib.js?v=20"></script>
+<script src="lessons/L0-2.js?v=20"></script>
+<script src="lessons/L3.js?v=20"></script>
+<script src="lessons/L4.js?v=20"></script>
+<script src="lessons/songs.js?v=20"></script>
+<script src="src/js/01-data.js?v=20"></script>
+<script src="src/js/02-state.js?v=20"></script>
+<script src="src/js/02b-storage.js?v=20"></script>
+<script src="src/js/02c-drive.js?v=20"></script>
+<script src="src/js/03-midi.js?v=20"></script>
+<script src="src/js/04-engine.js?v=20"></script>
+<script src="src/js/05-shell.js?v=20"></script>
+<script src="src/js/06-charts-agg.js?v=20"></script>
+<script src="src/js/07-home.js?v=20"></script>
+<script src="src/js/08-lessons.js?v=20"></script>
+<script src="src/js/09-progress.js?v=20"></script>
+<script src="src/js/10-compare.js?v=20"></script>
+<script src="src/js/midi-analyse.js?v=20"></script>
+<script src="src/js/11a-songs-model.js?v=20"></script>
+<script src="src/js/11-songs.js?v=20"></script>
+<script src="src/js/11b-analyse.js?v=20"></script>
+<script src="src/js/13-studio.js?v=20"></script>
+<script src="src/js/14-layout-check.js?v=20"></script>
+<script src="src/js/15-library.js?v=20"></script>
+<script src="src/js/16-notation.js?v=20"></script>
+<script src="src/js/12-kit-settings.js?v=20"></script>
+<script src="src/js/99-events.js?v=20"></script>
 </body>
 </html>
