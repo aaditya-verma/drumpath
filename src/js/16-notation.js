@@ -1,240 +1,408 @@
-/* DrumPath — drum notation (Theory T1, D-028, build/theory-brief.md §5).
-   Own SVG renderer from the pattern format (build/pattern-spec.md): no library.
-   Standard drum key: kick bottom space · floor tom 2nd space · snare 3rd space · tom 2 4th line · tom 1 4th space ·
-   ride x top line · hi-hat x above the staff · crash x on a ledger line · hi-hat pedal x below the staff.
-   Hands = voice 1 (stems up), feet = voice 2 (stems down). Each beat picks the simplest note value that holds all its
-   notes (so 8ths written on a 16th-triplet grid are shown as plain 8ths). */
+/* DrumPath — staff notation on the practice screen (Theory T1, D-028, build/theory-brief.md §5).
+   Own SVG renderer, no library: it reads the same pattern data the engine scores (sub, steps, bars, lanes, chars,
+   st, meter, labels, swing), so what you read is exactly what is scored. Grid / Notation / Both toggle, a count line
+   under the staff, a playhead that moves across both views, and tap-a-note explanations.
+   Drawing only: nothing here changes runs, matching or scoring. */
 'use strict';
-const NOTE_POS={K:1,T3:3,S:5,T2:6,T1:7,R:8,HH:9,C:10,HP:-1};
-const NOTE_XHEAD={HH:1,R:1,C:1,HP:1};
-const NOTE_VOICE=v=>v==='K'||v==='HP'?2:1;
-const VAL_NAME={'-2':'whole note','-1':'half note','0':'quarter note','1':'8th note','2':'16th note','3':'32nd note'};
+const NT={
+  // staff position in half-spaces from the top line (0 = top line, 8 = bottom line); standard drum key
+  pos:{C:-2,R:0,HH:-1,T1:1,T2:2,S:3,T3:5,K:7,HP:9},
+  xHead:{C:1,R:1,HH:1,HP:1}, feet:{K:1,HP:1},
+  where:{C:'an x on the ledger line above the staff',R:'an x on the top line',HH:'an x just above the staff',T1:'the top space',
+    T2:'the 2nd line from the top',S:'the 3rd space from the bottom',T3:'the 2nd space from the bottom',K:'the bottom space',HP:'an x below the staff'},
+  val:{1:'whole note',2:'half note',4:'quarter note',8:'8th note',16:'16th note',32:'32nd note'},
+  rest:{1:'whole rest',2:'half rest',4:'quarter rest',8:'8th rest',16:'16th rest',32:'32nd rest'}
+};
+const NOTA={key:'',sel:null,lay:null,cls:{},lastPi:-1,lastSys:-1,runRef:null,byRep:null,status:''};
+const nvMode=()=>(L&&L.calib)?'grid':(state.set.nview||'both');
 
-/* ---------- rhythm model ---------- */
-function notMeter(ex){const spb=ex.steps||4*ex.sub;
-  if(ex.meter){const m=String(ex.meter).split('→')[0].trim().match(/^(\d+)\/(\d+)/);if(m)return {num:+m[1],den:+m[2],text:m[1]+'/'+m[2],compound:+m[2]===8};}
-  return {num:Math.round(spb/ex.sub),den:4,text:Math.round(spb/ex.sub)+'/4',compound:false};}
-// beat groups inside one bar: from clicks if given, else every `sub` steps
-function notGroups(ex){const spb=ex.steps||4*ex.sub;let starts=ex.clicks&&ex.clicks.length?[...ex.clicks].sort((a,b)=>a-b):null;
-  if(!starts){starts=[];for(let i=0;i<spb;i+=ex.sub)starts.push(i);}
-  return starts.map((s,i)=>[s,(i+1<starts.length?starts[i+1]:spb)-s]);}
-// length of one step, in whole notes (1/4 = quarter). Triplet grids (sub 3/6 in simple time) are written as tuplets.
-function notStepLen(ex,meter){const sub=ex.sub;
-  if(meter.compound)return sub%3===0?3/(8*sub):1/(4*sub);      // 6/8, 12/8: a step of a 3-step beat is an 8th
-  return 1/(4*sub);}
-// note value for a duration in whole notes → {lv: 0 quarter / 1 8th / 2 16th / -1 half / -2 whole, dot}
-function notVal(d){const n=Math.log2(d);if(Math.abs(n-Math.round(n))<1e-9)return {lv:-Math.round(n)-2,dot:0};
-  const n2=Math.log2(d/1.5);if(Math.abs(n2-Math.round(n2))<1e-9)return {lv:-Math.round(n2)-2,dot:1};return null;}
-function notValue(d,tupOK,m){let v=notVal(d);if(v)return {...v,tup:0};
-  if(tupOK){v=notVal(d*1.5);if(v)return {...v,tup:m===6?6:3};}return null;}
-const NOT_PIECES=[8,6,4,3,2,1];
-function notSplit(m,k,slot,tupOK){const out=[];let left=k;while(left>0){const p=NOT_PIECES.find(x=>x<=left&&notValue(x*slot,tupOK,m))||1;out.push(p);left-=p;}return out;}
-// coarsest even split of a span of g steps that holds every onset
-const notCoarse=(ons,g)=>[1,2,3,4,6,8,12,16].find(mm=>Number.isInteger(g/mm*0)&&ons.every(p=>Number.isInteger(p*mm/g)))||g;
-/* Build the items of one voice in one bar.
-   item = {s: step in bar, rest, lv, dot, tup, heads:[{v,c}], span (steps), beat} */
-function notVoiceBar(ex,lanes,bar,meter,groups){
-  const spb=ex.steps||4*ex.sub,off=bar*spb,step=notStepLen(ex,meter),tupOK=!meter.compound&&ex.sub%3===0;
-  const at=i=>lanes.map(v=>({v,c:ex.v[v][off+i]})).filter(h=>h.c&&h.c!=='.');
-  const onsIn=(s,g)=>{const o=[];for(let i=0;i<g;i++)if(at(s+i).length)o.push(i);return o;};
-  const fill=(s,g,ons,m,bi)=>{const items=[],slot=g/m*step,sl=p=>Math.round(p*m/g),pts=ons.map(sl);let cur=0;
-    if(pts[0]>0)notSplit(m,pts[0],slot,tupOK).forEach(k=>{items.push({s:s+cur*g/m,rest:1,...notValue(k*slot,tupOK,m),span:k*g/m,beat:bi});cur+=k;});
-    pts.forEach((p,j)=>{const end=j+1<pts.length?pts[j+1]:m;let c=p;notSplit(m,end-p,slot,tupOK).forEach((k,q)=>{
-      items.push(Object.assign({s:s+c*g/m,rest:q?1:0,...notValue(k*slot,tupOK,m),span:k*g/m,beat:bi},q?{}:{heads:at(s+c*g/m)}));c+=k;});});
-    return items;};
-  const beats=[];
-  for(let bi=0;bi<groups.length;bi++){const [s,g]=groups[bi];const ons=onsIn(s,g);
-    // quarter-note triplets: three even notes across two beats
-    if(tupOK&&bi+1<groups.length&&bi%2===0&&groups[bi+1][1]===g){const ons2=onsIn(s,2*g);
-      if(ons2.length&&ons2.some(p=>p>=g)&&ons.length&&notCoarse(ons2,2*g)===3){beats.push({bi,s,g:2*g,m:3,items:fill(s,2*g,ons2,3,bi)});beats.push({bi:bi+1,s:s+g,g,items:[],joined:true});bi++;continue;}}
-    if(!ons.length){beats.push({bi,s,g,empty:true,items:[{s,rest:1,...notValue(g*step,tupOK,1),span:g,beat:bi,full:true}]});continue;}
-    const m=notCoarse(ons,g);beats.push({bi,s,g,m,items:fill(s,g,ons,m,bi),single:ons.length===1&&ons[0]===0&&m===1});
-  }
-  // join whole beats into half / dotted-half / whole notes and rests (simple meters only)
-  if(!meter.compound&&groups.every(([,g])=>g===groups[0][1])){const n=beats.length;
-    for(let b=0;b<n;b++){const B=beats[b];if(!(B.single||B.empty)||B.joined)continue;
-      let run=1;while(b+run<n&&beats[b+run].empty&&!beats[b+run].joined)run++;
-      let take=0,lv=0,dot=0;
-      if(b===0&&run>=n&&n===4){take=4;lv=-2;}else if(b===0&&n===3&&run>=3){take=3;lv=-1;dot=1;}
-      else if(B.empty&&b===0&&run>=n){take=n;lv=-2;}
-      else if(run>=2&&b%2===0&&n!==3){take=2;lv=-1;}
-      if(take>1){const it=B.items[0];it.lv=lv;it.dot=dot;it.tup=0;it.span=groups.slice(b,b+take).reduce((a,[,g])=>a+g,0);it.full=true;if(B.empty&&take===n)it.wholeBar=true;
-        for(let q=1;q<take;q++){beats[b+q].items=[];beats[b+q].joined=true;}}
-    }}
-  if(meter.compound&&beats.every(B=>B.empty)){beats.forEach((B,i)=>{B.items=i?[]:[{s:0,rest:1,lv:-2,dot:0,wholeBar:true,span:spb,beat:0}];});}
-  return beats;
-}
-// count syllables per bar: follow what is written (the coarsest split that holds every note in the bar)
-function notBarCount(ex,meter,groups,bar){const spb=ex.steps||4*ex.sub,off=bar*spb,lanes=LANES.filter(v=>ex.v[v]);
-  const has=i=>lanes.some(v=>{const c=ex.v[v][off+i];return c&&c!=='.';});const out={};
-  groups.forEach(([s,g],gi)=>{const ons=[];for(let i=0;i<g;i++)if(has(s+i))ons.push(i);
-    const all=groups.every(([,gg])=>gg===g)?groups.flatMap(([ss])=>{const o=[];for(let i=0;i<g;i++)if(has(ss+i))o.push(i);return o;}):ons;
-    let m=notCoarse(all,g);if(m===1&&g>1)m=Math.min(g,meter.compound?3:2);
-    const lab=notCount(ex,meter,m,gi);for(let j=0;j<m;j++)out[s+j*g/m]=lab[j];});
-  return out;}
-
-/* ---------- drawing ---------- */
-const NOT_HS=5;                                  // half a staff space
-function notSvg(ex,opts){
-  opts=opts||{};const spb=ex.steps||4*ex.sub,meter=notMeter(ex),groups=notGroups(ex);
-  const lanes=LANES.filter(v=>ex.v[v]&&NOTE_POS[v]!=null);
-  const up=lanes.filter(v=>NOTE_VOICE(v)===1),dn=lanes.filter(v=>NOTE_VOICE(v)===2);
-  const beatW=ex.sub>=6?96:ex.sub===1?64:76,colW=Math.max(11,beatW/ex.sub),barPad=16,barW=barPad+spb*colW+6;
-  const W=Math.max(320,opts.width||720),head=58,perLine=Math.max(1,Math.floor((W-head-8)/barW));
-  const lines=Math.ceil(ex.bars/perLine),sysH=ex.st?172:158,vw=head+barW*Math.min(perLine,ex.bars)+10,maxW=Math.round(Math.min(W,vw*(opts.maxScale||1.6)));
-  const o=[],stepX={},ink='var(--ink)',mut='var(--muted)';
-  const P=(t)=>o.push(t);
-  for(let L=0;L<lines;L++){
-    const top=L*sysH,y0=top+56,yB=y0+8*NOT_HS,yy=p=>yB-p*NOT_HS;const b0=L*perLine,b1=Math.min(ex.bars,b0+perLine);
-    const x0=8,xEnd=head+(b1-b0)*barW;
-    for(let k=0;k<5;k++)P(`<line x1="${x0}" x2="${xEnd}" y1="${yy(k*2)}" y2="${yy(k*2)}" stroke="${mut}" stroke-width="0.8"/>`);
-    P(`<rect x="${x0+6}" y="${yy(6)}" width="3.2" height="${4*NOT_HS}" fill="${ink}"/><rect x="${x0+12}" y="${yy(6)}" width="3.2" height="${4*NOT_HS}" fill="${ink}"/>`);
-    if(L===0){const [a,b]=meter.text.split('/');P(`<text x="${x0+30}" y="${yy(4)-2}" font-size="19" font-weight="700" text-anchor="middle" fill="${ink}">${a}</text><text x="${x0+30}" y="${yy(0)-2}" font-size="19" font-weight="700" text-anchor="middle" fill="${ink}">${b}</text>`);
-      if(ex.swing&&ex.swing>0.5)P(`<text x="${x0}" y="${top+14}" font-size="12" fill="${mut}">Swing (8ths long–short)</text>`);}
-    P(`<line x1="${xEnd}" x2="${xEnd}" y1="${yy(8)}" y2="${yy(0)}" stroke="${ink}" stroke-width="${b1===ex.bars?3:1}"/>`);
-    if(b1===ex.bars){P(`<line x1="${xEnd-5}" x2="${xEnd-5}" y1="${yy(8)}" y2="${yy(0)}" stroke="${ink}" stroke-width="1"/><circle cx="${xEnd-11}" cy="${yy(5)}" r="1.8" fill="${ink}"/><circle cx="${xEnd-11}" cy="${yy(3)}" r="1.8" fill="${ink}"/>`);}
-    for(let b=b0;b<b1;b++){
-      const bx=head+(b-b0)*barW,X=i=>bx+barPad+i*colW+colW/2;
-      if(b>b0)P(`<line x1="${bx}" x2="${bx}" y1="${yy(8)}" y2="${yy(0)}" stroke="${ink}" stroke-width="1"/>`);
-      if(ex.labels&&ex.labels[b])P(`<text x="${bx+6}" y="${top+16}" font-size="12" font-weight="700" fill="var(--accent)">${esc(ex.labels[b])}</text>`);
-      for(let i=0;i<spb;i++)stepX[b*spb+i]={x:X(i),line:L,top,w:colW};
-      // count line + sticking
-      {const lab=notBarCount(ex,meter,groups,b),gs=new Set(groups.map(([s])=>s));Object.keys(lab).forEach(k=>{const i=+k,t=lab[k],big=gs.has(i);
-        P(`<text x="${X(i)}" y="${yB+46}" font-size="${big?12:10}" ${big?'font-weight="700"':''} text-anchor="middle" fill="${big?ink:mut}">${t}</text>`);});}
-      if(ex.st)for(let i=0;i<spb;i++){const c=ex.st[(b*spb+i)%ex.st.length];if(c&&c!=='.')P(`<text x="${X(i)}" y="${yB+62}" font-size="11" text-anchor="middle" fill="var(--accent)">${c}</text>`);}
-      const both=up.length&&dn.length;
-      [[1,up],[2,dn]].forEach(([vo,vl])=>{if(!vl.length)return;
-        const beats=notVoiceBar(ex,vl,b,meter,groups);
-        if(vo===2&&beats.every(B=>B.empty))return;          // feet silent this bar: no rests drawn
-        const restsOK=!(vo===2&&up.length);                 // drum charts leave out kick rests when the hands play
-        beats.forEach(B=>{
-          const notes=B.items.filter(it=>!it.rest);const beamable=notes.filter(it=>it.lv>=1);
-          const isUp=vo===1;
-          const ys=it=>it.heads.map(h=>yy(NOTE_POS[h.v]));
-          const stemEnd=beamable.length>=2?(isUp?Math.min(...beamable.flatMap(ys))-30:Math.max(...beamable.flatMap(ys))+30):null;
-          B.items.forEach(it=>{
-            const x=X(it.s);
-            if(it.rest&&!restsOK)return;
-            if(it.rest){const ry=it.wholeBar?yy(both?(vo===1?6:2):6):yy(both?(vo===1?6:2):4);P(notRest(it.wholeBar?bx+barW/2:x,ry,it.wholeBar?-2:it.lv,it.dot,ink));return;}
-            const hy=ys(it),hi=Math.min(...hy),lo=Math.max(...hy);
-            it.heads.forEach(h=>{const y=yy(NOTE_POS[h.v]);P(notHead(x,y,h,it.lv,ink,b*spb+it.s));
-              if(NOTE_POS[h.v]>=10)P(`<line x1="${x-8}" x2="${x+8}" y1="${yy(10)}" y2="${yy(10)}" stroke="${ink}" stroke-width="1"/>`);
-              if(it.dot)P(`<circle cx="${x+9}" cy="${y-(NOTE_POS[h.v]%2?0:NOT_HS)}" r="1.6" fill="${ink}"/>`);});
-            if(it.lv>=-1){const sx=isUp?x+5:x-5,end=stemEnd!=null&&it.lv>=1?stemEnd:(isUp?hi-30:lo+30);
-              P(`<line x1="${sx}" x2="${sx}" y1="${isUp?lo:hi}" y2="${end}" stroke="${ink}" stroke-width="1.3"/>`);
-              if(it.lv>=1&&!(beamable.length>=2))for(let f=0;f<it.lv;f++){const fy=end+(isUp?f*6:-f*6);P(`<path d="M${sx} ${fy} q 9 ${isUp?7:-7} 7 ${isUp?17:-17}" fill="none" stroke="${ink}" stroke-width="1.6"/>`);}
-              it._sx=sx;it._end=end;}
-            // articulations
-            const acc=it.heads.some(h=>h.c==='X');if(acc){const se=it._end!=null?it._end:(isUp?hi:lo);const ay=isUp?Math.min(se,yy(9))-8:Math.max(se,yy(-1))+12;P(`<path d="M${x-5} ${ay-4} L${x+5} ${ay} L${x-5} ${ay+4}" fill="none" stroke="${ink}" stroke-width="1.4"/>`);}
-            if(it.heads.some(h=>h.c==='o'))P(`<circle cx="${x}" cy="${yy(13)}" r="3.4" fill="none" stroke="${ink}" stroke-width="1.2"/>`);
-          });
-          // beams
-          if(beamable.length>=2){const xs=beamable.map(it=>it._sx);const by=stemEnd,dir=isUp?1:-1;
-            P(`<rect x="${xs[0]-0.6}" y="${isUp?by:by-4}" width="${xs[xs.length-1]-xs[0]+1.2}" height="4" fill="${ink}"/>`);
-            for(let lv=2;lv<=4;lv++)beamable.forEach((it,j)=>{if(it.lv<lv)return;const ny=by+dir*(lv-1)*6,yb=isUp?ny:ny-4;
-              const nx=beamable[j+1];if(nx&&nx.lv>=lv){P(`<rect x="${it._sx-0.6}" y="${yb}" width="${nx._sx-it._sx+1.2}" height="4" fill="${ink}"/>`);return;}
-              const pv=beamable[j-1];if(pv&&pv.lv>=lv)return;const stub=Math.min(9,colW*0.8);const sx0=pv?it._sx-stub:it._sx;P(`<rect x="${sx0-0.6}" y="${yb}" width="${stub+1.2}" height="4" fill="${ink}"/>`);});}
-          // tuplet number (3 / 6) over the beat
-          const tup=B.items.find(it=>it.tup&&!it.full);if(tup&&notes.length){const xs=B.items.map(it=>X(it.s));const mx=(Math.min(...xs)+Math.max(...xs))/2+(isUp?5:-5);
-            const ty=isUp?(stemEnd!=null?stemEnd-6:yy(8)-38):(stemEnd!=null?stemEnd+16:yy(0)+46);P(`<text x="${mx}" y="${ty}" font-size="11" font-style="italic" font-weight="700" text-anchor="middle" fill="${ink}">${tup.tup}</text>`);}
-        });
-      });
-    }
-  }
-  const H=lines*sysH;
-  return {svg:`<svg viewBox="0 0 ${vw} ${H}" width="100%" style="max-width:${maxW}px;display:block" class="notsvg" role="img" aria-label="Drum notation, ${meter.text}">${o.join('')}<rect id="nph" x="0" y="0" width="0" height="0" fill="var(--accent)" opacity="0.18" rx="3"/></svg>`,stepX,sysH,lines,spb};
-}
-function notHead(x,y,h,lv,ink,step){
-  const da=`data-nstep="${step}" data-nv="${h.v}" data-nc="${h.c}"`;const out=[];
-  const g=h.c==='g',hollow=lv<=-1;
-  if(NOTE_XHEAD[h.v]||h.c==='r'){out.push(`<path ${da} d="M${x-4} ${y-4} L${x+4} ${y+4} M${x+4} ${y-4} L${x-4} ${y+4}" stroke="${ink}" stroke-width="1.8" style="cursor:pointer"/>`);
-    if(h.c==='r')out.push(`<circle cx="${x}" cy="${y}" r="6.2" fill="none" stroke="${ink}" stroke-width="1"/>`);
-    out.push(`<rect ${da} x="${x-7}" y="${y-7}" width="14" height="14" fill="transparent" style="cursor:pointer"/>`);}
-  else out.push(`<ellipse ${da} cx="${x}" cy="${y}" rx="5.4" ry="3.9" transform="rotate(-20 ${x} ${y})" fill="${hollow?'none':ink}" stroke="${ink}" stroke-width="${hollow?1.5:0.6}" style="cursor:pointer"/>`);
-  if(g)out.push(`<text x="${x-10}" y="${y+4}" font-size="13" fill="${ink}" text-anchor="middle">(</text><text x="${x+10}" y="${y+4}" font-size="13" fill="${ink}" text-anchor="middle">)</text>`);
-  if(h.c==='f'||h.c==='d'){const n=h.c==='d'?2:1;for(let k=0;k<n;k++){const gx=x-12-k*6;out.push(`<ellipse cx="${gx}" cy="${y}" rx="3" ry="2.2" transform="rotate(-20 ${gx} ${y})" fill="${ink}"/><line x1="${gx+2.6}" x2="${gx+2.6}" y1="${y}" y2="${y-16}" stroke="${ink}" stroke-width="0.9"/>`);}
-    out.push(`<line x1="${x-14-(n-1)*6}" x2="${x-6}" y1="${y-6}" y2="${y-13}" stroke="${ink}" stroke-width="0.9"/>`);}
-  return out.join('');
-}
-function notRest(x,y,lv,dot,ink){
-  let s='';
-  if(lv<=-2)s=`<rect x="${x-6}" y="${y}" width="12" height="5" fill="${ink}"/>`;           // whole: hangs from the 4th line
-  else if(lv===-1)s=`<rect x="${x-6}" y="${y-5}" width="12" height="5" fill="${ink}"/>`;            // half: sits on the middle line
-  else if(lv===0)s=`<path d="M${x-2} ${y-12} l5 6 l-5 5 l5 6 q-6 -2 -3 5" fill="none" stroke="${ink}" stroke-width="1.8"/>`;
-  else{s=`<line x1="${x+4}" y1="${y-7}" x2="${x-1}" y2="${y+9}" stroke="${ink}" stroke-width="1.3"/>`;
-    for(let f=0;f<lv;f++){const fy=y-7+f*6;s+=`<circle cx="${x-3+f*-1}" cy="${fy+1}" r="2" fill="${ink}"/><path d="M${x-3+f*-1} ${fy+2} q4 1 7 -3" fill="none" stroke="${ink}" stroke-width="1.2"/>`;}}
-  if(dot)s+=`<circle cx="${x+9}" cy="${y-3}" r="1.6" fill="${ink}"/>`;
-  return s;
-}
-// count syllables for one beat group
-function notCount(ex,meter,m,gi){const n=String(gi+1);
-  if(m===1)return [n];if(m===2)return [n,'&'];if(m===3)return meter.compound?[n,'&','a']:[n,'trip','let'];
-  if(m===4)return [n,'e','&','a'];if(m===6)return meter.compound?[n,'·','&','·','a','·']:[n,'la','li','&','la','li'];if(m===8)return [n,'·','e','·','&','·','a','·'];
-  return [n,...Array(m-1).fill('·')];}
-/* ---------- explanations (tap a note) ---------- */
-function notExplain(ex,step,v,c){
-  const spb=ex.steps||4*ex.sub,meter=notMeter(ex),groups=notGroups(ex),bar=Math.floor(step/spb),i=step%spb;
-  const gi=groups.findIndex(([s,g])=>i>=s&&i<s+g),[gs]=groups[gi],syl=notBarCount(ex,meter,groups,bar)[i]||'·';
-  const where=i===gs?'on beat '+(gi+1):'on the “'+syl+'” of '+(gi+1);
-  const beats=notVoiceBar(ex,LANES.filter(x=>ex.v[x]&&NOTE_VOICE(x)===NOTE_VOICE(v)),bar,meter,groups);
-  const it=beats.flatMap(B=>B.items).find(t=>!t.rest&&t.s===i);
-  let val=it?VAL_NAME[it.lv]||'note':'note';if(it&&it.dot)val='dotted '+val;if(it&&it.tup===3)val=(it.lv===0?'quarter-note':it.lv===-1?'half-note':'8th-note')+' triplet';if(it&&it.tup===6)val='16th-note sextuplet';
-  const extra={X:'accent (play louder)',g:'ghost note (play very soft)',o:'open hi-hat',r:'cross-stick / rim',f:'flam (soft grace note just before)',d:'drag (two quick grace notes before)'}[c];
-  const st=ex.st?ex.st[step%ex.st.length]:'';
-  return `${VOICES[v]?VOICES[v].n:v} · ${val} · ${where}${ex.bars>1?' (bar '+(bar+1)+')':''}${extra?' · '+extra:''}${st&&st!=='.'?' · '+(st==='R'?'right hand':st==='L'?'left hand':st):''}`;
-}
-
-/* ---------- practice screen panel ---------- */
-let NOT={ex:null,r:null};
-function nview(){return state.set.nview||'both';}
-function renderNotationPanel(){
-  const w=$('#notewrap');if(!w)return;const mode=nview();
-  const P=$('#prac');P.classList.toggle('nv-grid',mode==='grid');P.classList.toggle('nv-both',mode==='both');P.classList.toggle('nv-notation',mode==='notation');
-  const b=$('#nvbtn');if(b)b.textContent={grid:'View: Grid',both:'View: Both',notation:'View: Notation'}[mode];
-  if(mode==='grid'||!L||!L.ex||!L.ex[exI]){w.innerHTML='';NOT={ex:null,r:null,mode};if(typeof sizeCv==='function')requestAnimationFrame(()=>{sizeCv();draw();});return;}
-  const ex=L.ex[exI];const width=Math.max(320,Math.round(w.clientWidth||innerWidth)-8);
-  try{const r=notSvg(ex,{width,maxScale:mode==='notation'?2:1.6});NOT={ex,r,mode};
-    w.innerHTML=`<div class="notsvgw">${r.svg}</div><div class="nexp mut" id="nexp">Tap a note to see what it is. Count out loud with the line under the staff.</div>`;
-    // fit the height: at least one full line (staff + count) must show without scrolling
-    const P=$('#prac'),top=P.querySelector('.ptop'),pads=$('#pads'),expH=($('#nexp')||{}).offsetHeight||20;
-    const avail=(mode==='notation'?P.clientHeight-top.offsetHeight-140-(pads?pads.offsetHeight:0):innerHeight*0.42)-expH-12;
-    const svg=w.querySelector('svg');const vb=svg.viewBox.baseVal,need=(r.lines>1?r.sysH:vb.height);
-    const scale=svg.getBoundingClientRect().width/vb.width;
-    if(avail>60&&need*scale>avail)svg.style.maxWidth=Math.max(Math.min(vb.width,w.clientWidth),Math.floor(vb.width*avail/need))+'px';}
-  catch(e){console.error(e);w.innerHTML='<div class="mut" style="padding:8px">Couldn’t draw this exercise as notation.</div>';NOT={ex:null,r:null};}
-  if(typeof sizeCv==='function')requestAnimationFrame(()=>{sizeCv();if(typeof draw==='function')draw();});
-}
-// called from draw(): move the highlight to the step being played
-function notPlayhead(R,now){
-  if(!NOT.r||!R||R.ex!==NOT.ex)return;const ph=document.getElementById('nph');if(!ph)return;
-  const t=now-(R.base+R.cinMs);if(!run||t<0){ph.setAttribute('width',0);return;}
-  const total=NOT.r.spb*R.ex.bars,stepMs=R.barMs/NOT.r.spb,st=Math.floor(t/stepMs)%total,p=NOT.r.stepX[st];if(!p)return;
-  ph.setAttribute('x',p.x-p.w/2);ph.setAttribute('width',p.w);ph.setAttribute('y',p.top+8);ph.setAttribute('height',NOT.r.sysH-16);
-}
-document.addEventListener('click',ev=>{const h=ev.target.closest('[data-nstep]');if(!h||!NOT.ex)return;
-  const e=$('#nexp');if(e)e.textContent=notExplain(NOT.ex,+h.dataset.nstep,h.dataset.nv,h.dataset.nc);});
-addEventListener('resize',()=>{if(!$('#prac')||$('#prac').classList.contains('hidden'))return;clearTimeout(NOT._rt);NOT._rt=setTimeout(renderNotationPanel,150);});
-
-/* ---------- checks (test mode): every exercise renders, one head per note ---------- */
-function notationTests(){
-  const out=[],T=(n,ok,d)=>out.push({name:n,pass:!!ok,det:d||''});let n=0,bad=[];
-  LESSONS.forEach(l=>(l.ex||[]).forEach((ex,i)=>{n++;try{const r=notSvg(ex,{width:720});const heads=(r.svg.match(/data-nstep=/g)||[]).length;
-      const xh=LANES.filter(v=>ex.v[v]&&NOTE_XHEAD[v]).reduce((a,v)=>a+[...ex.v[v]].filter(c=>c!=='.').length,0)+LANES.filter(v=>ex.v[v]&&!NOTE_XHEAD[v]).reduce((a,v)=>a+[...ex.v[v]].filter(c=>c==='r').length,0);
-      const notes=LANES.filter(v=>ex.v[v]).reduce((a,v)=>a+[...ex.v[v]].filter(c=>c!=='.').length,0);
-      if(heads!==notes+xh)bad.push(l.id+'#'+(i+1)+' '+heads+'≠'+(notes+xh));if(/NaN|undefined/.test(r.svg))bad.push(l.id+'#'+(i+1)+' NaN');}
-    catch(e){bad.push(l.id+'#'+(i+1)+' '+e.message);}}));
-  T('Every exercise draws as notation (one head per note)',!bad.length,n+' exercises'+(bad.length?' · '+bad.slice(0,6).join(' | '):''));
-  const ex1=X('t',2,{HH:'xxxxxxxx',S:'..x...x.',K:'x...x...'});const b=notVoiceBar(ex1,['HH','S'],0,notMeter(ex1),notGroups(ex1));
-  T('Rock beat: hi-hat 8ths beamed in pairs',b.length===4&&b.every(B=>B.items.length===2&&B.items.every(it=>it.lv===1)),'');
-  const kb=notVoiceBar(ex1,['K'],0,notMeter(ex1),notGroups(ex1)).flatMap(B=>B.items);T('Kick on 1 and 3 written as half notes',kb.length===2&&kb.every(it=>it.lv===-1&&!it.rest),kb.map(i=>i.lv).join(','));
-  const wn=notVoiceBar(X('t',1,{S:'x...'}),['S'],0,notMeter(X('t',1,{S:'x...'})),notGroups(X('t',1,{S:'x...'}))).flatMap(B=>B.items);T('Whole note',wn.length===1&&wn[0].lv===-2,'');
-  const e6=X('t',6,{S:rep('x..x..',4)});const s6=notVoiceBar(e6,['S'],0,notMeter(e6),notGroups(e6)).flatMap(B=>B.items);T('8ths on a 16th-triplet grid are plain 8ths',s6.every(it=>it.lv===1&&!it.tup),'');
-  const e3=X('t',3,{S:rep('x.x',4)});const s3=notVoiceBar(e3,['S'],0,notMeter(e3),notGroups(e3)).flatMap(B=>B.items);T('Shuffle: triplet quarter + triplet 8th',s3[0].lv===0&&s3[0].tup===3&&s3[1].lv===1,'');
-  const ed=X('t',4,{S:rep('x..x',4)});const sd=notVoiceBar(ed,['S'],0,notMeter(ed),notGroups(ed)).flatMap(B=>B.items);T('Dotted 8th + 16th',sd[0].lv===1&&sd[0].dot&&sd[1].lv===2,'');
-  const e68=X('t',3,{S:'x..x..'},{steps:6,meter:'6/8'});const s68=notVoiceBar(e68,['S'],0,notMeter(e68),notGroups(e68)).flatMap(B=>B.items);T('6/8: dotted quarters',s68.length===2&&s68.every(it=>it.lv===0&&it.dot),'');
-  const eq=X('t',3,{S:rep('x.x.x.',2)});const sq=notVoiceBar(eq,['S'],0,notMeter(eq),notGroups(eq)).flatMap(B=>B.items);T('Quarter-note triplets: 3 notes over 2 beats',sq.length===6&&sq.every(it=>it.lv===0&&it.tup===3&&!it.rest),sq.map(i=>i.lv+'/'+i.tup).join(','));
-  const e64=X('t',2,{S:'XxxXxx'},{steps:6,clicks:[0,2,4],meter:'6/8'});const s64=notVoiceBar(e64,['S'],0,notMeter(e64),notGroups(e64)).flatMap(B=>B.items);T('6/8 written in 8ths: no false tuplets',s64.every(it=>it.lv===1&&!it.tup),'');
-  const c6=notBarCount(X('t',6,{S:rep('x..x..',4)}),notMeter(X('t',6,{S:''.padEnd(24,'.')})),notGroups(X('t',6,{S:''.padEnd(24,'.')})),0);T('Count follows what is written (8ths on a triplet grid → “1 &”)',Object.values(c6).join(' ')==='1 & 2 & 3 & 4 &',Object.values(c6).join(' '));
-  T('Tap a note: plain explanation',/Snare · 8th note · on the “&” of 2/.test(notExplain(X('t',2,{S:'...x....'}),3,'S','x')),notExplain(X('t',2,{S:'...x....'}),3,'S','x'));
+/* ---------- meter of each bar ---------- */
+function ntMeters(ex){
+  const bars=ex.bars||1;
+  const parts=String(ex.meter||'').split('→').map(s=>s.trim()).filter(s=>/^\d+\/\d+$/.test(s));
+  const out=[];for(let b=0;b<bars;b++){const mt=ntMeter(ex,parts.length?parts[Math.min(parts.length-1,Math.floor(b*parts.length/bars))]:null);ntBarCount(ex,mt,b);out.push(mt);}
   return out;
 }
+function ntMeter(ex,m){
+  const sub=ex.sub,spb=ex.steps||4*sub;let num,den;
+  if(m)[num,den]=m.split('/').map(Number);
+  else if(spb%sub===0){num=spb/sub;den=4;}
+  else if(sub===2){num=spb;den=8;}
+  else throw new Error('no meter for sub '+sub+' steps '+spb);
+  const compound=den===8&&num%3===0&&num>3;
+  let stepDen,tup=0;
+  if(den===8)stepDen=sub%3===0?8*sub/3:4*sub;
+  else if(den===4){if(sub%3===0){stepDen=8*sub/3;tup=sub;}else stepDen=4*sub;}
+  else stepDen=den*sub;
+  if(stepDen!==Math.round(stepDen)||(stepDen&(stepDen-1)))throw new Error('odd step value '+stepDen);
+  const total=spb/stepDen*(tup?2/3:1);
+  if(Math.abs(total-num/den)>1e-9)throw new Error(`${spb} steps don’t make a bar of ${num}/${den}`);
+  // beat groups (one beam group each)
+  let G=compound?3*stepDen/8:den===4?sub:0;const groups=[];
+  if(G&&spb%G===0)for(let a=0;a<spb;a+=G)groups.push([a,a+G]);
+  else{const b=beatStepsOf(ex).filter(s=>s<spb);if(b[0]!==0)b.unshift(0);b.forEach((s,i)=>groups.push([s,i+1<b.length?b[i+1]:spb]));G=0;}
+  const count=[],beatOf=[];
+  groups.forEach(([a,b],g)=>{const n=b-a,w=String(g+1);for(let i=0;i<n;i++){let t;
+    if(tup===3)t=['','trip','let'][i];else if(tup===6)t=['','la','li','&','la','li'][i];
+    else if(compound)t=n===3?['','2','3'][i]:(i%(n/3)?'e':String(i/(n/3)+1));
+    else if(n===1)t='';else if(n===2)t=['','&'][i];else if(n===3)t=['','&','a'][i];else if(n===4)t=['','e','&','a'][i];
+    else if(n===8)t=['','','e','','&','','a',''][i];else t=i%2?'':'·';
+    count.push(i===0?w:t.trim());beatOf.push(g);}});
+  const plain=G&&(den===4||compound)?(compound?{den:4,dot:true}:{den:4,dot:false}):null;
+  return{num,den,ts:num+'/'+den,compound,stepDen,tup,groups,G,count,beatOf,plain};
+}
+/* the count line follows what is written in the bar: 8ths say “1 &”, 16ths “1 e & a”, 8ths on a triplet grid “1 &”
+   (mt.full keeps every step's name for tap explanations) */
+function ntBarCount(ex,mt,bar){
+  mt.full=mt.count.slice();const G=mt.G;if(!G||G<2)return;
+  const spb=ex.steps||4*ex.sub,off=bar*spb,has=i=>Object.values(ex.v).some(s=>s[off+i]&&s[off+i]!=='.');
+  const opts=mt.tup===3?[3]:mt.tup===6?[2,3,6]:mt.compound?(G===3?[3]:[3,6]):[2,4,8].filter(m=>G%m===0);
+  const m=opts.find(m=>mt.groups.every(([a])=>{for(let i=0;i<G;i++)if(has(a+i)&&i%(G/m))return false;return true;}))||G;
+  const words=mt.tup&&m===3?['','trip','let']:mt.tup===6&&m===6?['','la','li','&','la','li']:mt.compound?(m===3?['','2','3']:['','e','2','e','3','e']):
+    {2:['','&'],4:['','e','&','a'],8:['','','e','','&','','a','']}[m];
+  mt.groups.forEach(([a],g)=>{for(let i=0;i<G;i++)mt.count[a+i]=i===0?String(g+1):i%(G/m)?'':words[i/(G/m)]||'';});
+}
+/* note value of `len` steps: {den, dot} or null */
+function ntValOf(len,stepDen,noDot){
+  for(const dot of noDot?[false]:[false,true]){const b=dot?len/1.5:len;if(b<1||b!==Math.floor(b)||(b&(b-1)))continue;
+    const d=stepDen/b;if(d>=1&&d===Math.floor(d)&&!(d&(d-1)))return{den:d,dot};}
+  return null;
+}
+function ntRests(out,a,from,len,stepDen,tup){ // aligned, undotted rests
+  let s=from,left=len;while(left>0){let k=left;while(k>1&&!(ntValOf(k,stepDen,true)&&(s-a)%k===0))k--;
+    const v=ntValOf(k,stepDen,true);out.push({rest:1,start:s,len:k,den:v.den,dot:false,tup});s+=k;left-=k;}
+}
+/* one voice, one bar → entries [{start,len,den,dot,tup,rest?|heads[]}] */
+function ntVoiceBar(ex,lanes,off,mt,two){
+  const spb=ex.steps||4*ex.sub;
+  const at=i=>lanes.filter(v=>{const c=ex.v[v][off+i];return c&&c!=='.';}).map(v=>({v,ch:ex.v[v][off+i]}));
+  const ons=[];for(let i=0;i<spb;i++)if(at(i).length)ons.push(i);
+  if(!ons.length)return[{rest:1,mrest:1,start:0,len:spb,den:1,dot:false,tup:0}];
+  const E=[],gs=mt.groups,ng=gs.length,has=g=>ons.some(i=>i>=gs[g][0]&&i<gs[g][1]);
+  for(let g=0;g<ng;g++){
+    const [a,b]=gs[g],go=ons.filter(i=>i>=a&&i<b);
+    // quarter-note triplets: three even notes across two beats (positions 0, 2, 4 of six triplet 8ths)
+    if(mt.tup===3&&g%2===0&&g+1<ng&&gs[g+1][1]-gs[g+1][0]===b-a){const e2=gs[g+1][1],q=ons.filter(i=>i>=a&&i<e2).map(i=>i-a);
+      if(q.length&&q.every(p=>p%2===0)&&q.some(p=>p===2||p===4)){for(let k=0;k<6;k+=2)E.push(Object.assign({start:a+k,len:2,den:4,dot:false,tup:3,tspan:[a,e2]},q.includes(k)?{heads:at(a+k)}:{rest:1}));g++;continue;}}
+    if(mt.plain&&(go.length===0||(go.length===1&&go[0]===a))){
+      let m=1;while(g+m<ng&&!has(g+m))m++;
+      let s=1;const note=go.length===1;
+      // long notes (half, whole) only when one voice is written; in a groove each beat keeps its own note + rest
+      if(!mt.compound){if(note&&two);else if(note&&g===0&&m>=4&&ng===4)s=4;else if(note&&g===0&&m>=3&&ng===3)s=3;else if(g%2===0&&m>=2&&(note||ng%2===0))s=2;}
+      else if(note&&!two){if(g===0&&m>=4&&ng===4)s=4;else if(g%2===0&&m>=2)s=2;}
+      const v=mt.compound?{1:{den:4,dot:true},2:{den:2,dot:true},4:{den:1,dot:true}}[s]:{1:{den:4,dot:false},2:{den:2,dot:false},3:{den:2,dot:true},4:{den:1,dot:false}}[s];
+      E.push(Object.assign({start:a,len:s*(b-a),tup:0},v,note?{heads:at(a)}:{rest:1}));g+=s-1;continue;
+    }
+    let tup=mt.tup;
+    // a 16th-triplet beat whose notes all sit on the half-beat is just 8ths: write it without the 6
+    if(tup===6&&go.every(i=>(i-a)%3===0)){const sub=[];const go2=go.map(i=>a+(i-a)/3);ntBeat(sub,a,a+2,go2,mt.stepDen/2,0,i=>at(a+(i-a)*3));
+      sub.forEach(e=>{e.start=a+(e.start-a)*3;e.len*=3;E.push(e);});continue;}
+    // …and one whose notes sit on every other sixteenth-triplet is 8th-note triplets: write it with a 3
+    if(tup===6&&go.every(i=>(i-a)%2===0)){const sub=[];ntBeat(sub,a,a+3,go.map(i=>a+(i-a)/2),mt.stepDen/2,3,i=>at(a+(i-a)*2));
+      sub.forEach(e=>{e.start=a+(e.start-a)*2;e.len*=2;e.tup=3;E.push(e);});continue;}
+    ntBeat(E,a,b,go,mt.stepDen,tup,at);
+  }
+  return E;
+}
+function ntBeat(E,a,b,go,stepDen,tup,at){
+  {const mt={stepDen};
+    if(!go.length){ntRests(E,a,a,b-a,mt.stepDen,tup);return;}
+    if(go[0]>a)ntRests(E,a,a,go[0]-a,mt.stepDen,tup);
+    go.forEach((i,j)=>{const d=(j+1<go.length?go[j+1]:b)-i;let k=d;while(k>1&&!ntValOf(k,mt.stepDen))k--;
+      const v=ntValOf(k,mt.stepDen);E.push({start:i,len:k,den:v.den,dot:v.dot,tup,heads:at(i)});if(d>k)ntRests(E,a,i+k,d-k,mt.stepDen,tup);});
+  }
+}
+const ntWhole=e=>(1/e.den)*(e.dot?1.5:1)*(e.tup?2/3:1);
+function ntValName(e,mt){
+  let s;
+  if(e.tup===3&&!e.dot&&e.den===8)s='8th-note triplet';
+  else if(e.tup===3&&!e.dot&&e.den===4)s='quarter-note triplet (two triplet 8ths long)';
+  else if(e.tup===6&&!e.dot&&e.den===16)s='16th-note triplet';
+  else if(e.tup===6&&!e.dot&&e.den===8)s='8th note inside a 16th-note triplet (two of the six)';
+  else s=(e.dot?'dotted ':'')+(e.rest?NT.rest:NT.val)[e.den]+(e.tup?' inside a group of '+e.tup:'');
+  if(mt.den===4){const beats=ntWhole(e)*4;if(beats>=1&&Math.abs(beats-Math.round(beats))<1e-9)s+=` · lasts ${beats} beat${beats>1?'s':''}`;}
+  else if(mt.compound){const p=ntWhole(e)/(3/8);if(p>=1&&Math.abs(p-Math.round(p))<1e-9)s+=` · lasts ${p} big beat${p>1?'s':''}`;}
+  return s;
+}
+function ntWhere(mt,i){const g=mt.beatOf[i],w=(mt.full||mt.count)[i],n=g+1;if(i===mt.groups[g][0])return'on beat '+n;
+  return w?(mt.compound?`on the “${w}” of beat ${n}`:`on the “${w==='&'?'and':w}” of ${n}`):`between the counts of beat ${n}`;}
+
+/* ---------- layout + SVG ---------- */
+function ntBuild(ex,availW,opts={}){
+  const sub=ex.sub,spb=ex.steps||4*sub,bars=ex.bars||1,plen=spb*bars;
+  const mts=ntMeters(ex);
+  const used=v=>ex.v[v]&&/[^.]/.test(ex.v[v]);
+  const up=LANES.filter(v=>used(v)&&!NT.feet[v]),dn=LANES.filter(v=>used(v)&&NT.feet[v]);
+  const voices=[];if(up.length)voices.push({d:'up',lanes:up});if(dn.length)voices.push({d:'dn',lanes:dn});
+  const two=voices.length===2;
+  const ent=voices.map(vc=>mts.map((mt,b)=>ntVoiceBar(ex,vc.lanes,b*spb,mt,voices.length>1)));
+  const all=s=>Object.values(ex.v).some(x=>s.test(x));
+  const hasAccUp=up.some(v=>/X/.test(ex.v[v])),hasAccDn=dn.some(v=>/X/.test(ex.v[v])),hasOpen=/o/.test(ex.v.HH||'');
+  const hasTup=v=>ent[v]&&ent[v].some(bar=>bar.some(e=>e.tup&&!e.mrest));
+  const tupUp=hasTup(0)&&voices[0].d==='up',tupDn=!tupUp&&voices.some((vc,k)=>vc.d==='dn'&&hasTup(k));
+  const hasLab=!!(ex.labels||(ex.swing||0.5)>0.5),hasSt=!!(ex.st&&/[RL]/.test(ex.st)),graces=all(/[fd]/);
+  // horizontal: step width from the longest count word; as many bars per line as fit (max 4)
+  const maxLen=Math.max(1,...mts.flatMap(m=>m.count).map(s=>s.length));
+  const minW=Math.max(sub>=8?14:graces?20:16,5.9*maxLen+6),maxW=46;
+  const clefW=24,tsW=24,repW=14,barPad=14,endPad=8;
+  const lead=(b,first)=>barPad+(first?clefW:0)+((b===0||mts[b].ts!==mts[b-1].ts)?tsW:0)+(b===0&&!opts.noRepeat?repW:0);
+  const W=Math.max(200,availW);
+  let per=Math.min(4,bars);
+  const need=(b0,k,sw)=>{let w=0;for(let b=b0;b<Math.min(bars,b0+k);b++)w+=lead(b,b===b0)+spb*sw+endPad;return w+2;};
+  while(per>1&&[...Array(Math.ceil(bars/per)).keys()].some(s=>need(s*per,per,minW)>W))per--;
+  let stepW=minW;{const fixed=need(0,per,0);stepW=Math.max(minW,Math.min(maxW,(W-fixed)/(spb*per)));}
+  if(bars>per&&bars%per&&per>2){const p2=Math.ceil(bars/Math.ceil(bars/per));if(p2<per)per=p2;}
+  // vertical rows (relative to the staff's top line)
+  const topM=(hasLab?70:tupUp?58:hasOpen?48:hasAccUp?40:30)+(graces?0:0);
+  const below=two||dn.length?(hasAccDn?84:74)+(tupDn?12:0):46;
+  const stRow=below+12,cRow=hasSt?stRow+17:below+14,sysH=topM+cRow+10;
+  const yP=(st,p)=>st+p*5;
+  const S=[];const steps=new Array(plen);const sys=[];const heads=[];
+  const P=(...a)=>S.push(a.join(''));
+  const f1=n=>Math.round(n*10)/10;
+  let svgW=0;
+  for(let s=0,b0=0;b0<bars;s++,b0+=per){
+    const sTop=s*sysH,st=sTop+topM;let x=0;const bx=[];
+    for(let b=b0;b<Math.min(bars,b0+per);b++){const l=lead(b,b===b0);bx.push({b,x0:x,cx:x+l,xe:x+l+spb*stepW+endPad});x=x+l+spb*stepW+endPad;}
+    const sysW=x+2;svgW=Math.max(svgW,sysW);sys.push({top:sTop,h:sysH,st});
+    // staff lines
+    for(let k=0;k<5;k++)P(`<line class="nsl" x1="0" x2="${f1(sysW-1)}" y1="${st+k*10}" y2="${st+k*10}"/>`);
+    // clef
+    P(`<rect class="nfill" x="7" y="${st+10}" width="3.5" height="20"/><rect class="nfill" x="13" y="${st+10}" width="3.5" height="20"/>`);
+    if(s===0&&(ex.swing||0.5)>0.5)P(`<text class="nlab" x="2" y="${st-topM+12}">Swing: 8ths long–short</text>`);
+    bx.forEach(({b,x0,cx,xe},k)=>{
+      const mt=mts[b];let lx=x0+(k===0?clefW:0)+4;
+      if(b===0||mt.ts!==mts[b-1].ts){P(`<text class="nts" x="${f1(lx+9)}" y="${st+18}">${mt.num}</text><text class="nts" x="${f1(lx+9)}" y="${st+38}">${mt.den}</text>`);lx+=tsW;}
+      if(b===0&&!opts.noRepeat){P(`<rect class="nfill" x="${f1(lx)}" y="${st}" width="3.5" height="40"/><line class="nsl" x1="${f1(lx+7)}" x2="${f1(lx+7)}" y1="${st}" y2="${st+40}"/><circle class="nfill" cx="${f1(lx+11.5)}" cy="${st+15}" r="1.9"/><circle class="nfill" cx="${f1(lx+11.5)}" cy="${st+25}" r="1.9"/>`);}
+      if(ex.labels&&ex.labels[b])P(`<text class="nlab nbl" x="${f1(cx)}" y="${st-topM+12}">${esc(ex.labels[b])}</text>`);
+      const X=i=>cx+(i+0.5)*stepW;
+      for(let i=0;i<spb;i++){const pi=b*spb+i;steps[pi]={x:X(i),sys:s,bar:b,i};
+        P(`<rect class="ncol" data-ns="${pi}" x="${f1(cx+i*stepW)}" y="${st-topM+(hasLab?16:2)}" width="${f1(stepW)}" height="${f1(cRow+topM-(hasLab?16:2)+6)}"/>`);
+        const w=mt.count[i];if(w)P(`<text class="ncnt${i===mt.groups[mt.beatOf[i]][0]?' nbeat':''}" data-ns="${pi}" x="${f1(X(i))}" y="${st+cRow}">${esc(w)}</text>`);
+        if(hasSt){const c=ex.st[pi];if(c==='R'||c==='L')P(`<text class="nstk" x="${f1(X(i))}" y="${st+stRow}">${c}</text>`);}
+      }
+      // barline
+      const last=b===bars-1;
+      if(last&&!opts.noRepeat)P(`<circle class="nfill" cx="${f1(xe-12)}" cy="${st+15}" r="1.9"/><circle class="nfill" cx="${f1(xe-12)}" cy="${st+25}" r="1.9"/><line class="nsl" x1="${f1(xe-8)}" x2="${f1(xe-8)}" y1="${st}" y2="${st+40}"/><rect class="nfill" x="${f1(xe-4.5)}" y="${st}" width="3.5" height="40"/>`);
+      else if(last)P(`<line class="nsl" x1="${f1(xe-7)}" x2="${f1(xe-7)}" y1="${st}" y2="${st+40}"/><rect class="nfill" x="${f1(xe-4.5)}" y="${st}" width="3.5" height="40"/>`);
+      else P(`<line class="nsl" x1="${f1(xe-1)}" x2="${f1(xe-1)}" y1="${st}" y2="${st+40}"/>`);
+      // voices
+      const restKey=e=>e.rest&&!e.mrest?e.start+':'+e.len+':'+e.den:null;
+      const shared=two?new Set(ent[0][b].map(restKey).filter(k=>k&&ent[1][b].some(q=>restKey(q)===k))):new Set();
+      voices.forEach((vc,vi)=>{
+        const E=ent[vi][b],upv=vc.d==='up',dir=upv?-1:1;
+        const beamY=upv?st-26:st+70,accY=upv?st-32:st+78,restY=two?(upv?st+9:st+37):(upv?st+19:st+28);
+        if(two&&!upv&&E.some(e=>e.mrest))return;   // drum charts leave out kick/pedal rests when the hands play
+        if(E.length===1&&E[0].mrest){const mx=(cx+cx+spb*stepW)/2,ly=two?(upv?st+10:st+30):st+10;P(`<rect class="nfill" x="${f1(mx-6)}" y="${ly}" width="12" height="5"/>`);return;}
+        const stems=[];
+        E.forEach(e=>{const x0=e.rest&&e.den<=2?(X(e.start)+X(e.start+e.len-1))/2:X(e.start);
+          if(e.rest){const sh=shared.has(restKey(e));if(!upv&&two)return;   // both voices rest here: one rest, in the middle
+            ntRest(P,f1,x0,sh?st+19:restY,e,sh?st+20:two?(upv?st+10:st+30):st+20);return;}
+          // heads, lowest first for up-stems (highest first for down-stems)
+          const hs=e.heads.slice().sort((p,q)=>upv?NT.pos[q.v]-NT.pos[p.v]:NT.pos[p.v]-NT.pos[q.v]);let prev=null,shift={};
+          hs.forEach(h=>{const p=NT.pos[h.v];if(prev!=null&&Math.abs(p-prev)===1&&!shift[prev])shift[p]=1;prev=p;});
+          const sx=upv?x0+4.8:x0-4.8;
+          hs.forEach(h=>{const p=NT.pos[h.v],y=yP(st,p),hx=x0+(shift[p]?(upv?9.6:-9.6):0);heads.push(h.v+':'+(b*spb+e.start));
+            ntHead(P,f1,hx,y,h,e,b*spb+e.start);
+            if(p<=-2)P(`<line class="nsl" x1="${f1(hx-8)}" x2="${f1(hx+8)}" y1="${yP(st,-2)}" y2="${yP(st,-2)}"/>`);
+            if(e.dot)P(`<circle class="nfill" cx="${f1(hx+(shift[p]&&upv?0:0)+9.5)}" cy="${f1(y-(p%2===0?5:0)+(p%2===0?0:0))}" r="1.8"/>`);
+            if(h.ch==='X')ntAccent(P,f1,x0,accY);
+            if(h.ch==='o')P(`<circle class="nline" cx="${f1(x0)}" cy="${st-42}" r="3.3"/>`);
+            if((h.ch==='f'||h.ch==='d')&&upv)ntGrace(P,f1,x0-(shift[p]?0:0),y,h.ch==='d'?2:1);
+          });
+          if(e.den>=2){const ys=hs.map(h=>yP(st,NT.pos[h.v]));const yFar=upv?Math.max(...ys):Math.min(...ys);
+            P(`<line class="nstem" x1="${f1(sx)}" x2="${f1(sx)}" y1="${f1(yFar)}" y2="${f1(beamY)}"/>`);
+            stems.push({x:sx,nb:e.den>=8?Math.log2(e.den)-2:0,g:mt.beatOf[e.start],start:e.start,e});}
+        });
+        // beams: runs of flagged notes in the same beat with no rest between
+        const ordered=E.filter(e=>!e.mrest);const runs=[];let cur=null;
+        ordered.forEach(e=>{const sm=stems.find(q=>q.e===e);
+          if(!e.rest&&sm&&sm.nb>0){if(cur&&cur.g===sm.g)cur.list.push(sm);else{cur={g:sm.g,list:[sm]};runs.push(cur);}}else cur=null;});
+        runs.forEach(r=>{const l=r.list;
+          if(l.length===1){const q=l[0];for(let k=0;k<q.nb;k++){const y0=beamY-dir*k*7;
+            P(`<path class="nline nflag" d="M${f1(q.x)} ${f1(y0)} C${f1(q.x+1)} ${f1(y0-dir*5)},${f1(q.x+8.5)} ${f1(y0-dir*7)},${f1(q.x+7)} ${f1(y0-dir*15)}"/>`);}return;}
+          const maxNb=Math.max(...l.map(q=>q.nb));
+          for(let lv=1;lv<=maxNb;lv++){const y0=upv?beamY+(lv-1)*7:beamY-4-(lv-1)*7;
+            let k=0;while(k<l.length){if(l[k].nb<lv){k++;continue;}let j=k;while(j+1<l.length&&l[j+1].nb>=lv)j++;
+              if(j>k)P(`<rect class="nfill" x="${f1(l[k].x-0.7)}" y="${f1(y0)}" width="${f1(l[j].x-l[k].x+1.4)}" height="4"/>`);
+              else{const left=k===l.length-1||(k>0&&l[k-1].nb<l[k].nb&&k+1<l.length&&l[k+1].nb<l[k].nb);const w=Math.min(8,stepW*0.45);
+                P(`<rect class="nfill" x="${f1(left?l[k].x-w:l[k].x)}" y="${f1(y0)}" width="${f1(w)}" height="4"/>`);}
+              k=j+1;}}
+        });
+        // tuplet numbers, one per beat that uses them
+        if((upv&&tupUp)||(!upv&&tupDn)){const spans=[];E.forEach(e=>{if(!e.tup)return;const sp=e.tspan||mt.groups[mt.beatOf[e.start]];if(!spans.some(x=>x[0]===sp[0]))spans.push(sp);});
+          spans.forEach(([a,bb])=>{
+          const xa=X(a),xb=X(bb-1),ty=upv?st-48:st+92;
+          P(`<path class="nline ntb" d="M${f1(xa-3)} ${f1(ty+dir*4)} V${f1(ty)} H${f1((xa+xb)/2-6)} M${f1((xa+xb)/2+6)} ${f1(ty)} H${f1(xb+3)} V${f1(ty+dir*4)}"/><text class="ntup" x="${f1((xa+xb)/2)}" y="${f1(ty+4)}">${(E.find(e=>e.tup&&e.start>=a&&e.start<bb)||{}).tup||mt.tup}</text>`);});}
+      });
+    });
+  }
+  const height=sys.length*sysH;
+  const svg=`<svg class="ntsvg" xmlns="http://www.w3.org/2000/svg" width="${Math.ceil(svgW)}" height="${height}" viewBox="0 0 ${Math.ceil(svgW)} ${height}"><rect class="nsel" x="0" y="0" width="0" height="0"/>${S.join('')}<line class="nph" x1="-9" x2="-9" y1="0" y2="0"/></svg>`;
+  return{ex,svg,steps,sys,mts,ent,voices,heads,stepW,minW,width:Math.ceil(svgW),height,plen,spb,topM,cRow};
+}
+function ntHead(P,f1,x,y,h,e,pi){
+  const hollow=e.den<=2,k=`${h.v}:${pi}`;let g=`<g class="nh" data-nk="${k}">`;
+  if(NT.xHead[h.v]||h.ch==='r'){g+=`<path class="nline nxh" d="M${f1(x-4.3)} ${f1(y-4.3)} L${f1(x+4.3)} ${f1(y+4.3)} M${f1(x-4.3)} ${f1(y+4.3)} L${f1(x+4.3)} ${f1(y-4.3)}"/>`;
+    if(h.ch==='r')g+=`<circle class="nline" cx="${f1(x)}" cy="${f1(y)}" r="6.6"/>`;}
+  else g+=`<ellipse class="${hollow?'nline nhol':'nfill'}" cx="${f1(x)}" cy="${f1(y)}" rx="5.5" ry="3.9" transform="rotate(-20 ${f1(x)} ${f1(y)})"/>`;
+  if(h.ch==='g')g+=`<path class="nline" d="M${f1(x-8)} ${f1(y-6)} Q${f1(x-11)} ${f1(y)} ${f1(x-8)} ${f1(y+6)} M${f1(x+8)} ${f1(y-6)} Q${f1(x+11)} ${f1(y)} ${f1(x+8)} ${f1(y+6)}"/>`;
+  P(g+'</g>');
+}
+function ntAccent(P,f1,x,y){P(`<path class="nline nacc" d="M${f1(x-5)} ${f1(y-3.5)} L${f1(x+5)} ${f1(y)} L${f1(x-5)} ${f1(y+3.5)}"/>`);}
+function ntGrace(P,f1,x,y,n){
+  const xs=n===2?[x-17,x-11]:[x-11];
+  xs.forEach(gx=>P(`<ellipse class="nfill" cx="${f1(gx)}" cy="${f1(y)}" rx="3.3" ry="2.4" transform="rotate(-20 ${f1(gx)} ${f1(y)})"/><line class="nstem" x1="${f1(gx+3)}" x2="${f1(gx+3)}" y1="${f1(y)}" y2="${f1(y-17)}"/>`));
+  if(n===1)P(`<path class="nline nflag" d="M${f1(xs[0]+3)} ${f1(y-17)} C${f1(xs[0]+4)} ${f1(y-13)},${f1(xs[0]+8)} ${f1(y-12)},${f1(xs[0]+7)} ${f1(y-7)}"/><line class="nline" x1="${f1(xs[0]-1)}" x2="${f1(xs[0]+7)}" y1="${f1(y-7)}" y2="${f1(y-15)}"/>`);
+  else P(`<rect class="nfill" x="${f1(xs[0]+2.5)}" y="${f1(y-18)}" width="${f1(xs[1]-xs[0]+1)}" height="2.5"/><rect class="nfill" x="${f1(xs[0]+2.5)}" y="${f1(y-14.5)}" width="${f1(xs[1]-xs[0]+1)}" height="2.5"/>`);
+}
+function ntRest(P,f1,x,cy,e,lineY){
+  if(e.den===1){P(`<rect class="nfill" x="${f1(x-6)}" y="${lineY}" width="12" height="5"/>`);}
+  else if(e.den===2){P(`<rect class="nfill" x="${f1(x-6)}" y="${lineY-5}" width="12" height="5"/>`);}
+  else if(e.den===4){P(`<path class="nline nqr" d="M${f1(x-2)} ${f1(cy-11)} L${f1(x+3.5)} ${f1(cy-4)} L${f1(x-1.5)} ${f1(cy+1)} L${f1(x+3.5)} ${f1(cy+7)} C${f1(x-3)} ${f1(cy+4)},${f1(x-3.5)} ${f1(cy+10)},${f1(x+0.5)} ${f1(cy+13)}"/>`);}
+  else{const n=Math.log2(e.den)-2;const top=cy-6;
+    P(`<line class="nline" x1="${f1(x+3.5)}" y1="${f1(top)}" x2="${f1(x-1.5-n)}" y2="${f1(top+8+n*6)}"/>`);
+    for(let k=0;k<n;k++){const yy=top+k*6,xx=x+3.5-k*1.6;P(`<circle class="nfill" cx="${f1(xx-5.5)}" cy="${f1(yy+1.5)}" r="2.2"/><path class="nline" d="M${f1(xx-5.5)} ${f1(yy+2.5)} Q${f1(xx-2)} ${f1(yy+3.5)} ${f1(xx)} ${f1(yy)}"/>`);}}
+  if(e.dot)P(`<circle class="nfill" cx="${f1(x+8)}" cy="${f1(cy-3)}" r="1.8"/>`);
+}
+
+/* ---------- practice screen ---------- */
+function notaRender(force){
+  const pr=$('#prac');if(!pr||!L)return;const mode=nvMode();
+  pr.classList.toggle('nv-g',mode==='grid');pr.classList.toggle('nv-n',mode==='notation');pr.classList.toggle('nv-b',mode==='both');
+  const sel=$('#nvsel');if(sel){sel.classList.toggle('hidden',!!L.calib);sel.querySelectorAll('[data-nview]').forEach(b=>b.classList.toggle('on',b.dataset.nview===mode));}
+  const box=$('#ntsv');if(!box)return;
+  const ex=L.ex[exI];
+  if(mode==='grid'||!ex){NOTA.key='';NOTA.lay=null;box.innerHTML='';notaSelect(null);sizeCv();return;}
+  const w=Math.max(0,$('#nota').clientWidth-20),key=L.id+'|'+exI+'|'+w+'|'+mode;
+  if(!force&&key===NOTA.key&&NOTA.lay){sizeCv();return;}
+  if(NOTA.lay&&NOTA.lay.ex!==ex)notaSelect(null);
+  // bigger on tablets: lay out at a smaller width, then scale the drawing up
+  const zoom=w>=1000?1.35:w>=700?1.2:1;
+  try{NOTA.lay=ntBuild(ex,w/zoom,{noRepeat:L.loop===1});NOTA.lay.zoom=zoom;
+    box.innerHTML=NOTA.lay.svg.replace(/^<svg([^>]*?) width="(\d+)" height="(\d+)"/,(m,a,ww,hh)=>`<svg${a} width="${Math.ceil(ww*zoom)}" height="${Math.ceil(hh*zoom)}"`);}
+  catch(err){NOTA.lay=null;box.innerHTML=`<p class="mut" style="padding:10px">Notation can’t show this exercise yet (${esc(err.message)}).</p>`;}
+  NOTA.key=key;NOTA.cls={};NOTA.lastPi=-1;NOTA.lastSys=-1;NOTA.runRef=null;
+  if(NOTA.sel!=null)notaSelect(NOTA.sel,true);
+  sizeCv();
+}
+function notaSetMode(m){if(run)return;state.set.nview=m;save();notaRender(true);draw();}
+function notaSelect(pi,keep){
+  NOTA.sel=pi;const box=$('#nexp');const lay=NOTA.lay;const svg=$('#ntsv svg');
+  if(svg){const r=svg.querySelector('.nsel');if(pi!=null&&lay&&lay.steps[pi]){const s=lay.steps[pi],sy=lay.sys[s.sys];
+      r.setAttribute('x',s.x-lay.stepW/2);r.setAttribute('width',lay.stepW);r.setAttribute('y',sy.top+4);r.setAttribute('height',sy.h-6);}
+    else r.setAttribute('width',0);}
+  if(!box)return;
+  if(pi==null){box.classList.add('hidden');box.innerHTML='';if(!keep&&!run)draw();return;}
+  box.innerHTML=`<button class="nxx ghost sm" data-ntclose title="Close">✕</button>${ntExplain(L.ex[exI],pi)}`;box.classList.remove('hidden');
+  if(!keep&&!run)draw();
+}
+function ntExplain(ex,pi){
+  const spb=ex.steps||4*ex.sub,bar=Math.floor(pi/spb),i=pi%spb,mts=ntMeters(ex),mt=mts[bar];
+  const lay=NOTA.lay&&NOTA.lay.ex===ex?NOTA.lay:ntBuild(ex,800);
+  const head=`<div class="nxh1">${esc(ntWhere(mt,i))}${ex.bars>1?` · bar ${bar+1} of ${ex.bars}`:''} · count “${esc((mt.full||mt.count)[i]||'·')}”</div>`;
+  const notes=LANES.filter(v=>ex.v[v]&&ex.v[v][pi]&&ex.v[v][pi]!=='.');
+  if(!notes.length)return head+`<div>No note here: keep counting through it.</div>`;
+  const CH={x:'',X:'accent (>): play it louder',g:'ghost note ( ): very soft',o:'open hi-hat (o): let it ring',r:'cross-stick (circled x): stick across the rim',
+    f:'flam: one soft grace note in the other hand just before',d:'drag: two quick soft grace notes just before'};
+  const rows=notes.map(v=>{const ch=ex.v[v][pi];const vi=lay.voices.findIndex(vc=>vc.lanes.includes(v));
+    const e=vi<0?null:lay.ent[vi][bar].find(q=>!q.rest&&q.start===i);
+    const hand=ex.st&&/[RL]/.test(ex.st[pi])&&!NT.feet[v]?(ex.st[pi]==='R'?'right hand':'left hand')+(ch==='f'||ch==='d'?' (main stroke)':''):NT.feet[v]?(v==='K'?'right foot':'left foot'):'';
+    return `<div><b style="color:${VOICES[v].c}">${VOICES[v].n}</b> <span class="mut">· ${NT.where[v]}</span>${e?' · '+esc(ntValName(e,mt)):''}${CH[ch]?' · '+CH[ch]:''}${hand?' · '+hand:''}</div>`;}).join('');
+  return head+rows;
+}
+function notaTick(){
+  const lay=NOTA.lay,svg=lay&&$('#ntsv svg');const mode=nvMode();
+  // status line (Notation-only view: the grid's count-in and bar counter are hidden)
+  let st='';
+  if(mode==='notation'){
+    if(run){const rel=performance.now()-run.base;if(rel<run.cinMs){const c=run.clicks.filter(c=>c.cin&&c.t<=rel).pop();st=c?'Count-in · '+c.n:'Get ready';}
+      else{const tb=run.reps*run.ex.bars,bar=Math.min(tb,Math.floor((rel-run.cinMs)/run.barMs)+1);st=(run.ex.meter?run.ex.meter+' · ':'')+'Bar '+bar+' / '+tb;
+        if(run.ex.labels){const bl=run.ex.labels[(bar-1)%run.ex.bars];if(bl)st+=' · '+bl;}
+        if(ROUTINE.on)st+=' · Routine '+mmss(ROUTINE.endAt-performance.now())+' left';
+        if(run.lesson.call)st+=Math.floor((bar-1)/run.ex.bars)%2===0?' · LISTEN':' · YOUR TURN';}}
+    else if(L&&L.ex[exI])st=(L.ex[exI].meter?L.ex[exI].meter+' · ':'')+'Tap Start. Count-in: '+state.set.countin+' bar. Tap a note to see what it is.';
+  }
+  if(st!==NOTA.status){NOTA.status=st;const e=$('#nst');if(e)e.textContent=st;}
+  if(!svg)return;
+  const ph=svg.querySelector('.nph');
+  if(!run||run.ex!==lay.ex){if(NOTA.runRef){NOTA.runRef=null;svg.querySelectorAll('.nh[class*=" "]').forEach(g=>g.setAttribute('class','nh'));NOTA.cls={};
+      svg.querySelectorAll('.ncnt.on').forEach(t=>t.classList.remove('on'));NOTA.lastPi=-1;ph.setAttribute('x1',-9);ph.setAttribute('x2',-9);}return;}
+  const R=run,plen=lay.plen,patMs=R.barMs*R.ex.bars,now=performance.now(),rel=now-R.base-R.cinMs;
+  if(NOTA.runRef!==R){NOTA.runRef=R;NOTA.byRep={};R.evs.forEach(e=>{if(e.listen)return;const r=Math.floor(e.step/plen);(NOTA.byRep[r]=NOTA.byRep[r]||[]).push(e);});NOTA.cls={};}
+  if(rel<0||rel>=R.totalMs-R.cinMs){ph.setAttribute('x1',-9);ph.setAttribute('x2',-9);return;}
+  const rep=Math.floor(rel/patMs),pos=(rel%patMs)/R.stepMs,pi=Math.min(plen-1,Math.floor(pos)),s=lay.steps[pi],sy=lay.sys[s.sys];
+  const x=s.x+(pos-pi-0.5)*lay.stepW;
+  ph.setAttribute('x1',x);ph.setAttribute('x2',x);ph.setAttribute('y1',sy.st-30);ph.setAttribute('y2',sy.st+lay.cRow+4);
+  if(pi!==NOTA.lastPi){svg.querySelectorAll('.ncnt.on').forEach(t=>t.classList.remove('on'));const t=svg.querySelector(`.ncnt[data-ns="${pi}"]`);if(t)t.classList.add('on');NOTA.lastPi=pi;}
+  if(s.sys!==NOTA.lastSys){NOTA.lastSys=s.sys;const n=$('#nota');if(n&&n.scrollHeight>n.clientHeight+4){const z=lay.zoom||1,top=(sy.top-4)*z+$('#ntsv').offsetTop;if(top<n.scrollTop||top+sy.h*z>n.scrollTop+n.clientHeight)n.scrollTo({top,behavior:'smooth'});}}
+  // colour the notes of this repeat as they are played: green on time, blue early, amber late, red wrong sound, grey missed
+  const want={};const tol=state.set.tol;
+  (NOTA.byRep[rep]||[]).forEach(e=>{const k=e.v+':'+(e.step%plen);let c='';
+    if(e.hitT!=null)c=e.artOk===false?'bad':Math.abs(e.dt)<=tol?'ok':e.dt<0?'early':'late';else if(now>e.t+(e.win||state.set.win))c='miss';
+    if(c)want[k]=c;});
+  for(const k in NOTA.cls)if(!want[k]){const g=svg.querySelector(`.nh[data-nk="${k}"]`);if(g)g.setAttribute('class','nh');delete NOTA.cls[k];}
+  for(const k in want)if(NOTA.cls[k]!==want[k]){const g=svg.querySelector(`.nh[data-nk="${k}"]`);if(g)g.setAttribute('class','nh '+want[k]);NOTA.cls[k]=want[k];}
+}
+// grid canvas: tap a note in the preview to select the same step
+function notaPickGrid(ev){
+  if(run||!preview||L.calib)return;const r=cv.getBoundingClientRect(),px=ev.clientX-r.left,py=ev.clientY-r.top;
+  const R=preview,W=cv.clientWidth,H=cv.clientHeight,now=R.base+R.cinMs-R.beatMs*0.6;
+  const vs=LANES.filter(v=>R.ex.v[v]),top=34,lh=(H-top-6)/vs.length,hitX=Math.max(110,W*0.17),ppm=(W-hitX)*0.62/Math.max(R.barMs,R.beatMs*3),rad=Math.min(lh*0.32,18);
+  let best=null,bd=Math.max(18,rad*1.6);
+  R.evs.forEach(e=>{const x=hitX+(e.t-now)*ppm,y=top+vs.indexOf(e.v)*lh+lh/2,d=Math.hypot(px-x,py-y);if(d<bd){bd=d;best=e;}});
+  const plen=R.spb*R.ex.bars;
+  if(best)notaSelect(NOTA.sel===best.step%plen?null:best.step%plen);else if(NOTA.sel!=null)notaSelect(null);
+}
+document.addEventListener('click',e=>{
+  const nv=e.target.closest('[data-nview]');if(nv){notaSetMode(nv.dataset.nview);return;}
+  if(e.target.closest('[data-ntclose]')){notaSelect(null);return;}
+  const ns=e.target.closest('#ntsv [data-ns]');if(ns){const pi=+ns.dataset.ns;notaSelect(NOTA.sel===pi?null:pi);return;}
+  if(e.target===cv)notaPickGrid(e);
+});
+addEventListener('resize',()=>{if(L&&!$('#prac').classList.contains('hidden'))notaRender();});
+
+/* ---------- test mode: every exercise must render (Theory T1 validator) ---------- */
+function validateNotation(maxLv){
+  const out=[];
+  LESSONS.filter(l=>l.ex&&l.ex.length&&(maxLv==null||l.lv<=maxLv)).forEach(l=>l.ex.forEach((ex,i)=>{const tag=l.id+' · '+(i+1)+' '+ex.n;
+    try{[900,360].forEach(w=>{const lay=ntBuild(ex,w,{});
+      if(/NaN|undefined|Infinity/.test(lay.svg))out.push(tag+': bad number in drawing ('+w+'px)');
+      const spb=lay.spb;
+      lay.ent.forEach((vb,vi)=>vb.forEach((E,b)=>{const mt=lay.mts[b];
+        const st=E.reduce((a,e)=>a+e.len,0);if(st!==spb)out.push(`${tag}: bar ${b+1} ${lay.voices[vi].d} voice covers ${st} of ${spb} steps`);
+        const wh=E.reduce((a,e)=>a+(e.mrest?mt.num/mt.den:ntWhole(e)),0);if(Math.abs(wh-mt.num/mt.den)>1e-9)out.push(`${tag}: bar ${b+1} ${lay.voices[vi].d} voice adds up to ${wh} not ${mt.ts}`);
+        let pos=0;E.forEach(e=>{if(e.start!==pos)out.push(`${tag}: bar ${b+1} gap at step ${pos}`);pos=e.start+e.len;});}));
+      const want=[];Object.entries(ex.v).forEach(([v,s])=>{for(let k=0;k<s.length;k++)if(s[k]!=='.')want.push(v+':'+k);});
+      const got=new Set(lay.heads);const miss=want.filter(k=>!got.has(k));if(miss.length)out.push(`${tag}: ${miss.length} note(s) not drawn (${miss.slice(0,3).join(', ')})`);
+      if(lay.heads.length!==want.length)out.push(`${tag}: ${lay.heads.length} heads for ${want.length} notes`);
+      const nc=lay.mts.reduce((a,m)=>a+m.count.length,0);if(nc!==lay.plen)out.push(`${tag}: count line has ${nc} slots for ${lay.plen} steps`);
+      if(lay.stepW+1e-9<lay.minW)out.push(`${tag}: steps squeezed (${lay.stepW})`);
+    });}catch(err){out.push(tag+': '+err.message);}
+  }));
+  return out;
+}
+window.validateNotation=validateNotation;window.ntBuild=ntBuild;
+function notationTests(){
+  const T=[],ok=(n,c)=>T.push({n,ok:!!c});
+  ok('every Level 0–4 exercise draws (296+)',validateNotation(4).length===0);
+  const rock=LBY['1.5.03'].ex[0],lay=ntBuild(rock,900);
+  ok('rock beat: hands up, feet down',lay.voices.map(v=>v.d).join()==='up,dn');
+  ok('rock beat: kick written as quarter notes in a groove',lay.ent[1][0].filter(e=>!e.rest).every(e=>e.den===4));
+  ok('drum key: snare 3rd space, kick bottom space, hi-hat above, pedal below',NT.pos.S===3&&NT.pos.K===7&&NT.pos.HH===-1&&NT.pos.HP===9&&NT.pos.R===0&&NT.pos.C===-2);
+  ok('count line 1 & 2 &',ntMeter(rock).count.join(' ')==='1 & 2 & 3 & 4 &');
+  ok('16ths count 1 e & a',ntMeter(LBY['2.1.04'].ex[0]).count.slice(0,4).join(' ')==='1 e & a');
+  ok('triplets count 1 trip let, bracket 3',ntMeter(LBY['3.1.02'].ex[0]).count.slice(0,3).join(' ')==='1 trip let'&&ntMeter(LBY['3.1.02'].ex[0]).tup===3);
+  {const m=ntMeters(LBY['4.1.05'].ex[0])[0];ok('12/8 groups of three',m.groups.length===4&&m.ts==='12/8'&&m.G===3);}
+  const m68=ntMeters(LBY['4.1.04'].ex[2]);ok('6/8 → 3/4 changes meter in bar 2',m68[0].ts==='6/8'&&m68[1].ts==='3/4');
+  const wh=ntBuild(LBY['3.1.01'].ex[0],900);ok('whole note on its own',wh.ent[0][0].length===1&&wh.ent[0][0][0].den===1);
+  const sx=ntBuild(LBY['3.1.02'].ex[3],900);ok('even 8ths in a 16th-triplet grid are written as plain 8ths',sx.ent[0][0].every(e=>e.den===8&&!e.tup));
+  const qt=ntBuild(LBY['4.1.01'].ex[0],900).ent[0][0];ok('quarter-note triplets: three notes over two beats under one 3',qt.length===6&&qt.every(e=>e.den===4&&e.tup===3&&!e.rest&&e.tspan));
+  ok('count follows what is written: 8ths in a 16th bar say “1 &”',(()=>{const m=ntMeters(X('t',4,{HH:'x.x.x.x.x.x.x.x.'}))[0];return m.count.filter(Boolean).join(' ')==='1 & 2 & 3 & 4 &'&&m.full[1]==='e';})());
+  ok('8th triplets in a 16th-triplet grid get a 3',ntBuild(LBY['3.1.03'].ex[2],900).ent[0][0].filter(e=>e.start<6).every(e=>e.tup===3&&e.den===8));
+  ok('kick rests left out in a groove',!/nqr/.test(ntBuild(X('t',2,{HH:'xxxxxxxx',K:'x.......'}),900).svg));
+  const ex=ntExplain(rock,2);ok('tap: “on beat 2”, hi-hat + snare, 8th note',/on beat 2/.test(ex)&&/Hi-hat/.test(ex)&&/Snare/.test(ex)&&/8th note/.test(ex));
+  const gh=ntExplain(LBY['3.2.07'].ex[0],7);ok('tap: ghost on the “a” of 2',/“a” of 2/.test(gh)&&/ghost/.test(gh));
+  return T;
+}
+window.notationTests=notationTests;

@@ -121,7 +121,7 @@ function renderPads(ex){
   $('#pads').innerHTML=vs.map(v=>`<button data-pad="${v}" style="border-color:${VOICES[v].c};color:${VOICES[v].c}">${VOICES[v].n}</button>`).join('');
 }
 function sizeCv(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d,0,0,d,0,0);}
-function makePreview(){preview=buildRun(L,L.ex[exI],bpm,0,{calib:L.calib});if(typeof renderNotationPanel==='function'&&(!NOT.ex||NOT.ex!==L.ex[exI]||NOT.mode!==nview()))renderNotationPanel();}
+function makePreview(){preview=buildRun(L,L.ex[exI],bpm,0,{calib:L.calib});if(typeof notaRender==='function')notaRender();}
 
 async function startRun(){
   const a=audio(); if(a.state!=='running'){try{await a.resume();}catch(e){}}
@@ -205,11 +205,11 @@ function feed(dt,extra){
 function feedTxt(t,c){const f=$('#pfeed');f.textContent=t;f.style.color=c;lastFeed=performance.now();}
 
 function draw(){
+  if(typeof notaTick==='function')notaTick();   // staff notation view (16-notation.js): playhead, count, note colours
   const W=cv.clientWidth,H=cv.clientHeight; if(!W||!H)return;
   cx.clearRect(0,0,W,H);
   const R=run||preview; if(!R)return;
   const now=run?performance.now():(R.base+R.cinMs-R.beatMs*0.6);
-  if(typeof notPlayhead==='function')notPlayhead(R,now);
   const vs=LANES.filter(v=>R.ex.v[v]); const n=vs.length; const top=34, lh=(H-top-6)/n;
   const hitX=Math.max(110,W*0.17); const ppm=(W-hitX)*0.62/Math.max(R.barMs,R.beatMs*3);
   // lanes
@@ -225,6 +225,7 @@ function draw(){
   cx.strokeStyle=TH.hitline;cx.lineWidth=3;cx.beginPath();cx.moveTo(hitX,top-4);cx.lineTo(hitX,H);cx.stroke();
   // notes
   const rad=Math.min(lh*0.32,18);
+  const nsel=!run&&typeof NOTA!=='undefined'?NOTA.sel:null, plen=R.spb*R.ex.bars;   // a step tapped in the notation
   for(const e of R.evs){
     const x=hitX+(e.t-now)*ppm; if(x<hitX-120||x>W+30)continue;
     const i=vs.indexOf(e.v); const y=top+i*lh+lh/2;
@@ -237,6 +238,7 @@ function draw(){
     else if(e.ch==='r'){const q=rad*0.75;cx.fillRect(x-q,y-q,q*2,q*2);}
     else{cx.beginPath();cx.arc(x,y,e.acc?rad*1.15:e.ghost?rad*0.6:rad,0,7);cx.fill();}
     if(e.gr){for(let k=1;k<=e.gr;k++){cx.beginPath();cx.arc(x-k*30*ppm-rad*0.6,y,rad*0.35,0,7);cx.fill();}}
+    if(nsel!=null&&e.step%plen===nsel){cx.strokeStyle=TH.ink;cx.lineWidth=2.5;cx.beginPath();cx.arc(x,y,rad*1.5,0,7);cx.stroke();}
     if(e.st&&e.st!=='.'){cx.fillStyle=TH.bg;cx.font='700 13px '+TH.body;cx.textAlign='center';cx.fillText(e.st,x,y+1);cx.textAlign='left';}
     cx.globalAlpha=1;
   }

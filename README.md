@@ -88,17 +88,20 @@ Needed only if you ever recreate it. Use the **personal** Google account that ow
 
 While the app is in Testing mode only listed test users can sign in, and Google may ask you to re-approve access about once a week. That's expected for a personal app.
 
-## Notation (Theory T1, 15 Nov 2026, D-028)
+## Notation (Theory T1, 15 Nov 2026, D-028; v21)
 `src/js/16-notation.js` draws every exercise as standard drum notation, straight from the pattern format (own SVG renderer,
-no library). The practice screen has **View: Both / Notation / Grid** (`state.set.nview`, default Both): the staff with a count
-line ("1 e & a", "1 trip let", "1 & a" in 6/8 and 12/8) and sticking under it, a playhead column that follows the run, and
-**tap a note** for a plain explanation ("Snare · 16th note · on the 'a' of 2 · ghost note"). Drum key: kick bottom space,
-floor tom 2nd space, snare 3rd space, tom 2 4th line, tom 1 4th space, ride x top line, hi-hat x above, crash x on a ledger
-line, hi-hat pedal x below. Hands stem up, feet stem down; each beat is written with the simplest value that holds its notes
-(8ths on a triplet grid stay 8ths; quarter-note triplets span two beats); half and whole notes/rests where beats are empty;
-kick rests are left out when the hands play; accents, ghosts (brackets), open hi-hat (o), cross-stick (circled x), flams
-and drags (grace notes), tuplet numbers, bar labels (chords) and an end repeat. Checks: `?test=1` › Settings ›
-**Run notation tests** (all 296 Level 0–4 exercises draw with one notehead per note + 11 rhythm rules).
+no library). The practice screen has a **Grid · Notation · Both** switch (`state.set.nview`, default Both). Drum key: kick
+bottom space, floor tom 2nd space, snare 3rd space, tom 2 2nd line from the top, tom 1 top space, ride x on the top line,
+hi-hat x above, crash x on a ledger line, hi-hat pedal x below. Hands stem up, feet stem down, kick rests left out while the
+hands play. Each beat uses the simplest value that holds its notes (8ths on a triplet grid stay 8ths; quarter-note triplets
+span two beats under one 3); half and whole notes only in one-voice exercises; meter changes (6/8 → 3/4) get a new time
+signature and grouping; accents, ghosts, open hi-hat, cross-stick, flams/drags, tuplet brackets, sticking, bar labels and
+repeat signs. The count line under the staff follows what is written ("1 &", "1 e & a", "1 trip let", "1 2 3" in 6/8 and
+12/8). During a run a playhead moves across the staff and each note turns green (on time), blue (early), amber (late),
+red (wrong sound) or grey (missed). **Tap a note** (on the staff, the count or the grid) to see what it is, where it sits on
+the staff, its value, where it falls in the count, and the hand or foot; the same step is ringed in the grid.
+Checks: `?test=1` › Settings › **Run notation tests**; `validateNotation()` checks that all 296 Level 0–4 exercises draw
+with every note, each voice adds up to the bar, and the count line has a slot per step.
 
 ## Drive library (S3, 11 Nov 2026, D-025)
 **Library** (More › Library, and a **Files** section on each song page) lists MIDI files, audio and documents from the

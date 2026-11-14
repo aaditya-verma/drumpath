@@ -24,6 +24,7 @@ script/style tag when files change so tablets pick up the new version.
 | `src/js/11a-songs-model.js` | Song model: save-state fill/migration, per-skill score, stretch target, readiness, strand roll-up, next step, daily history, play log, library totals, biggest unlocks, `songTests()` |
 | `src/js/11-songs.js` | Songs screens: library (All / genre / artist / level / Ready now, filters, sort), song page, tap tempo, add/edit, Song × Lesson matrix |
 | `src/js/12-kit-settings.js` | Kit drawing (live lights, tap to learn), latency/velocity/kit check, Settings |
+| `src/js/16-notation.js` | Staff notation (Theory T1, D-028): own SVG renderer from the pattern format (drum key, beams, rests, tuplets, meters, count line, sticking), Grid / Notation / Both toggle (`state.set.nview`), playhead + note colours during a run, tap-a-note explanations, `validateNotation()`, `notationTests()` |
 | `src/js/99-events.js` | Event delegation, dialogs, backup import/export, boot |
 
 ## Data per run (`state.sessions[]`)

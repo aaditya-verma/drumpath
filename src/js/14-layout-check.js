@@ -46,7 +46,11 @@ async function layoutSweep(){
   {const row=document.querySelector('.brand-row');const kids=row?[...row.children].filter(e=>e.offsetParent&&e.getBoundingClientRect().width>0):[];
    const tops=kids.map(e=>{const r=e.getBoundingClientRect();return r.top+r.height/2;});const bad=tops.length&&Math.max(...tops)-Math.min(...tops)>8;
    out.push(['Header',bad?[{kind:'wrap',what:'header buttons wrap onto a second line'}]:[]]);}
-  try{openPractice(lesson.id);await wait();out.push(['Practice screen',layoutAudit($('#prac'))]);}catch(e){}
+  // practice screen in each view (Grid · Notation · Both), incl. a 12-bar chart and a tap-a-note explanation
+  const keepNv=state.set.nview;
+  for(const id of [lesson.id,'3.2.07','4.7.02'])for(const m of ['grid','notation','both']){if(!LBY[id])continue;
+    try{openPractice(id);state.set.nview=m;notaRender(true);if(m!=='grid')notaSelect(3);draw();await wait();out.push(['Practice '+id+' · '+m,layoutAudit($('#prac'))]);notaSelect(null);}catch(e){out.push(['Practice '+id+' · '+m,[{kind:'error',what:e.message}]]);}}
+  state.set.nview=keepNv;
   $('#prac').classList.add('hidden');
   const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);go(keep.cur==='practise'?'settings':'settings');
   return out;

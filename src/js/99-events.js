@@ -54,7 +54,6 @@ document.addEventListener('click',async e=>{
   if(a==='more'){if($('#msheet').classList.contains('hidden'))openMore();else closeMore();return;}
   if(a==='search'){closeMore();openSearch();return;}
   if(a==='theme'){cycleTheme();return;}
-  if(a==='nview'){const order=['both','notation','grid'];state.set.nview=order[(order.indexOf(nview())+1)%3];save();renderNotationPanel();return;}
   if(a==='ex'){if(run||ROUTINE.on)return;exI=+d.i;P(L.id).ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
   if(a==='stretch'){if(run)return;stretchMode=!stretchMode;const p=P(L.id);bpm=stretchMode?(p.stretchBpm||Math.min(L.bpm[1]+5,stretchMax(L.id)||L.bpm[1]+5)):p.bpm;$('#bpmv').textContent=bpm;renderPracBar();makePreview();draw();return;}
   if(a==='go'){if(run){routineStop();stopRun();}else startRun();return;}
@@ -88,12 +87,12 @@ document.addEventListener('click',async e=>{
   if(a==='sggo'){await studioSuggest();return;}
   if(a==='stcopyall'){const c=await packCode(importPayload(VP.studio.results.filter(r=>!r.error)));try{await navigator.clipboard.writeText(c);toast('Import code copied: Songs › Paste import code in the tablet app');}catch(_){openSheet('Import code',`<textarea rows="6" style="width:100%" readonly>${esc(c)}</textarea>`);}return;}
   if(a==='sttest'){const el=$('#sttests');el.innerHTML='Running…';const t=await studioTests();render();const e2=$('#sttests');if(e2)e2.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
+  if(a==='notatest'){const r=notationTests();const el=$('#ntests');if(el)el.innerHTML=`<div style="font-size:13px;margin-top:6px"><b>Notation: ${r.filter(t=>t.ok).length}/${r.length} pass</b></div>`+r.map(t=>`<div style="font-size:13px">${t.ok?'✓':'✗'} ${esc(t.n)}</div>`).join('');return;}
   if(a==='layouttest'){const r=await layoutSweep();const el=$('#laytests');const bad=r.filter(x=>x[1].length);if(el)el.innerHTML=`<div style="font-size:13px;margin-top:6px"><b>${innerWidth}×${innerHeight}: ${bad.length?bad.length+' screen'+(bad.length>1?'s':'')+' with problems':'all '+r.length+' screens clean ✓'}</b></div>`+r.map(([n,is])=>`<div style="font-size:13px">${is.length?'✗':'✓'} ${esc(n)}${is.length?' <span class="mut">'+is.map(i=>esc(i.kind+' '+i.what)).join(' · ')+'</span>':''}</div>`).join('');return;}
   if(a==='pasteimport'){pasteImportSheet();return;}
   if(a==='antest'){const el=$('#antests');el.innerHTML='Running…';const t=await analyseTests();render();const e2=$('#antests');if(e2)e2.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
   if(a==='sbxtest'){const el=$('#sbxtests');el.innerHTML='Running…';const t=await sandboxTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
-  if(a==='nottest'){const el=$('#nottests');const t=notationTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='libtest'){const el=$('#libtests');el.innerHTML='Running…';const t=await libTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='stortest'){const el=$('#stortests');el.innerHTML='Running…';const t=await storageTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}
