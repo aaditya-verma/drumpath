@@ -100,11 +100,23 @@ function mergeStates(A,B){
   m.libDel=Object.assign({},older.libDel||{},newer.libDel||{});Object.keys(older.libDel||{}).forEach(k=>{m.libDel[k]=Math.max(m.libDel[k]||0,older.libDel[k]);});
   const lib={};[older.lib||{},newer.lib||{}].forEach(o=>Object.values(o).forEach(e=>{const c=lib[e.id];if(!c||(e.updatedAt||0)>=(c.updatedAt||0))lib[e.id]=e;}));
   Object.keys(lib).forEach(k=>{if(m.libDel[k]&&m.libDel[k]>=(lib[k].updatedAt||0))delete lib[k];});m.lib=lib;
+  // theory (T2): per card, a status reached on either device is kept; review entries: the later review wins
+  m.theory=thMerge(a.theory,b.theory);
   m.lastBackup=Math.max(a.lastBackup||0,b.lastBackup||0)||undefined;
   m.rev=Math.max(a.rev||0,b.rev||0)+1;m.savedAt=Math.max(a.savedAt||0,b.savedAt||0);
   return m;
 }
-const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs)&&JSON.stringify(x.lib||{})===JSON.stringify(y.lib||{});
+function thMerge(A,B){
+  const a=thFill({theory:JSON.parse(JSON.stringify(A||{}))}).theory,b=thFill({theory:JSON.parse(JSON.stringify(B||{}))}).theory,m={cards:{},review:{},bookmarks:[],lastCard:null};
+  new Set([...Object.keys(a.cards),...Object.keys(b.cards)]).forEach(id=>{const x=a.cards[id]||{},y=b.cards[id]||{},o={};
+    new Set([...Object.keys(x),...Object.keys(y)]).forEach(k=>{const u=x[k],v=y[k];o[k]=k==='updatedAt'?Math.max(u||0,v||0):(u&&v?Math.min(u,v):u||v);});m.cards[id]=o;});
+  new Set([...Object.keys(a.review),...Object.keys(b.review)]).forEach(id=>{const x=a.review[id],y=b.review[id];m.review[id]=!x?y:!y?x:((y.at||0)>(x.at||0)||((y.at||0)===(x.at||0)&&(y.step||0)>(x.step||0)))?y:x;});
+  const bm=(a.bmAt||0)>=(b.bmAt||0)?a:b;m.bookmarks=(a.bmAt||b.bmAt)?bm.bookmarks.slice():[...new Set([...a.bookmarks,...b.bookmarks])];if(a.bmAt||b.bmAt)m.bmAt=Math.max(a.bmAt||0,b.bmAt||0);
+  const lc=(a.lastAt||0)>=(b.lastAt||0)?a:b;m.lastCard=lc.lastCard||a.lastCard||b.lastCard||null;if(a.lastAt||b.lastAt)m.lastAt=Math.max(a.lastAt||0,b.lastAt||0);
+  if(a.nudgeOff||b.nudgeOff)m.nudgeOff=[a.nudgeOff||'',b.nudgeOff||''].sort().pop();
+  return m;
+}
+const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs)&&JSON.stringify(x.lib||{})===JSON.stringify(y.lib||{})&&JSON.stringify(x.theory||{})===JSON.stringify(y.theory||{});
 
 /* ---------- folder layout ---------- */
 async function ensureLayout(){

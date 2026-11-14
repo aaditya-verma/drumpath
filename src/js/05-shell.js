@@ -30,6 +30,7 @@ const ICONS={
   kit:'<ellipse cx="12" cy="9" rx="8" ry="3"/><path d="M4 9v6c0 1.7 3.6 3 8 3s8-1.3 8-3V9"/><path d="M2 3l6 5M22 3l-6 5"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  theory:'<path d="M3 6h18M3 10h18M3 14h18"/><ellipse cx="9" cy="17.5" rx="3.2" ry="2.4" transform="rotate(-20 9 17.5)"/><path d="M12 17V3l5 2"/>',
   library:'<path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="M15.5 5.2l3.9-1 3.1 14.6-3.9 1z"/>',
   more:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   back:'<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
@@ -49,11 +50,12 @@ const NAVI={
   compare:['Compare','Crosstab any measure'],
   kit:['Kit','Your kit, pads, kit check, latency'],
   studio:['Studio','Tag songs with lessons (Claude)'],
+  theory:['Theory','Read music, count it, understand it'],
   library:['Library','MIDI, audio and docs from Drive'],
   settings:['Settings','Scoring, theme, backup'],
 };
 const PRIMARY=['home','practise','lessons','progress','songs'];
-const ALLNAV=['home','practise','lessons','progress','songs','library','compare','studio','kit','settings'];
+const ALLNAV=['home','practise','lessons','progress','songs','theory','library','compare','studio','kit','settings'];
 
 /* ---------- view state + back stack ---------- */
 let cur='home';
@@ -69,6 +71,7 @@ function navSnap(){return{cur,vp:VP[cur]?JSON.parse(JSON.stringify(VP[cur])):nul
 function viewLabel(){
   if(cur==='lessons'){const p=VP.lessons;if(p.id)return p.id;if(p.lv!=null)return 'Level '+p.lv+(p.sd?' · '+STRANDS[p.sd]:'');return 'Skill map';}
   if(cur==='songs'&&VP.songs.id){const s=songById(VP.songs.id);if(s)return s.title;}
+  if(cur==='theory'){const p=VP.theory||{};if(p.mode==='card'&&typeof THC!=='undefined'&&THC[p.card])return THC[p.card].t;if(p.mode==='part')return 'Theory · '+p.part;if(p.mode==='review')return 'Remember deck';return 'Theory';}
   if(cur==='progress'){const p=VP.progress;return 'Progress'+(p.path.length?' · '+periodName(p.path[p.path.length-1]):'');}
   return NAVI[cur]?NAVI[cur][0]:cur;
 }
@@ -129,7 +132,7 @@ function openSearch(){
 /* ---------- render ---------- */
 const view=$('#view');
 function render(){
-  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,library:renderLibrary,kit:renderKit,settings:renderSettings}[cur]||renderHome;
+  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,library:renderLibrary,theory:renderTheory,kit:renderKit,settings:renderSettings}[cur]||renderHome;
   try{f();}catch(e){console.error(e);view.innerHTML=`<div class="card"><b>Something went wrong drawing this page.</b><p class="mut">${esc(e.message)}</p></div>`;}
   syncNav();
   if(typeof fillLibStatus==='function'&&document.querySelector('[data-libst]'))fillLibStatus().catch(()=>{});

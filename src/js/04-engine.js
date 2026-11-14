@@ -48,6 +48,9 @@ function routineAfter(passed){
   ROUTINE.next=setTimeout(()=>{ROUTINE.next=null;if(!ROUTINE.on||run||!L)return;exI=nx;P(L.id).ex=exI;$('#result').classList.add('hidden');renderPracBar();renderPads(L.ex[exI]);makePreview();startRun();},ROUTINE_GAP);
   return `<p style="margin-top:10px"><b>Routine</b> · next: ${esc(L.ex[nx].n)} in ${ROUTINE_GAP/1000} s · ${mmss(left)} left · <button class="sm" data-act="routinestop">Stop routine</button></p>`;
 }
+/* Theory tries (T2) run on this screen as a lesson-like object with .theory set: they use a throwaway progress record,
+   so nothing is written to lesson progress (state.prog). For every real lesson LP() is exactly P(L.id). */
+function LP(){return L&&L.theory?(L._p||(L._p={bpm:L.bpm[0],streak:0,best:0,bestBpm:0,attempts:0,ms:0,status:'new',last:0,ex:0})):P(L.id);}
 let stretchMode=false, lastRunTs=0, L=null, exI=0, bpm=60, run=null, preview=null, lastFeed=0, flashes={}, wake=null;
 const cv=$('#cv'), cx=cv.getContext('2d');
 
@@ -106,6 +109,7 @@ function renderPracBar(){
   $('#exsel').innerHTML=L.ex.length>1?L.ex.map((e,i)=>`<button class="${i===exI?'on':''}" data-act="ex" data-i="${i}">${esc(e.n)}</button>`).join(''):`<span class="mut">${esc(L.ex[0].n)}</span>`;
   $('#bpmv').textContent=bpm;
   if(L.calib){$('#pdots').innerHTML='<span>Latency test</span>';return;}
+  if(L.theory){$('#stretchwrap').innerHTML='';$('#pdots').innerHTML='<span>Theory try · '+TH_PLAY+'% or more = Can play · counts for minutes and streak only</span>';return;}
   const p=P(L.id);
   const sx=stretchMax(L.id),cs=canStretch(L.id);
   $('#stretchwrap').innerHTML=sx&&cs?`<button class="sm ${stretchMode?'pri':''}" data-act="stretch" title="Keep climbing +${L.step} BPM above the lesson goal, up to the fastest song that uses this lesson">${stretchMode?'Stretch on · '+(p.stretchBpm||L.bpm[1]+L.step)+' → '+sx:'Stretch to song tempo → '+sx}</button>`:'';
@@ -139,7 +143,7 @@ async function startRun(){
 }
 function stopRun(save_=true){
   if(!run)return; run.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
-  if(save_&&!run.calib){addTime(L.id,performance.now()-run.startPerf);save();}
+  if(save_&&!run.calib){if(L.theory)thAddTime(performance.now()-run.startPerf);else addTime(L.id,performance.now()-run.startPerf);save();}
   run=null; $('#go').textContent='Start'; draw();
 }
 function loop(){
@@ -303,6 +307,7 @@ function finish(){
     }
     dynScore=tot?Math.round(100*ok/tot):null;
   }
+  if(L.theory){thTryDone(R,{score,dynScore,on:on.length,n:sc.length,ext,miss,avg,elapsed});return;}   // Theory try: minutes + streak only
   const p=P(L.id); p.attempts++; p.last=Date.now(); p.ex=exI; addTime(L.id,elapsed);
   if(p.status==='new')p.status='progress';
   let msg='';

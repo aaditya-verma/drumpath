@@ -2,13 +2,16 @@
 'use strict';
 /* ============ STATE ============ */
 const KEY='drumpath.v1';
-const DEF_SET={tol:30,win:120,pass:90,dynPass:80,hhMode:'auto',hhOpenCC:40,hhLowOpen:true,graceMode:'scored',scoreArt:true,bars:4,vol:0.7,subclick:false,countin:1,pads:true,cacheMB:500,nview:'both'};
+const DEF_SET={tol:30,win:120,pass:90,dynPass:80,hhMode:'auto',hhOpenCC:40,hhLowOpen:true,graceMode:'scored',scoreArt:true,bars:4,vol:0.7,subclick:false,countin:1,pads:true,cacheMB:500,nview:'both',thVoice:false,thKon:false};
 let state;
-function freshState(){return{v:1,map:{...DEFAULT_MAP},art:{...DEFAULT_ART},lat:0,set:{...DEF_SET},prog:{},done:{},sessions:[],days:{},songs:[],savedAt:0};}
+function freshState(){return{v:1,map:{...DEFAULT_MAP},art:{...DEFAULT_ART},lat:0,set:{...DEF_SET},prog:{},done:{},sessions:[],days:{},songs:[],savedAt:0,theory:{cards:{},review:{},bookmarks:[],lastCard:null}};}
+/* Theory (T2, D-030): per-card statuses, Remember-deck review queue, bookmarks. Only new fields; back-filled on load. */
+function thFill(s){let t=s.theory;if(!t||typeof t!=='object'||Array.isArray(t))t=s.theory={};if(!t.cards||typeof t.cards!=='object')t.cards={};if(!t.review||typeof t.review!=='object')t.review={};if(!Array.isArray(t.bookmarks))t.bookmarks=[];if(!('lastCard' in t))t.lastCard=null;return s;}
 function loadLocal(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}return null;}
 state=Object.assign(freshState(),loadLocal()||{});
 state.set=Object.assign({...DEF_SET},state.set);
 state.art=Object.assign({...DEFAULT_ART},state.art||{});
+thFill(state);
 if(state.map[37]==null&&!Object.values(state.map).includes('__none'))state.map[37]='S';
 /* Testing mode (sandbox): the app runs normally but NOTHING is written — not to this device, not to Google Drive,
    not to the Claude account. Forced by ?test=1; on by default in DrumPath on claude.ai; a switch in Settings on the tablet. */
@@ -44,7 +47,7 @@ async function pushCloud(){
     const d=db.collection('data/users/'+id).doc('drumpath');
     let r=await d.get(); let data=r&&(typeof r.data==='function'?r.data():(r.data!==undefined?r.data:r));
     cloud=d;
-    if(data&&data.v&&(data.savedAt||0)>(state.savedAt||0)){state=Object.assign(freshState(),data);state.set=Object.assign({...DEF_SET},state.set);if(typeof songStateFill==='function')songStateFill(state);save();render();}
+    if(data&&data.v&&(data.savedAt||0)>(state.savedAt||0)){state=Object.assign(freshState(),data);state.set=Object.assign({...DEF_SET},state.set);thFill(state);if(typeof songStateFill==='function')songStateFill(state);save();render();}
     else if(!SANDBOX)pushCloud();
   }catch(e){console.warn('cloud',e);}
 })();

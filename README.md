@@ -6,7 +6,7 @@ Live: https://aaditya-verma.github.io/drumpath/
 ## Files
 See `docs/ARCHITECTURE.md` for the file map; `docs/DECISIONS.md` and `docs/RULES.md` for decisions and rules.
 - `index.html` + `src/css/app.css` + `src/js/*.js`: the app.
-- `lessons/lib.js`: pattern helpers; `lessons/L0-2.js`, `lessons/L3.js`: lesson data.
+- `lessons/lib.js`: pattern helpers; `lessons/L0-2.js`, `L3.js`, `L4.js`: lesson data; `theory/*.js`: theory course content.
 - Progress is stored in the browser (`localStorage` key `drumpath.v1`). Use **Kit & Settings → Export backup**.
 
 ## Pattern format
@@ -102,6 +102,27 @@ red (wrong sound) or grey (missed). **Tap a note** (on the staff, the count or t
 the staff, its value, where it falls in the count, and the hand or foot; the same step is ringed in the grid.
 Checks: `?test=1` › Settings › **Run notation tests**; `validateNotation()` checks that all 296 Level 0–4 exercises draw
 with every note, each voice adds up to the bar, and the count line has a slot per step.
+
+## Theory (T2, 15 Nov 2026, D-030; v22)
+More › **Theory** (a tab on wide screens): the course in `build/theory-course-plan.md`. T2 ships the reader and Tier A parts
+**A1–A4** (Sound, beat and time · Reading rhythm 1 · The drum chart 1 · Groove basics): 34 chapters, 101 cards, own words.
+- Content: `theory/A1.js`…`A4.js` (`DP_THEORY` parts → chapters → cards; card ids like `A2.04.2` are permanent once shipped),
+  `theory/concepts.js` (concept tag → cards, `_lessons` hand map, `TX()` pattern helper). Reader: `src/js/17-theory.js`.
+- Card = one screen + More: crumbs, “card n of m”, idea, diagram (notation via `ntBuild`, count grid with Western + konnakol
+  counts, note-value tree, tempo ruler, drum key, form strip, energy curve, dynamics ladder, hairpins, timing feel, staff,
+  one-bar repeat), **Hear it** (kit synth + click; count shown in time, optionally spoken — Settings › Theory),
+  **Try it** (practice screen, normal engine; ≥ 85 % = Can play), Remember, More, Check, Where it shows up, Back / Next / swipe.
+- Statuses per card: Read → Understood (check right) → Can play. Never blocks a lesson.
+- **Remember deck**: reading a card queues its Remember line at 1 day, then 3, 7, 21, 60 days (Again = back to 1 day); due
+  count on Home and Theory home.
+- Links: lesson pages show “New idea here” chips for unread cards (concept tags from exercise data + hand map); Home shows at
+  most one theory nudge a day (✕ = not today).
+- Data (new fields only): `state.theory = {cards:{id:{r,u,p,updatedAt}}, review:{id:{due,step,at,done}}, bookmarks, bmAt,
+  lastCard, lastAt, nudgeOff}`; `state.set.thVoice`, `thKon`. Theory tries are runs with `kind:'theory'` and id `th:<card>`:
+  minutes + streak only, never lesson progress, readiness or status. Drive/tab merge: a status reached on either device is kept;
+  the later review wins. Testing mode saves nothing.
+Checks: `?test=1` › Settings › **Run theory tests** (34 checks, incl. every Try scored by the engine and the review queue with a
+fake clock).
 
 ## Drive library (S3, 11 Nov 2026, D-025)
 **Library** (More › Library, and a **Files** section on each song page) lists MIDI files, audio and documents from the

@@ -54,7 +54,7 @@ document.addEventListener('click',async e=>{
   if(a==='more'){if($('#msheet').classList.contains('hidden'))openMore();else closeMore();return;}
   if(a==='search'){closeMore();openSearch();return;}
   if(a==='theme'){cycleTheme();return;}
-  if(a==='ex'){if(run||ROUTINE.on)return;exI=+d.i;P(L.id).ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
+  if(a==='ex'){if(run||ROUTINE.on)return;exI=+d.i;LP().ex=exI;renderPracBar();renderPads(L.ex[exI]);makePreview();draw();return;}
   if(a==='stretch'){if(run)return;stretchMode=!stretchMode;const p=P(L.id);bpm=stretchMode?(p.stretchBpm||Math.min(L.bpm[1]+5,stretchMax(L.id)||L.bpm[1]+5)):p.bpm;$('#bpmv').textContent=bpm;renderPracBar();makePreview();draw();return;}
   if(a==='go'){if(run){routineStop();stopRun();}else startRun();return;}
   if(a==='routine'){if(!run)routineStart();return;}
@@ -93,6 +93,7 @@ document.addEventListener('click',async e=>{
   if(a==='antest'){const el=$('#antests');el.innerHTML='Running…';const t=await analyseTests();render();const e2=$('#antests');if(e2)e2.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='persist'){await requestPersist();toast(STORE.persisted?'Chrome will keep your data':'Chrome said not yet: it grants this once the app is used often or added to the home screen');fillStorageCard();return;}
   if(a==='sbxtest'){const el=$('#sbxtests');el.innerHTML='Running…';const t=await sandboxTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
+  if(a==='thtest'){const el=$('#thtests');el.innerHTML='Running…';const t=await theoryTests();const e2=$('#thtests')||el;e2.innerHTML=`<div style="font-size:13px;margin-top:6px"><b>Theory: ${t.filter(x=>x.pass).length}/${t.length} pass</b></div>`+t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='libtest'){const el=$('#libtests');el.innerHTML='Running…';const t=await libTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='stortest'){const el=$('#stortests');el.innerHTML='Running…';const t=await storageTests();el.innerHTML=t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='kitclear'){kitLog=[];kitLast=0;const el=$('#kitlog');if(el)el.innerHTML=kitLogHtml(40);return;}

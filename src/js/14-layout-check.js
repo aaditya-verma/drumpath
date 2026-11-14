@@ -36,11 +36,11 @@ function layoutReport(){const is=layoutAudit(view);const box=openSheet('Layout c
 
 // every screen on this device, at its current size and orientation
 async function layoutSweep(){
-  const keep={cur,vp:JSON.stringify({lessons:VP.lessons,songs:VP.songs,progress:VP.progress})};const out=[];const wait=()=>new Promise(r=>setTimeout(r,120));
+  const keep={cur,vp:JSON.stringify({lessons:VP.lessons,songs:VP.songs,progress:VP.progress,theory:VP.theory})};const out=[];const wait=()=>new Promise(r=>setTimeout(r,120));
   const firstSong=allSongs()[0],lesson=LESSONS.find(l=>l.type==='play');
   const screens=[['Home',()=>go('home')],['Practise',()=>go('practise')],['Skill map',()=>go('lessons',{lv:null,sd:null,id:null})],['Level 3',()=>go('lessons',{lv:3,sd:null,id:null},{keep:true})],['Level 4',()=>go('lessons',{lv:4,sd:null,id:null},{keep:true})],
     ['A lesson',()=>openLesson(lesson.id)],['Progress',()=>go('progress')],['Songs',()=>go('songs',{view:'all',id:null})],['Song matrix',()=>go('songs',{view:'matrix',id:null})],
-    ['A song',()=>go('songs',{id:firstSong.id})],['Compare',()=>go('compare')],['Studio',()=>go('studio')],['Library',()=>go('library')],['Kit',()=>go('kit')],['Settings',()=>go('settings')]];
+    ['A song',()=>go('songs',{id:firstSong.id})],['Compare',()=>go('compare')],['Studio',()=>go('studio')],['Library',()=>go('library')],['Theory',()=>thGo({mode:'home'})],['Theory part',()=>thGo({mode:'part',part:'A2'})],['Theory card · notation',()=>thGo({mode:'card',card:'A2.06.3'})],['Theory card · count',()=>thGo({mode:'card',card:'A1.08.4'})],['Theory card · key',()=>thGo({mode:'card',card:'A3.01.1'})],['Theory card · energy',()=>thGo({mode:'card',card:'A4.07.1'})],['Remember deck',()=>{TH_RV.list=[];thGo({mode:'review'});}],['Kit',()=>go('kit')],['Settings',()=>go('settings')]];
   for(const [n,f] of screens){try{f();await wait();out.push([n,layoutAudit(view)]);}catch(e){out.push([n,[{kind:'error',what:e.message}]]);}}
   // header: everything in the brand row must stay on one line
   {const row=document.querySelector('.brand-row');const kids=row?[...row.children].filter(e=>e.offsetParent&&e.getBoundingClientRect().width>0):[];
@@ -52,6 +52,6 @@ async function layoutSweep(){
     try{openPractice(id);state.set.nview=m;notaRender(true);if(m!=='grid')notaSelect(3);draw();await wait();out.push(['Practice '+id+' · '+m,layoutAudit($('#prac'))]);notaSelect(null);}catch(e){out.push(['Practice '+id+' · '+m,[{kind:'error',what:e.message}]]);}}
   state.set.nview=keepNv;
   $('#prac').classList.add('hidden');
-  const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);go(keep.cur==='practise'?'settings':'settings');
+  const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);if(v.theory)VP.theory=v.theory;go(keep.cur==='practise'?'settings':'settings');
   return out;
 }

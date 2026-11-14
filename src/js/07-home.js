@@ -54,6 +54,7 @@ function renderHome(){
   <div class="card row"><div style="flex:1;min-width:200px"><span class="idx">${nx.id}</span> <b style="font-size:18px">${esc(nx.t)}</b><div class="mut">Level ${nx.lv}: ${LEVELS[nx.lv]} · ${STRANDS[nx.sd]}</div></div>
     ${last&&last.id!==nx.id?`<button data-open="${last.id}">Resume ${last.id}</button>`:''}
     <button data-open="${nx.id}">Open</button>${nx.type==='play'?`<button class="pri" data-play="${nx.id}">${icon('play',16)} Practise</button>`:''}</div>
+  ${typeof thHomeCard==='function'?thHomeCard():''}
   <div class="card tap row" data-nav="songs" style="margin-top:12px;flex-wrap:nowrap">${ring(slib.avg/100,44,5)}<div style="flex:1;min-width:0"><div class="note-k" style="color:var(--accent)">Songs ↗</div><b>${slib.counts.ready} of ${sst.length} songs ready</b> <span class="mut">· ${slib.counts.reach} in reach</span>${su?`<div class="mut" style="font-size:14px">Biggest unlock: <b>${su.id}</b> ${esc(tagLesson(su.id).t)}, raises ${pl(su.songs,'song')}</div>`:''}</div></div>
   <h2>Coach notes</h2>
   <div class="deck">${notes.map((n,i)=>`<div class="card tap" data-note="${i}"><div class="note-k" style="color:${n.c}">${esc(n.k)}</div><b style="font-size:17px">${esc(n.t)}</b><span class="mut">${esc(n.d)}</span></div>`).join('')}</div>
