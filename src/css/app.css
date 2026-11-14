@@ -312,3 +312,25 @@ h1{overflow-wrap:anywhere}
 .lrow.dim{opacity:.55;cursor:default}
 .thrv{max-width:760px}
 @media (max-width:600px){.thidea{font-size:16px}.thdg{padding:8px}}
+/* ---------- Theory T3: keyboard, neck, chord chart, practice panel ---------- */
+.thsvg .thkey.wk{fill:#f4f4f2;stroke:var(--grid-bar);stroke-width:1}.thsvg .thkey.bk{fill:#22252a;stroke:#22252a}
+.thsvg .thkey.hi.wk{fill:color-mix(in srgb,var(--accent) 35%,#f4f4f2)}.thsvg .thkey.hi.bk{fill:color-mix(in srgb,var(--accent) 60%,#22252a)}
+.thsvg .thkey.on.wk{fill:var(--accent)}.thsvg .thkey.on.bk{fill:var(--accent)}
+.thsvg .thkl{font-size:11.5px;font-weight:700;fill:#2b2f36;text-anchor:middle}.thsvg .thkl.bl{fill:#f4f4f2;font-size:9.5px}
+.thsvg .thfret{fill:color-mix(in srgb,var(--accent) 40%,var(--L2));stroke:var(--accent);stroke-width:1.5}.thsvg .thfret.on{fill:var(--accent)}
+.thsvg .thfl{font-size:10px;font-weight:800;fill:var(--ink);text-anchor:middle}
+.thsvg .thchd{font-size:18px;font-weight:800;fill:var(--ink);text-anchor:middle}.thsvg .thchd.on{fill:var(--accent)}
+.thcard{display:grid;gap:0 24px}
+@media (min-width:1100px){.thcard:not(.thsheetcard){grid-template-columns:minmax(0,1fr) 300px;max-width:1180px}.thcard:not(.thsheetcard) .thside{border-left:1px solid var(--line);padding-left:20px}}
+.thmain{min-width:0}.thside{min-width:0}
+.thpt{margin:10px 0}.thprow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}.thprow:last-child{border-bottom:0}
+.thprow b{font-size:15px}.thprow.dim{opacity:.7}.thpwhy{font-size:13px}
+.thpchip.att{border-color:var(--accent);color:var(--accent)}
+.pbody{flex:1;display:flex;min-height:0}.pbody .cvwrap{flex:1;min-width:0}
+#thrail{width:320px;flex:none;overflow:auto;background:var(--L1);border-left:1px solid var(--line);padding:12px 14px}
+.thpact{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.threcap{padding:8px 0;border-bottom:1px solid var(--line)}.threcap:last-of-type{border-bottom:0}
+.threcap.tiny{margin-top:8px;padding:8px 10px;border:1px dashed var(--line);border-radius:12px;font-size:14px}
+.thfix{margin-top:14px;border:1px solid var(--accent)}
+.thq4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.thq4c.on{border-color:var(--accent)}
+.thq4c .k{font-size:13px;font-weight:700;color:var(--muted)}.thq4c .v{font-family:var(--f-display);font-size:30px;font-weight:800}.thq4c .v small{font-size:13px;color:var(--muted);margin-left:4px;font-weight:600}.thq4c .d{font-size:13px;color:var(--muted)}

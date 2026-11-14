@@ -114,6 +114,11 @@ function thMerge(A,B){
   const bm=(a.bmAt||0)>=(b.bmAt||0)?a:b;m.bookmarks=(a.bmAt||b.bmAt)?bm.bookmarks.slice():[...new Set([...a.bookmarks,...b.bookmarks])];if(a.bmAt||b.bmAt)m.bmAt=Math.max(a.bmAt||0,b.bmAt||0);
   const lc=(a.lastAt||0)>=(b.lastAt||0)?a:b;m.lastCard=lc.lastCard||a.lastCard||b.lastCard||null;if(a.lastAt||b.lastAt)m.lastAt=Math.max(a.lastAt||0,b.lastAt||0);
   if(a.nudgeOff||b.nudgeOff)m.nudgeOff=[a.nudgeOff||'',b.nudgeOff||''].sort().pop();
+  // T3 side panel: skips (union, last 5 per card), auto-open days (later wins), skip/read log (longer one), last-run fixes (newer)
+  m.skips={};new Set([...Object.keys(a.skips),...Object.keys(b.skips)]).forEach(id=>{m.skips[id]=[...new Set([...(a.skips[id]||[]),...(b.skips[id]||[])])].sort((x,y)=>x-y).slice(-5);});
+  m.auto=Object.assign({},a.auto);Object.entries(b.auto).forEach(([k,v])=>{if(!m.auto[k]||v>m.auto[k])m.auto[k]=v;});
+  m.plog=(a.plog.length>=b.plog.length?a.plog:b.plog).slice(-40);
+  m.fails=Object.assign({},a.fails);Object.entries(b.fails).forEach(([k,v])=>{if(!m.fails[k]||(v.ts||0)>(m.fails[k].ts||0))m.fails[k]=v;});
   return m;
 }
 const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs)&&JSON.stringify(x.lib||{})===JSON.stringify(y.lib||{})&&JSON.stringify(x.theory||{})===JSON.stringify(y.theory||{});

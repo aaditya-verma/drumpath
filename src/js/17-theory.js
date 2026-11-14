@@ -27,10 +27,12 @@ const thCon=()=>typeof DP_CONCEPTS!=='undefined'?DP_CONCEPTS:{};
 /* ---------- clock (tests use a fake one) + statuses ---------- */
 let thClock=null;const thNow=()=>thClock!=null?thClock:Date.now();
 const DAY=864e5;
+const TH_BL='https://aaditya-verma.github.io/backline/';
 function thS(){return thFill(state).theory;}
-function thSt(id){const c=thS().cards[id];return !c?'':c.p?'p':c.u?'u':c.r?'r':'';}
-const TH_ST_LABEL={'':'New',r:'Read',u:'Understood',p:'Can play'};
-function thChip(id){const s=thSt(id);return s==='p'?'<span class="chip ms">Can play</span>':s==='u'?'<span class="chip ms">Understood</span>':s==='r'?'<span class="chip ip">Read</span>':'<span class="chip">New</span>';}
+function thSt(id){const c=thS().cards[id];return !c?'':c.p?'p':c.h?'h':c.u?'u':c.r?'r':'';}
+const thKnown=id=>/[uph]/.test(thSt(id));
+const TH_ST_LABEL={'':'New',r:'Read',u:'Understood',p:'Can play',h:'Can hear'};
+function thChip(id){const s=thSt(id);return s==='p'?'<span class="chip ms">Can play</span>':s==='h'?'<span class="chip ms">Can hear</span>':s==='u'?'<span class="chip ms">Understood</span>':s==='r'?'<span class="chip ip">Read</span>':'<span class="chip">New</span>';}
 function thMark(id,k,quiet){
   if(!THC[id])return false;const t=thS(),c=t.cards[id]||(t.cards[id]={});if(c[k])return false;
   c[k]=thNow();c.updatedAt=thNow();
@@ -76,8 +78,9 @@ function thCardLessons(k){const out=new Set((k.links&&k.links.lessons)||[]);cons
   return [...out].filter(id=>LBY[id]).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));}
 // lesson page: “New idea here” chips for unread cards (never blocks), ✓ chips for cards already read
 function thLessonChips(id){
-  const cs=thLessonCards(id);if(!cs.length)return '';const un=cs.filter(c=>!thSt(c)),rd=cs.filter(c=>thSt(c));
-  return `<div class="thchips">${un.slice(0,2).map(c=>`<button class="sm thnew" data-thcard="${c}">New idea here: ${esc(THC[c].t)} <span class="mut">· 2-min card</span></button>`).join('')}${rd.slice(0,4).map(c=>`<button class="sm ghost" data-thcard="${c}">✓ ${esc(THC[c].t)}</button>`).join('')}</div>`;
+  const back=typeof TH_BACK!=='undefined'&&TH_BACK.lesson===id&&THC[TH_BACK.card]?`<button class="sm" data-thcard="${TH_BACK.card}">‹ Back to card: ${esc(THC[TH_BACK.card].t)}</button>`:'';
+  const cs=thLessonCards(id);if(!cs.length&&!back)return '';const un=cs.filter(c=>!thSt(c)),rd=cs.filter(c=>thSt(c));
+  return `<div class="thchips">${back}${un.slice(0,2).map(c=>`<button class="sm thnew" data-thcard="${c}">New idea here: ${esc(THC[c].t)} <span class="mut">· 2-min card</span></button>`).join('')}${rd.slice(0,4).map(c=>`<button class="sm ghost" data-thcard="${c}">✓ ${esc(THC[c].t)}</button>`).join('')}</div>`;
 }
 // Home: the Remember deck's due count and at most one theory nudge a day (same card all day; dismissable)
 function thNudge(){
@@ -165,6 +168,28 @@ const TH_DG={
     const beats=4,bw=(W-80)/beats;rows.forEach(([lb,dir],r)=>{const y=r*30+20;s+=`<text class="thtl" x="0" y="${y+4}">${esc(lb)}</text>`;
       for(let b=0;b<beats;b++){const x=80+b*bw+bw/2;s+=`<line class="thgl" x1="${x}" x2="${x}" y1="${y-11}" y2="${y+11}"/><circle class="thmkc${dir?' off':''}" cx="${x+dir*(4+b*4)}" cy="${y}" r="5"/>`;}});
     return thSvg(W,h,s)+`<div class="thleg mut">lines = the click · dots = your hits</div>`;},
+  keys(dg){ // piano keyboard: dg.from (MIDI, a C), dg.oct (octaves), dg.hi (MIDI to colour), dg.names (true = letter on every white key, 'all' = black keys too), dg.marks ({midi:label}), dg.steps ([[a,b,'W'|'H'],…] arcs under the keys)
+    const from=dg.from||60,oct=dg.oct||1,W=Math.min(thW(),620),whites=[];for(let n=from;n<=from+12*oct;n++)if(![1,3,6,8,10].includes(BacklineTone.mod(n)))whites.push(n);
+    const ww=W/whites.length,kh=dg.steps?96:110,h=kh+(dg.steps?34:6),hi=new Set(dg.hi||[]),mk=dg.marks||{};let s='',xs={};
+    whites.forEach((n,i)=>{const x=i*ww;xs[n]=x+ww/2;s+=`<rect class="thkey wk${hi.has(n)?' hi':''}" data-n="${n}" x="${x+0.5}" y="0" width="${ww-1}" height="${kh}" rx="4"/>`;
+      const lab=mk[n]!=null?mk[n]:dg.names?BacklineTone.noteName(n,dg.flats)+(dg.oct>1&&BacklineTone.mod(n)===0&&dg.octNums?Math.floor(n/12)-1:''):'';if(lab!=='')s+=`<text class="thkl" x="${x+ww/2}" y="${kh-8}">${esc(lab)}</text>`;});
+    for(let n=from;n<from+12*oct;n++){if(![1,3,6,8,10].includes(BacklineTone.mod(n)))continue;const x=xs[n-1]+ww/2-ww*0.3;xs[n]=x+ww*0.3;
+      s+=`<rect class="thkey bk${hi.has(n)?' hi':''}" data-n="${n}" x="${x}" y="0" width="${ww*0.6}" height="${kh*0.6}" rx="3"/>`;
+      const lab=mk[n]!=null?mk[n]:dg.names==='all'?BacklineTone.noteName(n,dg.flats):'';if(lab!=='')s+=`<text class="thkl bl" x="${x+ww*0.3}" y="${kh*0.6-7}">${esc(lab)}</text>`;}
+    (dg.steps||[]).forEach(([a,b,l])=>{const x1=xs[a],x2=xs[b];if(x1==null||x2==null)return;s+=`<path class="thln" d="M${x1} ${kh+4} Q${(x1+x2)/2} ${kh+20} ${x2} ${kh+4}"/><text class="thsm c b" x="${(x1+x2)/2}" y="${kh+30}">${esc(l)}</text>`;});
+    return thSvg(W,h,s)+(dg.note?`<div class="thleg mut">${esc(dg.note)}</div>`:'');},
+  neck(dg){ // guitar neck: dg.strings (low → high names), dg.frets, dg.hi [[stringIndex,fret,label]]
+    const st=dg.strings||['E','A','D','G','B','E'],fr=dg.frets||12,W=Math.min(thW(),660),lw=24,fw=(W-lw-6)/(fr+1),sh=st.length>1?18:0,h=Math.max(1,st.length-1)*sh+44;let s='';
+    const openMidi=dg.open||[40,45,50,55,59,64].slice(0,st.length);
+    st.forEach((n,i)=>{const y=14+(st.length-1-i)*sh;s+=`<text class="thsm" x="0" y="${y+4}">${n}</text><line class="thsl" style="opacity:.8" x1="${lw}" x2="${W}" y1="${y}" y2="${y}"/>`;});
+    for(let f=0;f<=fr;f++){const x=lw+f*fw+fw;s+=`<line class="${f===0?'thbar':'thgl'}" x1="${x}" x2="${x}" y1="8" y2="${20+(st.length-1)*sh}"/>`;if([3,5,7,9,12,15].includes(f))s+=`<text class="thsm c" x="${x-fw/2}" y="${h-4}">${f}</text>`;}
+    (dg.hi||[]).forEach(([si,f,l])=>{const y=14+(st.length-1-si)*sh,x=lw+f*fw+fw/2;s+=`<circle class="thfret" data-n="${(openMidi[si]||40)+f}" cx="${x}" cy="${y}" r="8"/>${l!=null?`<text class="thfl" x="${x}" y="${y+3.5}">${esc(l)}</text>`:''}`;});
+    return thSvg(W,h,s)+(dg.note?`<div class="thleg mut">${esc(dg.note)}</div>`:'');},
+  chart(dg){ // chord chart: one box per bar, chord names (and Roman numerals) inside
+    const bars=dg.bars,per=Math.min(bars.length,dg.per||4),rows=Math.ceil(bars.length/per),W=Math.min(thW(),620),bw=W/per,rh=dg.rn?50:40,h=rows*(rh+6);let s='',ci=0;
+    bars.forEach((b,i)=>{const r=Math.floor(i/per),x=(i%per)*bw,y=r*(rh+6);s+=`<rect class="thsec" x="${x+1}" y="${y}" width="${bw-2}" height="${rh}" rx="6"/>`;
+      [].concat(b).forEach((c,j,arr)=>{const cx=x+bw*(j+0.5)/arr.length;s+=`<text class="thchd" data-ci="${ci}" x="${cx}" y="${y+24}">${esc(c)}</text>`;if(dg.rn&&dg.rn[ci])s+=`<text class="thsm c" x="${cx}" y="${y+42}">${esc(dg.rn[ci])}</text>`;ci++;});});
+    return thSvg(W,h,s)+(dg.note?`<div class="thleg mut">${esc(dg.note)}</div>`:'');},
   simile(dg){ // one-bar repeat: bar 1 written out, bar 2 the slash-and-dots sign
     const W=Math.min(thW(),520),st=24,h=st+40+26,bw=(W-30)/2;let s='';
     for(let i=0;i<5;i++)s+=`<line class="thsl" x1="0" x2="${W}" y1="${st+i*10}" y2="${st+i*10}"/>`;
@@ -203,7 +228,7 @@ function thVoice(v,t,gain,ch){
     s.connect(fl).connect(g);s.start(t);s.stop(t+1.1);HEAR.nodes.push(s);}
 }
 function thHearStop(){
-  HEAR.nodes.forEach(n=>{try{n.stop(0);}catch(_){}});HEAR.nodes=[];cancelAnimationFrame(HEAR.raf);HEAR.timers.forEach(clearTimeout);HEAR.timers=[];
+  HEAR.nodes.forEach(n=>{try{n.stop(0);}catch(_){}});HEAR.nodes=[];if(HEAR.tone)HEAR.tone.stop();document.querySelectorAll('.thkey.on,.thchd.on,.thfret.on').forEach(x=>x.classList.remove('on'));cancelAnimationFrame(HEAR.raf);HEAR.timers.forEach(clearTimeout);HEAR.timers=[];
   try{window.speechSynthesis&&speechSynthesis.cancel();}catch(_){}
   HEAR.on=null;document.querySelectorAll('[data-thhear].on').forEach(b=>{b.classList.remove('on');b.innerHTML=b.dataset.lab;});
   document.querySelectorAll('.thcell.on').forEach(c=>c.classList.remove('on'));const bc=$('#thbig');if(bc)bc.textContent='';
@@ -222,9 +247,10 @@ function thHearPlan(sp){
     const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0];words.push({t,i,w:(mt.full||mt.count)[j]||'',kon:(TH_SYL[g]||[])[j-grp[0]]||'',beat:j===grp[0],bn:mt.beatOf[j]+1});}
   return{evs,clicks,words,stepS,total:cinS+reps*n*stepS,cinS,n};
 }
-async function thHear(id,idx){
-  const k=THC[id];if(!k)return;const sp=thHearSpecs(k)[idx||0];if(!sp)return;const key=id+':'+(idx||0);
+async function thHear(id,idx,spec){
+  const k=THC[id];if(!k)return;const sp=spec||thHearSpecs(k)[idx||0];if(!sp)return;const key=id+':'+(idx==null?0:idx);
   if(HEAR.on===key){thHearStop();return;}thHearStop();
+  if(sp.seq||sp.chords)return thHearTone(k,sp,key);
   const a=audio();if(a.state!=='running'){try{await a.resume();}catch(_){}}
   const P0=thHearPlan(sp),t0=a.currentTime+0.15;HEAR.on=key;HEAR.t0=t0;HEAR.spec=sp;
   P0.evs.forEach(e=>thVoice(e.v,t0+e.t,e.gain,e.ch));P0.clicks.forEach(c=>click(t0+c.t,c.k,HEAR.nodes));
@@ -243,9 +269,39 @@ async function thHear(id,idx){
   HEAR.raf=requestAnimationFrame(tick);
 }
 
+/* Hear it with the shared tone synth (lib/tone.x.y.z.js, from Backline): notes, intervals, scales, chords, progressions.
+   sp.seq = [midi | [midi…] | null(rest)], one step per sp.beats (default 1) beat; sp.chords = ['C','G',…], sp.beats per
+   chord (default 4), with an optional drum groove sp.ex looped under it; sp.voice = 'keys' (default) | 'pad'. */
+function thTonePlan(sp){
+  const bpmv=sp.bpm||80,beatS=60/bpmv,ev=[];let t=0;
+  if(sp.seq){const per=(sp.beats||1)*beatS;sp.seq.forEach((n,i)=>{if(n!=null)ev.push({t,d:per*(sp.legato===false?0.6:0.95),notes:[].concat(n),i,kind:'n'});t+=per;});}
+  else{const per=(sp.beats||4)*beatS;sp.chords.forEach((c,i)=>{ev.push({t,d:per,chord:c,i,kind:'c'});t+=per;});}
+  return{ev,total:t,beatS};
+}
+async function thHearTone(k,sp,key){
+  const a=audio();if(a.state!=='running'){try{await a.resume();}catch(_){}}
+  if(!HEAR.tone||HEAR.tone.ctx!==a)HEAR.tone=new BacklineTone.Tone(a);
+  const P0=thTonePlan(sp),t0=a.currentTime+0.12,T=HEAR.tone;HEAR.on=key;
+  if(sp.seq)P0.ev.forEach(e=>e.notes.forEach(n=>sp.voice==='pad'?T.pad([n],t0+e.t,e.d):T.keys(n,t0+e.t,e.d)));
+  else{T.progression(sp.chords,t0,P0.beatS,sp.beats||4);
+    if(sp.ex){const ex=sp.ex,spb=ex.steps||4*ex.sub,n=spb*(ex.bars||1),stepS=P0.beatS/ex.sub;for(let i=0;i*stepS<P0.total-1e-6;i++){const j=i%n;for(const v in ex.v){const c=ex.v[v][j];if(c&&c!=='.')thVoice(v,t0+i*stepS,(c==='X'?1:c==='g'?0.22:0.55)*(sp.gain||0.8),c);}}}
+    if(sp.click)for(let b=0;b*P0.beatS<P0.total-1e-6;b++)click(t0+b*P0.beatS,b%(sp.beats||4)===0?'acc':'beat',HEAR.nodes);}
+  const b=document.querySelector(`[data-thhear="${key}"]`);if(b){b.classList.add('on');b.innerHTML='■ Stop';}
+  const wrap=document.querySelector(`[data-thdg="${k.id}"]`);let last=-1;
+  const tick=()=>{if(HEAR.on!==key)return;const el=a.currentTime-t0;if(el>P0.total+0.4){thHearStop();return;}
+    const cur=P0.ev.filter(e=>e.t<=el&&el<e.t+e.d).pop();const bc=$('#thbig');
+    if(cur&&cur.i!==last){last=cur.i;if(bc)bc.textContent=cur.chord||cur.notes.map(n=>BacklineTone.noteName(n,sp.flats)).join(' ');
+      if(wrap){wrap.querySelectorAll('.thkey.on,.thchd.on,.thfret.on').forEach(x=>x.classList.remove('on'));
+        if(cur.notes)cur.notes.forEach(n=>wrap.querySelectorAll(`.thkey[data-n="${n}"],.thfret[data-n="${n}"]`).forEach(x=>x.classList.add('on')));
+        else{const c=wrap.querySelector(`.thchd[data-ci="${cur.i}"]`);if(c)c.classList.add('on');const v=BacklineTone.voicing(cur.chord);if(v)v.pad.concat(v.pad.map(x=>x+12),v.pad.map(x=>x-12)).forEach(n=>wrap.querySelectorAll(`.thkey[data-n="${n}"]`).forEach(x=>x.classList.add('on')));}}}
+    else if(!cur&&last!==-2){last=-2;if(wrap)wrap.querySelectorAll('.thkey.on,.thchd.on,.thfret.on').forEach(x=>x.classList.remove('on'));}
+    HEAR.raf=requestAnimationFrame(tick);};
+  HEAR.raf=requestAnimationFrame(tick);
+}
+
 /* ---------- Try it: the practice screen, scored by the normal engine ---------- */
 function openTheoryTry(id,i){
-  const k=THC[id];if(!k||!k.try)return;thHearStop();const t=k.try,b=t.bpm||70;
+  const k=THC[id];const t=k&&(k.try||(typeof thQuickTry==='function'&&thQuickTry(k)));if(!t)return;closeSheets();thHearStop();const b=t.bpm||70;
   L={id:'th:'+id,t:k.t,theory:id,type:'play',lv:0,sd:1,bpm:[b,b],step:5,ex:t.ex,loop:t.loop};stretchMode=false;exI=Math.min(i||0,t.ex.length-1);bpm=b;
   $('#prac').classList.remove('hidden');$('#result').classList.add('hidden');
   $('#ptitle').innerHTML=`<span class="idx">Theory</span>${esc(k.t)}`;renderPracBar();renderPads(L.ex[exI]);sizeCv();makePreview();draw();
@@ -263,11 +319,11 @@ function thTryDone(R,res){
 const TH_ANS={};   // this session's answers: {cardId:{qi:choice}}
 function thCheckHtml(k,qs,opts={}){
   const a=TH_ANS[k.id]||{};
-  return qs.map((q,i)=>{const pick=a[i];return `<div class="thq"><b>${opts.num?opts.num+i+1+'. ':''}${esc(q.q)}</b><div class="thans">${q.a.map((x,j)=>`<button class="sm ${pick===j?(j===q.c?'pri':'bad'):''}" data-thq="${k.id}" data-qi="${i}" data-qj="${j}">${esc(x)}</button>`).join('')}</div>${pick!=null?`<p class="mut thwhy">${pick===q.c?'✓ ':'✗ '}${esc(q.why||'')}</p>`:''}</div>`;}).join('');
+  return qs.map((q,i)=>{const pick=a[i];return `<div class="thq"><b>${opts.num?opts.num+i+1+'. ':''}${esc(q.q)}</b>${q.hear?` <button class="sm ghost" data-thqh="${k.id}:${i}">▶ Play</button>`:''}<div class="thans">${q.a.map((x,j)=>`<button class="sm ${pick===j?(j===q.c?'pri':'bad'):''}" data-thq="${k.id}" data-qi="${i}" data-qj="${j}">${esc(x)}</button>`).join('')}</div>${pick!=null?`<p class="mut thwhy">${pick===q.c?'✓ ':'✗ '}${esc(q.why||'')}</p>`:''}</div>`;}).join('');
 }
 function thAnswer(id,qi,qj){
   const k=THC[id];if(!k||!k.check)return;const a=TH_ANS[id]=TH_ANS[id]||{};a[qi]=qj;
-  if(k.check.every((q,i)=>a[i]===q.c)){thMark(id,'r',true);if(thMark(id,'u',true))toast('Understood ✓');save();}
+  if(k.check.every((q,i)=>a[i]===q.c)){thMark(id,'r',true);const u=thMark(id,'u',true),h=k.ear&&thMark(id,'h',true);if(h)toast('Can hear ✓');else if(u)toast('Understood ✓');save();}
 }
 
 /* ---------- views ---------- */
@@ -281,8 +337,8 @@ function renderTheory(){
   if(p.mode==='review')return thRenderReview();
   thRenderHome();
 }
-function thTierStats(tier){const ks=TH_ORDER.filter(k=>k.part.tier===tier);return{n:ks.length,u:ks.filter(k=>/[up]/.test(thSt(k.id))).length,r:ks.filter(k=>thSt(k.id)).length};}
-function thPartStats(pt){const ks=pt.ch.flatMap(c=>c.cards);return{n:ks.length,u:ks.filter(k=>/[up]/.test(thSt(k.id))).length,r:ks.filter(k=>thSt(k.id)).length};}
+function thTierStats(tier){const ks=TH_ORDER.filter(k=>k.part.tier===tier);return{n:ks.length,u:ks.filter(k=>thKnown(k.id)).length,r:ks.filter(k=>thSt(k.id)).length};}
+function thPartStats(pt){const ks=pt.ch.flatMap(c=>c.cards);return{n:ks.length,u:ks.filter(k=>thKnown(k.id)).length,r:ks.filter(k=>thSt(k.id)).length};}
 function thRenderHome(){
   const p=VP.theory,t=thS(),due=thDue().length,c=thContinue(),by=p.by||'tier';
   const partRow=([pid,th,name])=>{const pt=THP.find(x=>x.id===pid);if(!pt)return `<div class="lrow dim"><span class="idx">${pid}</span><span>${esc(name)}</span><span class="sp"></span><span class="chip">Coming</span></div>`;
@@ -315,33 +371,31 @@ function thRenderPart(pt){
   ${pt.d?`<p style="max-width:860px">${esc(pt.d)}</p>`:''}
   ${pt.ch.map(c=>`<h2 style="font-size:18px">${c.id.split('.')[1]*1}. ${esc(c.t)}</h2><div class="list">${c.cards.map(thCardRow).join('')}</div>`).join('')}`;
 }
-function thWhere(k){
-  const ls=thCardLessons(k),out=[];
-  if(ls.length)out.push(`<div class="thwl"><span class="note-k">Your lessons</span> ${ls.slice(0,6).map(id=>`<button class="sm ghost" data-open="${id}">${id} ${esc(LBY[id].t)}</button>`).join('')}${ls.length>6?`<span class="mut" style="font-size:13px">+${ls.length-6} more</span>`:''}</div>`);
-  let songs=[];try{const ctx=songCtx(),seen=new Set();ls.forEach(id=>songsUsing(id).forEach(s=>{if(!seen.has(s.id)){seen.add(s.id);songs.push(songStats(ctx,s));}}));songs.sort((a,b)=>b.ready-a.ready);}catch(_){songs=[];}
-  if(songs.length)out.push(`<div class="thwl"><span class="note-k">Your songs</span> ${songs.slice(0,4).map(x=>`<button class="sm ghost" data-song="${esc(x.song.id)}">${esc(x.song.title)}</button>`).join('')}</div>`);
-  if(k.mine==='timing'){const rs=state.sessions.filter(s=>LBY[s.id]&&s.avg!=null).slice(-20);if(rs.length){const av=rs.reduce((a,s)=>a+s.avg,0)/rs.length;
-    out.push(`<div class="thwl"><span class="note-k">Your timing</span> last ${rs.length} runs: ${Math.abs(av)<8?'centred on the beat':av<0?'rushing, '+Math.round(-av)+' ms ahead':'dragging, '+Math.round(av)+' ms behind'} on average</div>`);}}
-  return out.length?`<div class="thwhere">${out.join('')}</div>`:'';
+function thWhere(k){   // lessons and songs moved to "Practise this" (T3); timing stays here
+  if(k.mine!=='timing')return '';const rs=state.sessions.filter(s=>LBY[s.id]&&s.avg!=null).slice(-20);if(!rs.length)return '';const av=rs.reduce((a,s)=>a+s.avg,0)/rs.length;
+  return `<div class="thwhere"><div class="thwl"><span class="note-k">Your timing</span> last ${rs.length} runs: ${Math.abs(av)<8?'centred on the beat':av<0?'rushing, '+Math.round(-av)+' ms ahead':'dragging, '+Math.round(av)+' ms behind'} on average</div></div>`;
 }
-function thRenderCard(k){
-  const t=thS();if(thMark(k.id,'r',true)){}t.lastCard=k.id;t.lastAt=thNow();save();
-  const sib=k.chap.cards,pi=TH_ORDER[k.n-1],nx=TH_ORDER[k.n+1],hs=thHearSpecs(k),bm=t.bookmarks.includes(k.id);
-  const lastOfCh=k.i===sib.length-1,chq=sib.reduce((a,c)=>a+(c.check||[]).length,0);
-  view.innerHTML=thCrumbs([['Theory',{mode:'home'}],[k.part.id+' '+k.part.t,{mode:'part',part:k.part.id}],[k.chap.t,null]])+
-  `<div class="thcard" data-thswipe>
-   <div class="thhead"><span class="mut thn">Card ${k.i+1} of ${sib.length}</span><span class="sp"></span>${thChip(k.id)}<button class="icon ghost thstar ${bm?'on':''}" data-thbm="${k.id}" title="${bm?'Remove bookmark':'Bookmark'}">${bm?'★':'☆'}</button></div>
+// the card itself (also used as a sheet over the practice screen: opts.sheet)
+function thCardHtml(k,opts={}){
+  const t=thS(),sib=k.chap.cards,hs=thHearSpecs(k),bm=t.bookmarks.includes(k.id),lastOfCh=k.i===sib.length-1,chq=sib.reduce((a,c)=>a+(c.check||[]).length,0);
+  const side=`${typeof thPractiseThis==='function'?thPractiseThis(k,opts):''}${thWhere(k)}${k.backline?`<div class="thwl"><span class="note-k">In Backline</span> ${k.backline.map(x=>`<a class="btn sm" href="${TH_BL}${x.h?'#'+x.h:''}" target="_blank" rel="noopener">${esc(x.l)} ↗</a>`).join('')}</div>`:''}`;
+  return `<div class="thcard${opts.sheet?' thsheetcard':''}" ${opts.sheet?'':'data-thswipe'} data-thcid="${k.id}"><div class="thmain">
+   <div class="thhead"><span class="mut thn">${opts.sheet?esc(k.part.id+' · '+k.chap.t)+' · ':''}Card ${k.i+1} of ${sib.length}</span><span class="sp"></span>${thChip(k.id)}<button class="icon ghost thstar ${bm?'on':''}" data-thbm="${k.id}" title="${bm?'Remove bookmark':'Bookmark'}">${bm?'★':'☆'}</button></div>
    <h1 class="tht">${esc(k.t)}</h1>
    <p class="thidea">${esc(k.idea)}</p>
    ${thDiagram(k,k.dg)}
-   ${hs.length||k.try?`<div class="thact">${hs.map((h,i)=>{const lab=(h.l?esc(h.l):'▶ Hear it');return `<button class="sm" data-thhear="${k.id}:${i}" data-lab="${lab}">${lab}</button>`;}).join('')}${hs.length&&k.dg&&/^(count|nt)$/.test(k.dg.type)?`<button class="sm ghost ${state.set.thKon?'on':''}" data-thkon title="Count shown as numbers or as takadimi syllables">Count: ${state.set.thKon?'ta ka di mi':'1 e & a'}</button>`:''}${hs.length?'<span id="thbig" class="thbig"></span>':''}${k.try?`<span class="sp"></span><button class="sm pri" data-thtry="${k.id}">${icon('play',14)} Try it</button>`:''}</div>`:''}
+   ${hs.length||k.try?`<div class="thact">${hs.map((h,i)=>{const lab=(h.l?esc(h.l):'▶ Hear it');return `<button class="sm" data-thhear="${k.id}:${i}" data-lab="${lab}">${lab}</button>`;}).join('')}${hs.length&&k.dg&&/^(count|nt)$/.test(k.dg.type)?`<button class="sm ghost ${state.set.thKon?'on':''}" data-thkon title="Count shown as numbers or as takadimi syllables">Count: ${state.set.thKon?'ta ka di mi':'1 e & a'}</button>`:''}${hs.length?'<span id="thbig" class="thbig"></span>':''}${k.try&&!opts.sheet?`<span class="sp"></span><button class="sm pri" data-thtry="${k.id}">${icon('play',14)} Try it</button>`:''}</div>`:''}
    ${k.rem?`<div class="threm"><span class="note-k">Remember</span><span>${esc(k.rem)}</span></div>`:''}
    ${k.more?`<div class="thmore"><button class="thmt ghost" data-thmore aria-expanded="${VP.theory.more===k.id}">${VP.theory.more===k.id?'Less ▴':'More ▾'}</button><div class="thmb${VP.theory.more===k.id?'':' hidden'}">${[].concat(k.more).map(x=>`<p>${esc(x)}</p>`).join('')}${k.see?`<div class="chips">${k.see.filter(s=>THC[s]).map(s=>`<button class="sm ghost" data-thcard="${s}">See: ${esc(THC[s].t)}</button>`).join('')}</div>`:''}</div></div>`:''}
-   ${k.check?`<div class="thcheck"><div class="note-k">Check</div>${thCheckHtml(k,k.check)}</div>`:''}
-   ${lastOfCh&&chq>sib.length?`<div class="row" style="margin-top:8px"><button class="sm" data-thchap="${k.id}">Chapter check · ${chq} questions</button></div>`:''}
-   ${thWhere(k)}
-   <div class="thnav">${pi?`<button data-thcard="${pi.id}" title="${esc(pi.t)}">‹ Back</button>`:'<span></span>'}<span class="sp"></span>${nx?`<button class="pri" data-thcard="${nx.id}" title="${esc(nx.t)}">Next ›</button>`:'<span class="mut">End of the written course for now</span>'}</div>
-  </div>`;
+   ${k.check?`<div class="thcheck"><div class="note-k">Check${k.ear?' · listen':''}</div>${thCheckHtml(k,k.check)}</div>`:''}
+   ${!opts.sheet&&lastOfCh&&chq>sib.length?`<div class="row" style="margin-top:8px"><button class="sm" data-thchap="${k.id}">Chapter check · ${chq} questions</button></div>`:''}
+   </div>${side?`<aside class="thside">${side}</aside>`:''}</div>`;
+}
+function thRenderCard(k){
+  const t=thS();thMark(k.id,'r',true);t.lastCard=k.id;t.lastAt=thNow();save();
+  const pi=TH_ORDER[k.n-1],nx=TH_ORDER[k.n+1];
+  view.innerHTML=thCrumbs([['Theory',{mode:'home'}],[k.part.id+' '+k.part.t,{mode:'part',part:k.part.id}],[k.chap.t,null]])+thCardHtml(k)+
+  `<div class="thnav">${pi?`<button data-thcard="${pi.id}" title="${esc(pi.t)}">‹ Back</button>`:'<span></span>'}<span class="sp"></span>${nx?`<button class="pri" data-thcard="${nx.id}" title="${esc(nx.t)}">Next ›</button>`:'<span class="mut">End of the written course for now</span>'}</div>`;
 }
 function thChapterCheck(id){
   const k=THC[id],cs=k.chap.cards.filter(c=>c.check);let off=0;
@@ -370,14 +424,17 @@ document.addEventListener('click',e=>{
   if((b=T.closest('[data-thcard]'))){closeSheets();thHearStop();thGo({mode:'card',card:b.dataset.thcard});return;}
   if((b=T.closest('[data-thgo]'))){closeSheets();const p=JSON.parse(b.dataset.thgo);if(p.mode==='review'){TH_RV.list=[];}thGo(p);return;}
   if((b=T.closest('[data-thby]'))){VP.theory.by=b.dataset.thby;render();return;}
+  if((b=T.closest('[data-thqh]'))){const [id,qi]=b.dataset.thqh.split(':');const q=THC[id]&&THC[id].check[+qi];if(q&&q.hear)thHear(id,'q'+qi,q.hear);return;}
   if((b=T.closest('[data-thhear]'))){const [id,i]=b.dataset.thhear.split(':');thHear(id,+i);return;}
   if((b=T.closest('[data-thkon]'))){state.set.thKon=!state.set.thKon;save();b.classList.toggle('on',state.set.thKon);b.textContent='Count: '+(state.set.thKon?'ta ka di mi':'1 e & a');return;}
   if((b=T.closest('[data-thtry]'))){openTheoryTry(b.dataset.thtry);return;}
   if((b=T.closest('[data-thbm]'))){const t=thS(),id=b.dataset.thbm,i=t.bookmarks.indexOf(id);if(i>=0)t.bookmarks.splice(i,1);else t.bookmarks.push(id);t.bmAt=thNow();save();const on=i<0;b.classList.toggle('on',on);b.textContent=on?'★':'☆';b.title=on?'Remove bookmark':'Bookmark';return;}
+  if((b=T.closest('[data-thq]'))&&b.closest('.thsheetcard')){const box=b.closest('.thsheetcard');thAnswer(b.dataset.thq,+b.dataset.qi,+b.dataset.qj);const k=THC[box.dataset.thcid];if(k){const w=box.parentElement;box.outerHTML=thCardHtml(k,{sheet:true});}return;}
   if((b=T.closest('[data-thq]'))&&!b.closest('.modal')){const y=scrollY;thAnswer(b.dataset.thq,+b.dataset.qi,+b.dataset.qj);render();scrollTo(0,y);return;}
   if((b=T.closest('[data-thchap]'))){thChapterCheck(b.dataset.thchap);return;}
   if(T.closest('[data-thrvshow]')){TH_RV.show=true;render();return;}
   if((b=T.closest('[data-thrv]'))){const id=TH_RV.list[TH_RV.i];if(id){thReview(id,b.dataset.thrv==='1');TH_RV.done++;}TH_RV.i++;TH_RV.show=false;if(TH_RV.i>=TH_RV.list.length){TH_RV.list=[];TH_RV.fin=true;TH_RV.i=0;}render();scrollTo(0,0);return;}
+  if((b=T.closest('[data-thpset]'))){state.set.thPanel=b.dataset.thpset;save();render();return;}
   if((b=T.closest('[data-thset]'))){state.set[b.dataset.thset]=b.dataset.v==='1';save();render();if(b.dataset.thset==='thVoice'&&state.set.thVoice&&!window.speechSynthesis)toast('This browser has no speech voice; the count is shown instead.');return;}
   if((b=T.closest('[data-thmore]'))){const k=VP.theory.card,open=VP.theory.more!==k;VP.theory.more=open?k:null;const body=b.nextElementSibling;body.classList.toggle('hidden',!open);b.textContent=open?'Less ▴':'More ▾';b.setAttribute('aria-expanded',open);return;}
   if(T.closest('[data-thnudgeoff]')){thS().nudgeOff=today();save();render();return;}
@@ -427,7 +484,7 @@ async function theoryTests(){
   // 5. Check
   {const k=TH_ORDER.find(x=>x.check.length>=2);delete TH_ANS[k.id];delete state.theory.cards[k.id];thAnswer(k.id,0,(k.check[0].c+1)%k.check[0].a.length);k.check.forEach((q,i)=>i&&thAnswer(k.id,i,q.c));
     const wrong=thSt(k.id)!=='u';k.check.forEach((q,i)=>thAnswer(k.id,i,q.c));T('Check: a wrong answer doesn’t count, all right → Understood',wrong&&thSt(k.id)==='u',k.id);
-    const bad=TH_ORDER.filter(x=>{delete TH_ANS[x.id];const c=state.theory.cards[x.id];if(c){delete c.u;}x.check.forEach((q,i)=>thAnswer(x.id,i,q.c));return !/[up]/.test(thSt(x.id));});T('Every Check scores (all '+ids.length+' cards reach Understood)',!bad.length,bad.slice(0,6).map(x=>x.id).join(' '));}
+    const bad=TH_ORDER.filter(x=>{delete TH_ANS[x.id];const c=state.theory.cards[x.id];if(c){delete c.u;}x.check.forEach((q,i)=>thAnswer(x.id,i,q.c));return !thKnown(x.id);});T('Every Check scores (all '+ids.length+' cards reach Understood)',!bad.length,bad.slice(0,6).map(x=>x.id).join(' '));}
   // 6. Remember deck with a fake clock
   {state.theory={cards:{},review:{},bookmarks:[],lastCard:null};const t0=Date.UTC(2026,10,15,8);thClock=t0;const k=TH_ORDER.find(x=>x.rem);
     thMark(k.id,'r',true);const r=state.theory.review[k.id];T('Reading a card puts its Remember line in the deck, due in 1 day',r&&r.due===t0+DAY&&r.step===0,'');
@@ -459,6 +516,7 @@ async function theoryTests(){
     T('Sync merge: the later review and bookmark list win',M.review['A1.01.1'].step===2&&M.bookmarks.length===0&&M.lastCard==='A2.02.1','');
     const mm=mergeStates(normaliseState({v:1,savedAt:1,theory:A}),normaliseState({v:1,savedAt:2,theory:B}));T('mergeStates carries theory',mm.theory&&mm.theory.cards['A1.01.1'].p===9,'');
     T('Testing mode: nothing is written',!SANDBOX||(()=>{let w=0;const o=storeSave;storeSave=()=>{w++;};try{thMark(TH_ORDER[3].id,'r');thReview(TH_ORDER[3].id,true);}finally{storeSave=o;}return w===0;})(),SANDBOX?'sandbox on':'not in testing mode');}
+  if(typeof thT3Tests==='function')out.push(...await thT3Tests());
   // restore
   const k=JSON.parse(keep);state.theory=k.theory;state.days=k.days;state.prog=k.prog;state.sessions=state.sessions.slice(0,k.n);state.set=k.set;thFill(state);Object.keys(TH_ANS).forEach(x=>delete TH_ANS[x]);
   VP.theory=JSON.parse(keepVP);cur=keepCur;render();

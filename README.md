@@ -122,8 +122,26 @@ More › **Theory** (a tab on wide screens): the course in `build/theory-course-
   lastCard, lastAt, nudgeOff}`; `state.set.thVoice`, `thKon`. Theory tries are runs with `kind:'theory'` and id `th:<card>`:
   minutes + streak only, never lesson progress, readiness or status. Drive/tab merge: a status reached on either device is kept;
   the later review wins. Testing mode saves nothing.
-Checks: `?test=1` › Settings › **Run theory tests** (35 checks, incl. every Try scored by the engine and the review queue with a
+Checks: `?test=1` › Settings › **Run theory tests** (65 checks with T3, incl. every Try scored by the engine and the review queue with a
 fake clock).
+
+### Theory T3 (15 Nov 2026, D-032, D-034; v24)
+- **Content:** Tier A parts A5–A10 (notes and the keyboard, major scale and keys, first chords, song form, listening,
+  playing with others): 30 more chapters, 69 more cards — Tier A complete (170 cards). Listening cards play their
+  questions; all right = **Can hear**.
+- **Shared tone synth:** `lib/tone.0.1.0.js` = Backline's chord/bass/keys voices + voice leading (from
+  `aaditya-verma/backline` @ 5d9d89d, `app/music.js` + `app/player.js`), pinned like the engine. Hear-it specs:
+  `seq` (notes), `chords` (+ optional drum groove). New diagrams: keyboard, guitar neck, chord chart.
+- **Practice ↔ theory** (`src/js/18-theory-practice.js`): the practice screen's **Theory** chip / right-hand rail
+  (tablet landscape) / sheet (phones) ranks the exercise's cards (core → need → first time) with Read, 30-second recap,
+  "Read 2, then start" and "Skip, start"; **smart display** (opens itself on a first visit, a new or due core card, or
+  after a failed run that maps to a card; at most once per lesson per day; never during a run, routine or stretch;
+  learns from skips; Settings › Theory › Smart · Always · Never). After a run: **Fix it with theory** (note-position
+  timing, rushing/dragging, accents/ghosts, open hi-hat/rim → cards; coach rule D2). On every card: **Practise this**
+  (quick try → next lesson → easy win → songs). Progress › **Theory**: Understood × Practised per concept. Practise plan:
+  one short theory recap per item + the Remember deck. Song pages: "Concepts you know: n of m". Cards link to Backline.
+- **Data (new fields only):** `state.theory.skips / auto / plog / fails`, `state.set.thPanel`; merged on sync.
+  Engine hooks are display-only (`thPanelOnOpen`, `thPanelSync`, `thFixHtml`); scoring unchanged.
 
 ## Drive library (S3, 11 Nov 2026, D-025)
 **Library** (More › Library, and a **Files** section on each song page) lists MIDI files, audio and documents from the

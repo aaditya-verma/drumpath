@@ -102,6 +102,7 @@ function openPractice(id){
   $('#prac').classList.remove('hidden'); $('#result').classList.add('hidden');
   $('#ptitle').innerHTML=`<span class="idx">${L.id}</span>${esc(L.t)}`;
   renderPracBar(); renderPads(L.ex[exI]); sizeCv(); makePreview(); draw();
+  if(typeof thPanelOnOpen==='function')thPanelOnOpen();   // theory side panel (display only)
 }
 function renderPracBar(){
   const sb=$('#subbtn');if(sb)sb.textContent='Sub-click: '+(state.set.subclick?'On':'Off');
@@ -138,6 +139,7 @@ async function startRun(){
   run.clicks.forEach(c=>click(t0+c.t/1000,c.k,run.nodes));
   run.evs.forEach(e=>{if(e.listen)drum(e.v,t0+(e.t-base)/1000,run.nodes);});
   flashes={}; $('#pfeed').textContent=''; $('#go').textContent='Stop'; $('#result').classList.add('hidden');
+  if(typeof thPanelSync==='function')thPanelSync();
   requestAnimationFrame(loop);
   try{if(navigator.wakeLock&&!wake)navigator.wakeLock.request('screen').then(w=>{wake=w;w.addEventListener('release',()=>{if(wake===w)wake=null;});}).catch(()=>{});}catch(e){}
 }
@@ -145,6 +147,7 @@ function stopRun(save_=true){
   if(!run)return; run.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
   if(save_&&!run.calib){if(L.theory)thAddTime(performance.now()-run.startPerf);else addTime(L.id,performance.now()-run.startPerf);save();}
   run=null; $('#go').textContent='Start'; draw();
+  if(typeof thPanelSync==='function')thPanelSync();
 }
 function loop(){
   if(!run)return; draw(); const now=performance.now();
@@ -346,12 +349,13 @@ function finish(){
    <table><tr><th>Pad</th><th>On time</th><th>Hits</th><th>Missed</th><th>Extra</th><th>Avg timing</th>${dynOn?'<th>Dynamics</th>':''}${grCol?'<th>Graces</th>':''}${sndCol?'<th>Sound</th>':''}</tr>${rows}</table>
    ${R.graceWarn?'<p style="color:var(--warn)">No grace notes arrived from the kit in this run. If you did play them, the module may be merging the two hits: set <b>Grace notes</b> to <b>Lenient</b> in Kit &amp; Settings, or lower the snare’s retrigger/mask time on the module.</p>':''}
    ${sndCol&&!R.evs.some(e=>e.hitArt)?'<p class="mut">Open/closed and rim/head weren’t reported for these hits (on-screen pads), so they weren’t checked.</p>':''}
-   ${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}${routineAfter(passed)}`);
+   ${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}${typeof thFixHtml==='function'?thFixHtml(R,{passed,score,dynScore,avg}):''}${routineAfter(passed)}`);
 }
 function showResult(html,calib){
   const r=$('#result');r.classList.remove('hidden');
   r.innerHTML=`<div class="in"><div class="row" style="margin-bottom:18px"><button class="pri" data-act="again" style="font-size:20px;padding:14px 30px">${calib?'Run again':'Again'}</button>${calib?'':'<button data-act="bpm-">−5 BPM</button><button data-act="bpm+">+5 BPM</button>'+(lastRunTs?`<button data-run="${lastRunTs}">Run detail</button>`:'')}<span class="sp"></span><button data-act="pexit">Done</button></div>${html}</div>`;
   if(SANDBOX&&!calib&&!r.querySelector('.sbxnote'))r.querySelector('.in').insertAdjacentHTML('beforeend','<p class="mut sbxnote" style="font-size:13px;margin-top:12px">Testing mode: this run isn’t saved and doesn’t count towards progress, streaks or readiness.</p>');
   makePreview();draw();
+  if(typeof thPanelSync==='function')thPanelSync();
 }
 

@@ -19,9 +19,10 @@ function snapCard(k,st){
 }
 function renderProgress(){
   const p=VP.progress;
-  const seg=`<div class="seg" style="margin-bottom:14px">${[['timeline','Timeline'],['calendar','Calendar'],['pads','Pads & limbs'],['records','Records']].map(([k,l])=>`<button class="${p.mode===k?'on':''}" data-pmode="${k}">${l}</button>`).join('')}</div>`;
+  const seg=`<div class="seg" style="margin-bottom:14px">${[['timeline','Timeline'],['calendar','Calendar'],['pads','Pads & limbs'],['records','Records'],['theory','Theory']].map(([k,l])=>`<button class="${p.mode===k?'on':''}" data-pmode="${k}">${l}</button>`).join('')}</div>`;
   let body='';
-  if(!state.sessions.length&&!Object.keys(state.days).length)body='<div class="card mut">No practice logged yet. Play a lesson and your timeline, calendar and pad stats will fill in here.</div>';
+  if(p.mode==='theory'&&typeof progTheory==='function')body=progTheory();
+  else if(!state.sessions.length&&!Object.keys(state.days).length)body='<div class="card mut">No practice logged yet. Play a lesson and your timeline, calendar and pad stats will fill in here.</div>';
   else body=({timeline:progTimeline,calendar:progCalendar,pads:progPads,records:progRecords}[p.mode]||progTimeline)();
   view.innerHTML=`<h1>Progress</h1>${seg}${body}`;
   view.querySelectorAll('[data-pk]').forEach(el=>el.addEventListener('click',()=>{const k=el.dataset.pk;if(k[0]==='D'){const d=pdate(k.slice(1));go('progress',{mode:'calendar',calY:d.getFullYear(),calM:d.getMonth(),day:k.slice(1)});}else go('progress',{path:[...p.path,k]});}));

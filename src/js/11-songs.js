@@ -101,6 +101,7 @@ function renderSong(song){
    <div class="card stat"><div class="k">Played along</div><div class="v">${pl.n}<small>× · ${Math.round(pl.mins)} min</small></div><div class="d">${pl.last?'last '+pl.last+(pl.avg?' · avg '+pl.avg.toFixed(1)+'★':''):'not logged yet'}</div></div>
   </div>
   ${x.next?`<div class="card" style="margin-top:12px"><span class="note-k" style="color:var(--accent)">Next step</span><div style="font-size:17px;margin-top:4px"><b>${x.next.id}</b> ${esc(tagName(x.next.id))}${x.next.coming?' — coming in Level '+lessonLevel(x.next.id):x.T?' → '+x.T+' BPM':''}</div></div>`:''}
+  ${typeof thSongConcepts==='function'?thSongConcepts(song,x):''}
   <h2>Skills</h2><div class="list" style="overflow-x:auto"><table><tr><th>Lesson</th><th>Weight</th><th>Status</th><th>Skill</th><th class="n">Best / target</th><th class="n">Last 5</th><th>Trend</th><th></th></tr>${rows}</table></div>
   ${analysisCard(song)}
   ${typeof libSongCard==='function'?libSongCard(song):''}
