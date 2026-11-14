@@ -306,7 +306,7 @@ h1{overflow-wrap:anywhere}
 .thwl button{white-space:normal;text-align:left}
 .thnav{display:flex;align-items:center;gap:8px;margin:14px 0 4px}
 .thchips{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 10px}.thchips button{white-space:normal;text-align:left}.thnew{border-color:var(--accent);color:var(--accent)}
-.thtiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}.thtier{display:flex;gap:10px;align-items:center;padding:12px}
+.thtiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px}.thtier{display:flex;gap:10px;align-items:center;padding:12px}.thtier .thtk{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .thtop2{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 .thsnip{font-size:13px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
 .lrow.dim{opacity:.55;cursor:default}
@@ -334,3 +334,27 @@ h1{overflow-wrap:anywhere}
 .thfix{margin-top:14px;border:1px solid var(--accent)}
 .thq4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.thq4c.on{border-color:var(--accent)}
 .thq4c .k{font-size:13px;font-weight:700;color:var(--muted)}.thq4c .v{font-family:var(--f-display);font-size:30px;font-weight:800}.thq4c .v small{font-size:13px;color:var(--muted);margin-left:4px;font-weight:600}.thq4c .d{font-size:13px;color:var(--muted)}
+
+/* v25: short screens (phone landscape): compact practice bar, pads always on screen */
+@media (max-height:449px){
+  .ptop{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:6px;padding:4px 8px;scrollbar-width:thin}
+  .ptop>*{flex:none}
+  .ptop>button.ghost[data-act="pexit"]{position:sticky;left:0;z-index:2;background:var(--L1);padding:4px 10px}
+  /* order on short screens: close, title, tempo, Theory, then exercises/views (scroll), Start pinned right */
+  .ptop>button.ghost[data-act="pexit"]{order:0}.ptitle{order:1}.bpmc{order:2}#thchipw{order:3}.exsel{order:4}.nvsel{order:5}#subbtn{order:6}#simwrap{order:7}#stretchwrap{order:8}.passdots{order:9}#go{order:10;margin-left:auto;box-shadow:10px 0 0 var(--L1),-6px 0 8px -2px var(--L1)}
+  body:has(#prac:not(.hidden)) .dock{display:none}
+  .ptitle{font-size:13px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ptitle .idx{font-size:12px}
+  .exsel{flex:none;overflow:visible}.exsel button{padding:4px 9px;font-size:13px}
+  .nvsel button{padding:4px 9px;font-size:13px}
+  #subbtn,.ptop select,.ptop #simwrap button{padding:4px 8px;font-size:12px}
+  .passdots{font-size:12px;white-space:nowrap}
+  .bpmc span{font-size:19px;min-width:40px}.bpmc button{font-size:16px;padding:2px 10px}.bpmc small{display:none}
+  #thchipw .thpchip{padding:4px 9px;font-size:12px;white-space:nowrap}
+  #go{position:sticky;right:0;z-index:2;font-size:16px;padding:6px 16px;min-width:86px}
+  .cvwrap{min-height:0}.cvbox{min-height:56px}
+  #nota{max-height:62%}
+  #pads{padding:4px 6px;gap:4px}#pads button{padding:7px 2px;font-size:12px}
+  #nexp{bottom:6px;padding:6px 40px 6px 10px;font-size:12.5px;line-height:1.35;max-height:calc(100% - 12px);overflow:auto}
+  #nexp .nxh1{margin-bottom:1px}
+}

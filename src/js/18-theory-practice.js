@@ -197,6 +197,9 @@ async function thT3Tests(){
   const keep=JSON.stringify({theory:state.theory,set:state.set,prog:state.prog,n:state.sessions.length});
   const fresh=()=>{state.theory={cards:{},review:{},bookmarks:[],lastCard:null};thT3Fill();};
   // 1. shared synth
+  {const bad=[],all=[];(function walk(x){if(!x||typeof x!=='object')return;if(x.id&&x.dg&&x.dg.type==='keys'){all.push(x);return;}Object.values(x).forEach(walk);})(DP_THEORY);
+   all.forEach(c=>{const lo=c.dg.from,hi=lo+12*(c.dg.oct||1);[].concat(c.hear||[]).forEach(h=>(h.seq||[]).flat(2).forEach(m=>{if(typeof m==='number'&&(m<lo||m>hi))bad.push(c.id+':'+m);}));(c.dg.hi||[]).forEach(m=>{if(m<lo||m>hi)bad.push(c.id+' hi '+m);});});
+   T('Keyboard cards: every note Hear it plays is on the drawn keyboard ('+all.length+' cards)',all.length>20&&!bad.length,bad.join(' '));}
   const BT=window.BacklineTone;T('Shared tone synth loaded (Backline tone '+(BT&&BT.VERSION)+')',BT&&BT.VERSION==='0.1.0'&&typeof BT.Tone==='function','');
   {const v=BT.voicing('C'),vl=BT.voiceLead([60,64,67],'F');T('Synth: C = C E G over a low C',v&&v.bass===36&&v.pad.map(BT.mod).sort((a,b)=>a-b).join()==='0,4,7',v&&JSON.stringify(v));
    T('Synth: voice leading C → F keeps the common C',vl&&vl.includes(60)&&vl.map(BT.mod).sort((a,b)=>a-b).join()==='0,5,9',vl&&vl.join(' '));}

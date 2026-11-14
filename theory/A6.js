@@ -27,14 +27,14 @@ DP_THEORY.push({id:'A6',tier:'A',th:'H',t:'Major scale and keys',d:'The pattern 
   more:['Numbers let musicians talk about a song in any key: “the chorus starts on the 4 chord” makes sense whatever the key.'],
   check:[{q:'In C major, which note is degree 5?',a:['G','F','A'],c:0,why:'C D E F G: G is the 5th.'}]},
  {id:'A6.02.2',t:'Same numbers in every key',idea:'Start the W W H W W W H pattern on any note and you get that note’s major scale. The numbers stay the same; only the letters change.',
-  dg:{type:'keys',from:67,oct:1,hi:A6_G,marks:{67:'1',69:'2',71:'3',72:'4',74:'5',76:'6',78:'7',79:'1'}},hear:[{l:'▶ C major',seq:A6_C,bpm:100},{l:'▶ G major',seq:A6_G,bpm:100}],
+  dg:{type:'keys',from:60,oct:2,hi:A6_G,marks:{67:'1',69:'2',71:'3',72:'4',74:'5',76:'6',78:'7',79:'1'}},hear:[{l:'▶ C major',seq:A6_C,bpm:100},{l:'▶ G major',seq:A6_G,bpm:100}],
   rem:'Any note + W W H W W W H = its major scale.',
   more:['Both scales sound the same shape, just higher or lower. That’s why a singer can ask for a song “in a lower key”.'],
   check:[{q:'G major starts on G. What is degree 3?',a:['B','A','C'],c:0,why:'G A B: B is the 3rd.'}]}
 ]},
 {id:'A6.03',t:'Keys',cards:[
  {id:'A6.03.1',t:'“In the key of G”',idea:'A song in the key of G uses mostly the notes of the G major scale, and G feels like its home.',
-  dg:{type:'keys',from:67,oct:1,names:true,hi:A6_G},hear:{l:'▶ A tune in G',seq:[67,71,74,71,72,69,66,67],beats:1,bpm:96},
+  dg:{type:'keys',from:60,oct:2,names:true,hi:A6_G},hear:{l:'▶ A tune in G',seq:[67,71,74,71,72,69,66,67],beats:1,bpm:96},
   rem:'Key of G = the G major scale’s notes, with G as home.',
   more:['Backline shows the key of every song in its index, so you can see which songs share a key.'],backline:[{l:'Browse songs by key',h:'browse=key'}],
   check:[{q:'A song is “in D”. Its home note is…',a:['D','C','A'],c:0,why:'The key names the home note.'}]},
@@ -44,7 +44,7 @@ DP_THEORY.push({id:'A6',tier:'A',th:'H',t:'Major scale and keys',d:'The pattern 
   more:['A key signature at the start of the music lists those sharps or flats once, so they don’t have to be written on every note (Tier B).'],
   check:[{q:'Which note does G major use instead of F?',a:['F♯','F♭','E'],c:0,why:'The pattern needs a whole step from E, then a half step to G: F♯.'}]},
  {id:'A6.03.3',t:'Changing key',idea:'Moving a whole song up or down to another key is called transposing. The numbers (degrees, chords) stay the same.',
-  dg:{type:'keys',from:60,oct:1,names:true,hi:[60,64,67]},hear:[{l:'▶ Tune in C',seq:[60,64,67,64,65,62,59,60],bpm:96},{l:'▶ Same tune in D',seq:[62,66,69,66,67,64,61,62],bpm:96}],
+  dg:{type:'keys',from:57,oct:1,names:true,hi:[60,64,67]},hear:[{l:'▶ Tune in C',seq:[60,64,67,64,65,62,59,60],bpm:96},{l:'▶ Same tune in D',seq:[62,66,69,66,67,64,61,62],bpm:96}],
   rem:'Transpose = same song, another key.',
   more:['For a drummer, changing key changes nothing you play, but you should know when a band will do it (often for a singer, or for a last chorus).'],
   check:[{q:'The band transposes a song from C to D. What changes for the drums?',a:['Nothing in the pattern','Every fill','The tempo'],c:0,why:'Key is about pitch; drum parts don’t change.'}]}

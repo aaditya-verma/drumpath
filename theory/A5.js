@@ -35,7 +35,7 @@ DP_THEORY.push({id:'A5',tier:'A',th:'H',t:'Notes and the keyboard',d:'The names 
   more:['The groups are your map: you never need to count from the end of the keyboard, just find a group of two or three black keys.'],
   check:[{q:'Black keys are grouped in…',a:['twos and threes','fours','ones'],c:0,why:'Two, then three, then two again in the next octave.'}]},
  {id:'A5.03.2',t:'Finding C',idea:'C is always the white key just left of a group of two black keys. Every other note can be found from there.',
-  dg:{type:'keys',from:60,oct:2,names:true,hi:[60,72]},hear:{l:'▶ The Cs',seq:[48,60,72,84],bpm:90},
+  dg:{type:'keys',from:60,oct:2,names:true,hi:[60,72,84]},hear:{l:'▶ The Cs',seq:[60,72,84],bpm:90},
   rem:'C = the white key left of the two black keys.',
   more:['F is just left of the three black keys, the other easy landmark.'],
   check:[{q:'Where is C?',a:['Just left of a group of two black keys','Just left of three black keys','On a black key'],c:0,why:'Two black keys → the white key to their left is C.'}]},

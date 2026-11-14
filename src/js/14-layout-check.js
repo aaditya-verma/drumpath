@@ -2,8 +2,8 @@
    Finds, on the current screen: text that overlaps other text, text cut off or spilling out of its box,
    and anything that makes the page wider than the screen (outside areas meant to scroll sideways). */
 'use strict';
-function layoutAudit(root){
-  root=root||document.body;const issues=[],W=document.documentElement.clientWidth;
+function layoutAudit(root,opt){
+  opt=opt||{};root=root||document.body;const issues=[],W=document.documentElement.clientWidth;
   const vis=el=>{const s=getComputedStyle(el);if(s.display==='none'||s.visibility==='hidden'||+s.opacity===0)return false;const r=el.getBoundingClientRect();return r.width>0&&r.height>0;};
   const scrollsX=el=>{for(let p=el.parentElement;p&&p!==document.body;p=p.parentElement){const o=getComputedStyle(p).overflowX;if(o==='auto'||o==='scroll')return p;}return null;};
   const name=el=>{let s=el.tagName.toLowerCase();if(el.id)s+='#'+el.id;const c=[...el.classList].slice(0,2).join('.');if(c)s+='.'+c;const t=(el.textContent||'').trim().replace(/\s+/g,' ').slice(0,28);return s+(t?' “'+t+'”':'');};
@@ -30,6 +30,11 @@ function layoutAudit(root){
     const top=wide.filter(el=>!wide.some(o=>o!==el&&o.contains(el))).slice(0,4);issues.push({kind:'page-wider',what:'page is '+document.documentElement.scrollWidth+'px on a '+W+'px screen: '+top.map(name).join(', ')});}
   // 4. content cut off at the screen edge inside a card that doesn't scroll
   root.querySelectorAll('.card').forEach(c=>{if(!vis(c))return;const r=c.getBoundingClientRect();if(r.right>W+1&&!scrollsX(c))issues.push({kind:'cut',what:name(c)+' runs past the screen edge'});});
+  // 5. (practice screen) anything that ends below the visible screen, outside areas meant to scroll
+  if(opt.fit){const H=document.documentElement.clientHeight||innerHeight,low=[];
+    const inScroller=el=>{for(let p=el.parentElement;p&&p!==document.body;p=p.parentElement){if(p===root.parentElement)break;const s=getComputedStyle(p);if(['auto','scroll','hidden'].includes(s.overflowY)||['auto','scroll','hidden'].includes(s.overflowX))return true;}return false;};
+    root.querySelectorAll('*').forEach(el=>{if(!vis(el)||el.closest('svg')||inScroller(el))return;const r=el.getBoundingClientRect();if(r.bottom>H+1&&!low.some(o=>o.contains(el)))low.push(el);});
+    low.slice(0,4).forEach(el=>issues.push({kind:'below-screen',what:name(el)+' ends at '+Math.round(el.getBoundingClientRect().bottom)+'px on a '+H+'px-high screen'}));}
   return issues;
 }
 function layoutReport(){const is=layoutAudit(view);const box=openSheet('Layout check',is.length?`<p class="mut">${is.length} problem${is.length===1?'':'s'} on this screen at ${innerWidth}×${innerHeight}:</p>${is.map(i=>`<div style="font-size:13px;margin:4px 0"><b>${i.kind}</b> ${esc(i.what)}</div>`).join('')}`:`<p>No overlaps or cut-off text on this screen at ${innerWidth}×${innerHeight}. ✓</p>`);return is;}
@@ -49,10 +54,10 @@ async function layoutSweep(){
   // practice screen in each view (Grid · Notation · Both), incl. a 12-bar chart and a tap-a-note explanation
   const keepNv=state.set.nview;
   for(const id of [lesson.id,'3.2.07','4.7.02'])for(const m of ['grid','notation','both']){if(!LBY[id])continue;
-    try{openPractice(id);state.set.nview=m;notaRender(true);if(m!=='grid')notaSelect(3);draw();await wait();out.push(['Practice '+id+' · '+m,layoutAudit($('#prac'))]);notaSelect(null);}catch(e){out.push(['Practice '+id+' · '+m,[{kind:'error',what:e.message}]]);}}
+    try{openPractice(id);state.set.nview=m;notaRender(true);if(m!=='grid')notaSelect(3);draw();await wait();out.push(['Practice '+id+' · '+m,layoutAudit($('#prac'),{fit:1})]);notaSelect(null);}catch(e){out.push(['Practice '+id+' · '+m,[{kind:'error',what:e.message}]]);}}
   state.set.nview=keepNv;
   // theory panel on the practice screen: the list as a sheet (phones) and as the right-hand rail (tablet landscape)
-  try{openPractice(lesson.id);if(typeof thPanelSheet==='function'){closeSheets();thPanelSheet();await wait();const m=document.querySelector('.modal');out.push(['Practice · theory sheet',m?layoutAudit(m):[]]);closeSheets();TH_P.open=true;thPanelSync();await wait();out.push(['Practice · theory '+(thWide()?'rail':'chip'),layoutAudit($('#prac'))]);TH_P.open=false;thPanelSync();}}catch(e){out.push(['Practice · theory panel',[{kind:'error',what:e.message}]]);}
+  try{openPractice(lesson.id);if(typeof thPanelSheet==='function'){closeSheets();thPanelSheet();await wait();const m=document.querySelector('.modal');out.push(['Practice · theory sheet',m?layoutAudit(m):[]]);closeSheets();TH_P.open=true;thPanelSync();await wait();out.push(['Practice · theory '+(thWide()?'rail':'chip'),layoutAudit($('#prac'),{fit:1})]);TH_P.open=false;thPanelSync();}}catch(e){out.push(['Practice · theory panel',[{kind:'error',what:e.message}]]);}
   $('#prac').classList.add('hidden');
   const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);if(v.theory)VP.theory=v.theory;go(keep.cur==='practise'?'settings':'settings');
   return out;
