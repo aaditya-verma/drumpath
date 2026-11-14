@@ -88,6 +88,18 @@ Needed only if you ever recreate it. Use the **personal** Google account that ow
 
 While the app is in Testing mode only listed test users can sign in, and Google may ask you to re-approve access about once a week. That's expected for a personal app.
 
+## Notation (Theory T1, 15 Nov 2026, D-028)
+`src/js/16-notation.js` draws every exercise as standard drum notation, straight from the pattern format (own SVG renderer,
+no library). The practice screen has **View: Both / Notation / Grid** (`state.set.nview`, default Both): the staff with a count
+line ("1 e & a", "1 trip let", "1 & a" in 6/8 and 12/8) and sticking under it, a playhead column that follows the run, and
+**tap a note** for a plain explanation ("Snare · 16th note · on the 'a' of 2 · ghost note"). Drum key: kick bottom space,
+floor tom 2nd space, snare 3rd space, tom 2 4th line, tom 1 4th space, ride x top line, hi-hat x above, crash x on a ledger
+line, hi-hat pedal x below. Hands stem up, feet stem down; each beat is written with the simplest value that holds its notes
+(8ths on a triplet grid stay 8ths; quarter-note triplets span two beats); half and whole notes/rests where beats are empty;
+kick rests are left out when the hands play; accents, ghosts (brackets), open hi-hat (o), cross-stick (circled x), flams
+and drags (grace notes), tuplet numbers, bar labels (chords) and an end repeat. Checks: `?test=1` › Settings ›
+**Run notation tests** (all 296 Level 0–4 exercises draw with one notehead per note + 11 rhythm rules).
+
 ## Drive library (S3, 11 Nov 2026, D-025)
 **Library** (More › Library, and a **Files** section on each song page) lists MIDI files, audio and documents from the
 Drive folder. With the `drive.file` scope the app sees only files it created or files you pick, so files uploaded to

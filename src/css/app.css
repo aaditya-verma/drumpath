@@ -231,6 +231,15 @@ table.mtx tr.foot td,table.mtx tr.foot th{background:var(--L2);font-weight:700;p
 /* test result lines (long JSON details) wrap inside their card */
 [id$="tests"] div{overflow-wrap:anywhere;min-width:0}
 
+/* notation panel on the practice screen (Theory T1) */
+#notewrap{overflow:auto;padding:4px 10px 0;background:var(--L1);border-bottom:1px solid var(--line);flex:none}
+#prac.nv-grid #notewrap{display:none}
+#prac.nv-both #notewrap{max-height:42vh}
+#prac.nv-notation #notewrap{flex:1 1 auto;max-height:none}
+#prac.nv-notation .cvwrap{flex:0 0 140px;min-height:140px}
+.notsvgw{overflow-x:auto}
+.nexp{font-size:13px;padding:2px 2px 6px;min-height:20px;overflow-wrap:anywhere}
+
 @media (max-width:699px){.smap{grid-template-columns:minmax(84px,118px) repeat(8,minmax(32px,1fr));gap:3px}.smap .lv{gap:5px;font-size:12.5px;padding:2px}.smap .lv svg{width:28px;height:28px}.smap .c{min-height:40px;font-size:12px;border-radius:8px}.smap .hd{font-size:10.5px}}
 /* very narrow phones: level name only, no progress line */
 @media (max-width:460px){.smap .hd .sh{display:none}.smap .hd b{font-size:13px}.smap{grid-template-columns:36px repeat(8,minmax(28px,1fr));gap:3px}.smap .lv>div{display:none}.smap .lv{padding:0;justify-content:center}.smap .c{font-size:11px;min-height:36px}.smap .hd{font-size:9.5px}.smap .hd b{font-size:12px}}

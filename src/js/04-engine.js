@@ -121,7 +121,7 @@ function renderPads(ex){
   $('#pads').innerHTML=vs.map(v=>`<button data-pad="${v}" style="border-color:${VOICES[v].c};color:${VOICES[v].c}">${VOICES[v].n}</button>`).join('');
 }
 function sizeCv(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d,0,0,d,0,0);}
-function makePreview(){preview=buildRun(L,L.ex[exI],bpm,0,{calib:L.calib});}
+function makePreview(){preview=buildRun(L,L.ex[exI],bpm,0,{calib:L.calib});if(typeof renderNotationPanel==='function'&&(!NOT.ex||NOT.ex!==L.ex[exI]||NOT.mode!==nview()))renderNotationPanel();}
 
 async function startRun(){
   const a=audio(); if(a.state!=='running'){try{await a.resume();}catch(e){}}
@@ -209,6 +209,7 @@ function draw(){
   cx.clearRect(0,0,W,H);
   const R=run||preview; if(!R)return;
   const now=run?performance.now():(R.base+R.cinMs-R.beatMs*0.6);
+  if(typeof notPlayhead==='function')notPlayhead(R,now);
   const vs=LANES.filter(v=>R.ex.v[v]); const n=vs.length; const top=34, lh=(H-top-6)/n;
   const hitX=Math.max(110,W*0.17); const ppm=(W-hitX)*0.62/Math.max(R.barMs,R.beatMs*3);
   // lanes
