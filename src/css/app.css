@@ -510,3 +510,44 @@ html.atkit .ptop{padding:10px 14px;gap:10px}
 .tfchart{margin:10px 0;width:100%}.tfsvg{width:100%;height:150px;display:block}
 .tftab{width:100%;font-size:14px}.tftab td,.tftab th{padding:4px 6px;text-align:left}
 #prac.tfmode:has(#result:not(.hidden)) #pads{display:none}   /* P3: a time-drill result needs the room; Again is on the result */
+
+/* P4 reflection (23-reflect.js) */
+.rfhome{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.rfh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.rfh>div:first-child{flex:1 1 240px;min-width:0}
+.rfhl{font-size:15px;margin-top:2px}
+.rfhb{flex-wrap:nowrap}
+.rfnewb{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;cursor:pointer;background:color-mix(in srgb,var(--accent) 12%,transparent);border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));margin-top:12px}
+.rfhome .rfnewb{margin-top:0}
+.rfnewb svg{flex:none;color:var(--accent)}.rfnewb>span:not(.sp):not(.mut){min-width:0}
+.rfc{margin-top:12px}
+.rfnav{flex-wrap:nowrap;gap:6px}
+.rfgrid{margin:10px 0;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.rfbn{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rfgrid .stat .v{font-size:clamp(24px,3vw,34px)}
+.rfln{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}
+.rfln .note-k{flex:0 0 100%}
+.rfln b{min-width:0}.rfln>.mut{min-width:0}
+.rffoc ol{margin:2px 0 0;padding-left:22px;flex:0 0 100%}
+.rffoc li{margin:4px 0}
+.rffoc li.rfgentle b{color:var(--warn)}
+.rfbl{display:flex;flex-wrap:wrap;gap:6px;flex:0 0 100%}
+.rfpainc{background:color-mix(in srgb,var(--warn) 8%,var(--L1));border-color:color-mix(in srgb,var(--warn) 30%,var(--line))}
+.rfwb svg{display:block;width:100%;height:160px}
+.rfbg{margin-top:14px}
+.rfbgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));margin-top:6px}
+.rfb{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;border:1px dashed var(--line);opacity:.78}
+.rfb.got{opacity:1;border-style:solid;background:var(--L2)}
+.rfb.new{border-color:var(--accent)}
+.rfbi{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--L1);color:var(--muted)}
+.rfb.got .rfbi{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent)}
+.rfbt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.rfbt .mut{font-size:13px}
+.rfbd{font-size:12.5px;color:var(--accent);font-weight:600}
+.rfbar{height:5px;margin-top:4px}
+.rfbp{font-size:12.5px}
+.rflink{margin-bottom:12px;flex-wrap:nowrap}
+.rflink .rfbi{background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent)}
+.rfimg{width:100%;max-width:420px;display:block;margin:0 auto 10px;border-radius:14px}
+.rfpain .sm{margin-left:4px}
+html.atkit .rfln{font-size:17px}

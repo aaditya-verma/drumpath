@@ -22,7 +22,7 @@ function renderProgress(){
   const seg=`<div class="seg" style="margin-bottom:14px">${[['timeline','Timeline'],['calendar','Calendar'],['pads','Pads & limbs'],['records','Records'],['theory','Theory'],['journal','Journal']].map(([k,l])=>`<button class="${p.mode===k?'on':''}" data-pmode="${k}">${l}</button>`).join('')}</div>`;
   let body='';
   if(p.mode==='theory'&&typeof progTheory==='function')body=progTheory();
-  else if(p.mode==='journal'&&typeof p1JournalList==='function')body=p1JournalList();
+  else if(p.mode==='journal'&&typeof p1JournalList==='function')body=(typeof renderReflect==='function'?`<div class="card tap row rflink" data-rf="page"><span class="rfbi">${icon('reflect',20)}</span><div style="flex:1;min-width:0"><b>Weekly review &amp; badges</b><div class="mut" style="font-size:14px">What you did each week, what got better, what to try next</div></div><span class="mut">›</span></div>`:'')+p1JournalList();
   else if(!state.sessions.length&&!Object.keys(state.days).length)body='<div class="card mut">No practice logged yet. Play a lesson and your timeline, calendar and pad stats will fill in here.</div>';
   else body=({timeline:progTimeline,calendar:progCalendar,pads:progPads,records:progRecords}[p.mode]||progTimeline)();
   view.innerHTML=`<h1>Progress</h1>${seg}${body}`;

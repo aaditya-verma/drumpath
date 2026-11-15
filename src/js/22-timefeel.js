@@ -162,6 +162,7 @@ function tfDone(R,res){
   rec.hits=hitRec;state.sessions.push(rec);
   const it=typeof p1Cur==='function'&&p1Cur();if(it&&it.k==='time'&&('time:'+it.drill)===L.id)p1Mark(it,'done');save();renderPracBar();
   showResult(`<div class="row">${head}</div>${body}${kind==='drift'?'':tfPocketHtml(R)}<p class="mut" style="font-size:13px">Time drills count for practice minutes and your streak, never for lesson progress or song readiness.${src==='touch'?' Played on the screen pads (this device’s screen delay is subtracted).':''}</p>${typeof p1NextBox==='function'?p1NextBox():''}`);
+  if(typeof rfAfterRun==='function')rfAfterRun();   // P4
 }
 
 /* ---------- Today items ---------- */

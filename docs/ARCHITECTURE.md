@@ -27,6 +27,7 @@ script/style tag when files change so tablets pick up the new version.
 | `src/js/16-notation.js` | Staff notation (Theory T1, D-028): own SVG renderer from the pattern format (drum key, beams, rests, tuplets, meters, count line, sticking), Grid / Notation / Both toggle (`state.set.nview`), playhead + note colours during a run, tap-a-note explanations, `validateNotation()`, `notationTests()` |
 | `src/js/21-atkit.js` | P2 at the kit, hands-free (D-040): kit remote (learned pad shortcuts, `state.remote`), start on your first hit (tap-in / first hit, per device), at-the-kit view (`html.atkit`, per device), `p2Tests()` |
 | `src/js/22-timefeel.js` | P3 time feel (D-041): gap-click ladder (`TF_GAP`, kit + screen-pads ladders in `state.time`), tempo-drift test (`tfDriftCurve`, own SVG chart), pocket/consistency (`tfPocket`, per pad and note position; last 30 days), Time feel page (`go('time')`), Today items (`k:'time'`), `p3Tests()` |
+| `src/js/23-reflect.js` | P4 reflection (D-042): weekly review per Sun–Sat week (`rfWeek`: stats, best improvement, weak spot, next week's focus), Sunday card on Home, Reflection page (`go('reflect')`), share-as-image (own canvas), pain notes → coach rule D5 on Today, badges (`RF_BADGES`, earned ones kept in `state.reflect`), `p4Tests()` |
 | `src/js/99-events.js` | Event delegation, dialogs, backup import/export, boot |
 
 ## Data per run (`state.sessions[]`)

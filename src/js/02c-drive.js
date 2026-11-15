@@ -106,6 +106,7 @@ function mergeStates(A,B){
   m.plan=p1Merge(a.plan,b.plan);m.journal=p1JMerge(a.journal,b.journal);
   m.remote=kpMerge(a.remote,b.remote);   // P2 kit remote
   if(typeof tfMerge==='function')m.time=tfMerge(a.time,b.time);   // P3 gap ladders
+  if(typeof rfMerge==='function')m.reflect=rfMerge(a.reflect,b.reflect);   // P4 badges earned, reviews opened
   m.lastBackup=Math.max(a.lastBackup||0,b.lastBackup||0)||undefined;
   m.rev=Math.max(a.rev||0,b.rev||0)+1;m.savedAt=Math.max(a.savedAt||0,b.savedAt||0);
   return m;
@@ -148,7 +149,7 @@ function p1Merge(A,B){
   return m;
 }
 function p1JMerge(A,B){const m=Object.assign({},A||{});Object.entries(B||{}).forEach(([d,v])=>{if(!m[d]||((v&&v.at)||0)>((m[d].at)||0))m[d]=v;});return m;}
-const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs)&&JSON.stringify(x.lib||{})===JSON.stringify(y.lib||{})&&JSON.stringify(x.theory||{})===JSON.stringify(y.theory||{})&&JSON.stringify(x.plan||{})===JSON.stringify(y.plan||{})&&JSON.stringify(x.journal||{})===JSON.stringify(y.journal||{});
+const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs)&&JSON.stringify(x.lib||{})===JSON.stringify(y.lib||{})&&JSON.stringify(x.theory||{})===JSON.stringify(y.theory||{})&&JSON.stringify(x.plan||{})===JSON.stringify(y.plan||{})&&JSON.stringify(x.journal||{})===JSON.stringify(y.journal||{})&&JSON.stringify(x.reflect||{})===JSON.stringify(y.reflect||{});
 
 /* ---------- folder layout ---------- */
 async function ensureLayout(){

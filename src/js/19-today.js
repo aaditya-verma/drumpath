@@ -60,9 +60,11 @@ function p1TheoryDays(){const o=new Set(),c=(state.theory||{}).cards||{};Object.
 function p1Act(n){const d=P1D(),k=p1Day();d.act[k]=(d.act[k]||0)+(n||1);}
 // walks every day from the first active one: a week (Sun–Sat) may hold 2 rest days; a further miss uses a freeze
 // (one earned every 7 active days, at most 2 held); only then does the streak end. Today never counts as a miss.
+// every active day: practice minutes, a Today item or Remember review (state.plan.act), or theory reading (P4 uses it too)
+function p1ActiveDays(){const act=P1D().act;return new Set([...Object.keys(state.days).filter(k=>state.days[k]>0),...Object.keys(act).filter(k=>act[k]>0),...p1TheoryDays()]);}
 function p1Streak(now){
-  now=now||p1Now();const end=new Date(now);end.setHours(0,0,0,0);const tk=dkey(end),act=P1D().act;
-  const ks=new Set([...Object.keys(state.days).filter(k=>state.days[k]>0),...Object.keys(act).filter(k=>act[k]>0),...p1TheoryDays()]);
+  now=now||p1Now();const end=new Date(now);end.setHours(0,0,0,0);const tk=dkey(end);
+  const ks=p1ActiveDays();
   const out={cur:0,best:0,restLeft:P1_REST,freeze:0,used:0,today:ks.has(tk)};if(!ks.size)return out;
   const first=pdate([...ks].sort()[0]);if(first>end)return out;
   let have=0,ever=0,rest=0,wk='';
@@ -216,6 +218,7 @@ function p1TapDone(R,res){
   const g=R.evs.filter(e=>!e.listen&&R.ex.gap&&R.ex.gap.includes(e.bar%R.ex.bars)),gOn=g.filter(e=>e.hitT!=null&&Math.abs(e.dt)<=state.set.tol).length;
   showResult(`<div class="row"><div class="score" style="color:${res.score>=state.set.pass?'var(--good)':'var(--warn)'}">${res.score}%</div><div style="margin-left:18px"><div style="font-weight:700;font-size:20px">${res.score>=state.set.pass?'Steady ✓':res.score>=60?'Nearly':'Keep at it'}</div><div class="mut">${res.on} of ${res.n} taps on time (±${state.set.tol} ms)${g.length?` · in the gap bar: ${gOn} of ${g.length}`:''}</div></div></div>
     ${typeof tfPocketHtml==='function'?tfPocketHtml(R):''}<p class="mut" style="font-size:13px">Tap drills count for practice minutes and your streak, never for lesson progress or song readiness.</p>${p1NextBox()}`);
+  if(typeof rfAfterRun==='function')rfAfterRun();
 }
 // after every scored lesson run (from finish(), after scoring): the review queue, new masters, and the running session
 function p1AfterRun(rec,passed){
@@ -230,6 +233,7 @@ function p1AfterRun(rec,passed){
     else if(SES.runs>=it.reps)p1Mark(it,'done');
   }
   save();const box=$('#result .in');if(box&&(notes.length||SES))box.insertAdjacentHTML('beforeend',(notes.length?`<div class="p1note">${notes.map(n=>`<p>${esc(n)}</p>`).join('')}</div>`:'')+p1NextBox());
+  if(typeof rfAfterRun==='function')rfAfterRun();   // P4: a badge earned by this run
 }
 function p1NextBox(){
   const it=p1Cur();if(!it)return '';const pl=p1PlanBySlot(SES.slot),st=p1Stat(it,pl);
@@ -248,7 +252,7 @@ function p1Bar(){const it=p1Cur();if(!it||cur==='today')return;const pl=p1PlanBy
 
 /* ---------- Today card (Home, Practise) ---------- */
 function p1PainNote(){const j=state.journal||{},t=p1Day(),y=dkey(new Date(p1Now()-DAY)),k=[t,y].find(x=>j[x]&&j[x].pain);
-  return k?`<div class="p1pain"><b>${k===t?'You noted pain today.':'You noted pain yesterday.'}</b> Coach rule D5: warm up gently and stop if it comes back; pain is a signal, not something to push through.</div>`:'';}
+  return (k?`<div class="p1pain"><b>${k===t?'You noted pain today.':'You noted pain yesterday.'}</b> Coach rule D5: warm up gently and stop if it comes back; pain is a signal, not something to push through.</div>`:'')+(typeof rfPainNote==='function'?rfPainNote():'');}   // P4: 2+ pain days in 7 → a stronger D5 line
 function p1TodayCard(){
   const mode=p1Mode(),mins=p1Mins(),pl=p1Plan(mode,mins),items=pl.items,nDone=items.filter(x=>p1Stat(x,pl)).length,tot=Math.round(items.reduce((a,x)=>a+(+x.mins||0),0));
   const running=SES&&SES.slot===p1Slot(mode,mins)&&SES.day===p1Day();
@@ -345,7 +349,7 @@ function p1JournalSave(t,pain){
   const it=p1Cur();if(it&&it.k==='journal')p1Mark(it,'done');else{const pl=p1Plan(p1Mode(),p1Mins());if(pl.items.some(x=>x.k==='journal'))pl.done.journal=pl.done.journal||p1Now();}
   save();if(pain)p1PainSheet();
 }
-function p1PainSheet(){openSheet('Coach rule D5: stop on pain',`<p>Pain is a signal, not part of the work. Stop when it hurts (wrist, forearm, shin, lower back), not just when you’re tired.</p><ul class="p1ul"><li>Shake out, rest, and check your set-up: throne height, pad angles, a loose grip (about 30% squeeze).</li><li>Next time: a longer, slower warm-up; let the stick rebound (D4); keep tension out.</li><li>If it keeps coming back or doesn’t settle, ask a doctor or physio.</li></ul><p class="mut" style="font-size:13px">It’s saved in your journal (Progress › Journal), and Today reminds you tomorrow.</p>`);}
+function p1PainSheet(){openSheet('Coach rule D5: stop on pain',`<p>Pain is a signal, not part of the work. Stop when it hurts (wrist, forearm, shin, lower back), not just when you’re tired.</p><ul class="p1ul"><li>Shake out, rest, and check your set-up: throne height, pad angles, a loose grip (about 30% squeeze).</li><li>Next time: a longer, slower warm-up; let the stick rebound (D4); keep tension out.</li><li>If it keeps coming back or doesn’t settle, ask a doctor or physio.</li></ul>${typeof rfPainExtra==='function'?rfPainExtra():''}<p class="mut" style="font-size:13px">It’s saved in your journal (Progress › Journal), and Today reminds you tomorrow.</p>`);}
 function p1JournalList(){const j=state.journal||{},ks=Object.keys(j).filter(k=>j[k]&&(j[k].t||j[k].pain)).sort().reverse();
   if(!ks.length)return '<div class="card mut">No journal lines yet. The last item of each Today session asks for one line.</div>';
   return `<div class="list">${ks.slice(0,120).map(k=>`<div class="lrow p1jr" data-day="${k}"><span class="idx">${esc(periodName('D'+k))}</span><span style="flex:1;min-width:0">${esc(j[k].t||'—')}</span>${j[k].pain?'<span class="chip ip">Pain</span>':''}</div>`).join('')}</div>`;}

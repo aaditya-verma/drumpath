@@ -110,6 +110,24 @@ async function layoutSweep(){
     await pr('Practice · drift result',()=>{tfOpen('drift',{src:'kit'});const b=state.sessions[nS].tf.bars;showResult(`<div class="row"><div class="score">52</div><div style="margin-left:18px"><div style="font-weight:700;font-size:20px">Drifts a little</div><div class="mut">Steadiness · ${esc(tfDriftWords({start:70.2,end:76.6,ch:6.4,dev:9.7,set:70}).line)}</div></div></div><div class="tfchart">${tfDriftSvg(b,70)}</div>`);});
     await pr('Pocket sheet',()=>{closeSheets();tfPocketSheet();},()=>document.querySelector('.modal'));closeSheets();
     state.sessions=state.sessions.slice(0,nS);state.time=JSON.parse(keepT);tfFill(state);$('#prac').classList.add('hidden');L=null;}
+  // P4 reflection: the page fresh and seeded (a week with runs, pain notes, a journal, badges), Home with the Sunday card and
+  // new badges, the stronger D5 line on Today, a result with a new badge, the share sheet
+  if(typeof renderReflect==='function'){const wait5=()=>new Promise(r=>setTimeout(r,90)),keepR=JSON.stringify({reflect:state.reflect,journal:state.journal,days:state.days}),nS=state.sessions.length,keepC=p1Clock;SES=null;closeSheets();
+    const pr=async(n,f,o)=>{try{await f();await wait5();out.push([n,layoutAudit(o?o():view)]);}catch(e){out.push([n,[{kind:'error',what:e.message}]]);}};
+    await pr('Reflection · fresh',()=>{VP.reflect.wk=null;go('reflect');});
+    const cw=rfWkOf(Date.now()),lw=rfShift(cw,-1),ld=rfDays(lw),[f0]=rfRange(lw);p1Clock=pdate(cw).getTime()+10*3600000;
+    ld.slice(1,6).forEach(k=>{state.days[k]=(state.days[k]||0)+14*60000;});state.journal[ld[2]]={t:'Left wrist a bit sore after the 16ths; felt better after a longer warm-up and a looser grip',pain:true,at:f0+2*DAY};state.journal[ld[4]]={t:'Steady at 80 on the rock beat',pain:true,at:f0+4*DAY};
+    state.sessions.push({ts:f0+DAY,id:lesson.id,ex:0,bpm:60,score:95,on:19,n:20,ext:0,miss:1,avg:4,dur:60,pads:{K:[40,26,2,0,21,null],S:[40,39,0,0,3,null]}},{ts:f0+2*DAY,id:lesson.id,ex:0,bpm:70,score:96,on:19,n:20,ext:0,miss:0,avg:2,dur:60});
+    ['day1','wk3','pass1','lv0','g68','gap4','cards25'].forEach((id,i)=>{state.reflect.badges[id]={at:f0+i*3600000,got:Date.now()};});state.reflect.seenAt=0;
+    await pr('Home · Sunday card + new badges',()=>{delete state.reflect.weeks[lw];p1Dev('planMode','kit');go('home');});
+    await pr('Today · stronger D5 line',()=>{state.journal[dkey(new Date(p1Now()))]={t:'sore',pain:true,at:p1Now()};go('home');});
+    await pr('Reflection · seeded week',()=>{VP.reflect.wk=lw;go('reflect');});
+    await pr('Reflection · this week so far',()=>{VP.reflect.wk=cw;go('reflect');});
+    await pr('Progress · journal with the review link',()=>go('progress',{mode:'journal'}));
+    await pr('Practice · result with a new badge',()=>{openPractice(lesson.id);showResult('<div class="row"><div class="score">96%</div></div><p class="mut">Run detail</p>');$('#result .in').insertAdjacentHTML('beforeend',`<div class="rfnewb" data-rf="badges">${icon('badge',20)}<span><b>New badges:</b> First session · A three-day week</span></div>`);},()=>$('#prac'));
+    $('#prac').classList.add('hidden');L=null;
+    await pr('Share sheet',async()=>{closeSheets();await rfShare(lw);},()=>document.querySelector('.modal'));closeSheets();
+    p1Clock=keepC;state.sessions=state.sessions.slice(0,nS);Object.assign(state,JSON.parse(keepR));rfFill(state);VP.reflect.wk=null;}
   SES=null;if(typeof p1PracSync==='function')p1PracSync();L=null;if(keepPM===undefined)delete P1_MEM.planMode;else P1_MEM.planMode=keepPM;
   $('#prac').classList.add('hidden');
   const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);if(v.theory)VP.theory=v.theory;go(keep.cur==='practise'?'settings':'settings');
