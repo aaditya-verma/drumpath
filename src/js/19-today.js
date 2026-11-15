@@ -405,6 +405,11 @@ async function p1Tests(){
     T('The tap item is ticked off in the session',!!pl.done[it.key],'');
     const gx=buildRun({lv:0},it.ex,60,0),nog=buildRun({lv:0},Object.assign({},it.ex,{gap:undefined}),60,0),barMs=gx.barMs,cin=gx.cinMs;
     const inGap=c=>!c.cin&&Math.floor((c.t-cin)/barMs)%it.ex.bars===2;T('Gap click: no click in bar 3, the rest unchanged',gx.clicks.filter(inGap).length===0&&nog.clicks.filter(inGap).length>0&&gx.clicks.length===nog.clicks.filter(c=>!inGap(c)).length,gx.clicks.length+' vs '+nog.clicks.length);
+    // a theory try played on the screen pads: timing only (no dynamics) and the screen delay, not the kit latency
+    {P1_MEM.touchlat={ms:70,at:1};const cid='A1.02.3';openTheoryTry(cid);await startRun();const R2=run;R2.evs.forEach(e=>{if(!e.listen)hit(e.v,100,e.t+70,undefined,'touch');});finish();const s2=state.sessions[state.sessions.length-1];
+     T('Theory try on the screen pads: timing only, screen delay used → 100 %, no dynamics column',s2&&s2.kind==='theory'&&s2.score===100&&s2.dyn==null&&/timing only/.test($('#result').textContent),s2&&(s2.score+'% dyn '+s2.dyn));
+     await startRun();const R3=run;R3.evs.forEach(e=>{if(!e.listen)hit(e.v,100,e.t+state.lat,undefined);});finish();const s3=state.sessions[state.sessions.length-1];
+     T('…played on the kit, dynamics are still judged as before',s3&&s3.dyn!=null,s3&&('dyn '+s3.dyn));}
     $('#prac').classList.add('hidden');L=null;SES=null;delete P1_MEM.touchlat;
     T('Touch delay: needed once per device before the first tap drill',p1TouchLat()==null||true,'');}
   // 6. gentle streak with rest days and freezes

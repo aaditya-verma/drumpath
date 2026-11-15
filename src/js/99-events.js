@@ -111,7 +111,7 @@ document.addEventListener('change',e=>{
   if(t.dataset.ck){const id=t.dataset.ck;const ck=state.done[id+'_ck']=state.done[id+'_ck']||{};ck[t.dataset.i]=t.checked;
     const l=LBY[id];if(l.check&&l.check.every((_,i)=>ck[i])&&(!l.quiz||l.quiz.every((q,i)=>(state.done[id+'_qa']||{})[i]===q.c)))state.done[id]=true;save();render();}
 });
-document.addEventListener('pointerdown',e=>{const p=e.target.closest('[data-pad]');if(p){e.preventDefault();hit(p.dataset.pad,100,performance.now());}});
+document.addEventListener('pointerdown',e=>{const p=e.target.closest('[data-pad]');if(p){e.preventDefault();hit(p.dataset.pad,100,performance.now(),undefined,'touch');}});
 const KEYS={f:'K',j:'S',k:'HH',d:'HP',u:'T1',i:'T2',l:'T3',o:'C',p:'R'};
 document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select'))return;
   if(e.key==='Escape'){if(document.querySelector('.modal')){closeSheets();return;}if(!$('#msheet').classList.contains('hidden')){closeMore();return;}}

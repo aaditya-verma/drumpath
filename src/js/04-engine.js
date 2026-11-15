@@ -159,12 +159,16 @@ function loop(){
   if(now>run.end+350){finish();return;}
   requestAnimationFrame(loop);
 }
-function hit(v,vel,tp,art){
+function hit(v,vel,tp,art,src){
   flashes[v]=performance.now();
   if(typeof REC!=='undefined'&&REC&&REC.on){recordHit(v,vel,tp,art);return;}   // Analyse & tag › From my playing
 
   if(!run||$('#prac').classList.contains('hidden'))return;
-  const lat=run.calib?0:run.lesson.tap&&typeof p1TouchLat==='function'?p1TouchLat():state.lat;
+  // screen pads (src 'touch'): counted per run; theory tries and tap drills played on the screen use this device's
+  // screen tap delay (P1); lessons keep the kit latency exactly as before
+  if(src==='touch')run.touchN=(run.touchN||0)+1;else run.kitN=(run.kitN||0)+1;
+  const tl=typeof p1TouchLat==='function'?p1TouchLat():null;
+  const lat=run.calib?0:run.lesson.tap?(tl||0):run.lesson.theory&&src==='touch'&&tl!=null?tl:state.lat;
   const t=tp-lat;
   const start=run.base+run.cinMs;
   if(t<start-state.set.win)return; // ignore count-in
@@ -290,7 +294,9 @@ function finish(){
   const per={};sc.forEach(e=>{const p=per[e.v]||(per[e.v]={n:0,on:0,hit:0,sum:0});p.n++;if(e.hitT!=null){p.hit++;p.sum+=e.dt;if(okT(e))p.on++;if(e.artOk===false)p.snd=(p.snd||0)+1;}});
   R.extras.forEach(x=>{const p=per[x.v]||(per[x.v]={n:0,on:0,hit:0,sum:0});p.ext=(p.ext||0)+1;});
   // ---- dynamics (step A) ----
-  const dynOn=isDyn(R.ex); let dynScore=null;
+  // a theory try or tap drill played only on the screen pads can't make accents/ghosts: timing only (lessons unchanged)
+  const screenOnly=!!(R.touchN&&!R.kitN&&(R.lesson.theory||R.lesson.tap));R.screenOnly=screenOnly;
+  const dynOn=isDyn(R.ex)&&!screenOnly; let dynScore=null;
   if(dynOn){
     let ok=0,tot=0;
     if(R.ex.dyn==='even'){
