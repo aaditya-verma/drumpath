@@ -253,6 +253,12 @@ table.mtx tr.foot td,table.mtx tr.foot th{background:var(--L2);font-weight:700;p
 .sbxbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;box-sizing:border-box;width:calc(100% - 2*var(--gutter));max-width:var(--maxw);margin:10px auto 0;padding:8px 12px;border-radius:12px;
   background:color-mix(in srgb,#f0b429 24%,var(--L0));color:inherit;border:1px solid color-mix(in srgb,#f0b429 65%,transparent);font-size:14px}
 .sbxbar span{flex:1 1 14em;min-width:0}.sbxbar b{white-space:nowrap}
+/* v35: storage warning (fallback / failed save / newer app in another tab) */
+.stbar{background:color-mix(in srgb,var(--bad,#e5484d) 18%,var(--L0));border-color:color-mix(in srgb,var(--bad,#e5484d) 60%,transparent)}
+.stbar b{white-space:normal}
+.slog{margin-top:10px}.slogbtn{font-weight:600}.slogbody{margin-top:6px}
+.slog .sl{font-size:13px;font-family:'IBM Plex Mono',monospace;padding:4px 0;border-top:1px solid var(--line,rgba(127,127,127,.2));overflow-wrap:anywhere}
+.slog .sl.w{color:var(--warn)}.appver{font-size:13px;margin:18px 0 6px;text-align:center}
 
 /* header stays on one line on phones (owner T4 note, 11 Nov): chips shrink first, Drive chip drops to its dot */
 .brand-row{flex-wrap:nowrap;min-width:0}.brand{flex:none}.brand-row .sync{flex:0 1 auto;min-width:0}.brand-row .pbtn{flex:none}
@@ -522,7 +528,9 @@ html.atkit .ptop{padding:10px 14px;gap:10px}
 .rfnewb svg{flex:none;color:var(--accent)}.rfnewb>span:not(.sp):not(.mut){min-width:0}
 .rfc{margin-top:12px}
 .rfnav{flex-wrap:nowrap;gap:6px}
-.rfgrid{margin:10px 0;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+/* v35 (fix-queue item 4): the four review tiles are 2 × 2, or 4 across from ~720 px; never 3 + 1 */
+.rfgrid{margin:10px 0;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:720px){.rfgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .rfbn{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .rfgrid .stat .v{font-size:clamp(24px,3vw,34px)}
 .rfln{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line)}

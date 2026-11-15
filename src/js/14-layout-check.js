@@ -2,6 +2,12 @@
    Finds, on the current screen: text that overlaps other text, text cut off or spilling out of its box,
    and anything that makes the page wider than the screen (outside areas meant to scroll sideways). */
 'use strict';
+/* v35 (fix-queue item 5): test suites and the layout sweep put back what their simulated runs earned in memory
+   (badges via rfAfterRun, theory cards, plan, minutes) — testing mode saves nothing, but the in-memory view stayed off until reload */
+const TEST_SNAP_KEYS=['reflect','theory','plan','journal','days','time','prog','done'];
+function testSnap(){const o={};TEST_SNAP_KEYS.forEach(k=>{o[k]=state[k]===undefined?undefined:JSON.stringify(state[k]);});o._n=state.sessions.length;return o;}
+function testRestore(o){if(!o)return;TEST_SNAP_KEYS.forEach(k=>{if(o[k]===undefined)delete state[k];else state[k]=JSON.parse(o[k]);});if(state.sessions.length>o._n)state.sessions=state.sessions.slice(0,o._n);
+  thFill(state);p1Fill(state);if(typeof tfFill==='function')tfFill(state);if(typeof rfFill==='function')rfFill(state);}
 function layoutAudit(root,opt){
   opt=opt||{};root=root||document.body;const issues=[],W=document.documentElement.clientWidth;
   const vis=el=>{const s=getComputedStyle(el);if(s.display==='none'||s.visibility==='hidden'||+s.opacity===0)return false;const r=el.getBoundingClientRect();return r.width>0&&r.height>0;};
@@ -41,7 +47,7 @@ function layoutReport(){const is=layoutAudit(view);const box=openSheet('Layout c
 
 // every screen on this device, at its current size and orientation
 async function layoutSweep(){
-  const keep={cur,vp:JSON.stringify({lessons:VP.lessons,songs:VP.songs,progress:VP.progress,theory:VP.theory})};const out=[];const wait=()=>new Promise(r=>setTimeout(r,120));const keepPM=typeof P1_MEM!=='undefined'?P1_MEM.planMode:undefined;
+  const keep={cur,vp:JSON.stringify({lessons:VP.lessons,songs:VP.songs,progress:VP.progress,theory:VP.theory})};const keepX=testSnap();const out=[];const wait=()=>new Promise(r=>setTimeout(r,120));const keepPM=typeof P1_MEM!=='undefined'?P1_MEM.planMode:undefined;
   const firstSong=allSongs()[0],lesson=LESSONS.find(l=>l.type==='play');
   const screens=[['Home',()=>go('home')],['Practise',()=>go('practise')],['Skill map',()=>go('lessons',{lv:null,sd:null,id:null})],['Level 3',()=>go('lessons',{lv:3,sd:null,id:null},{keep:true})],['Level 4',()=>go('lessons',{lv:4,sd:null,id:null},{keep:true})],
     ['A lesson',()=>openLesson(lesson.id)],['Progress',()=>go('progress')],['Songs',()=>go('songs',{view:'all',id:null})],['Song matrix',()=>go('songs',{view:'matrix',id:null})],
@@ -128,8 +134,16 @@ async function layoutSweep(){
     $('#prac').classList.add('hidden');L=null;
     await pr('Share sheet',async()=>{closeSheets();await rfShare(lw);},()=>document.querySelector('.modal'));closeSheets();
     p1Clock=keepC;state.sessions=state.sessions.slice(0,nS);Object.assign(state,JSON.parse(keepR));rfFill(state);VP.reflect.wk=null;}
+  // v35: Settings with the save log open (20 entries incl. warnings) and the version line; each storage warning banner
+  if(typeof slogHtml==='function'){const wait6=()=>new Promise(r=>setTimeout(r,150)),keepL=SLOG_MEM.slice(),t0=Date.now();closeSheets();
+    SLOG_MEM=Array.from({length:20},(_,i)=>({t:t0-i*61000,tab:'a3f2',app:35,ev:['save','merge','refuse','retry','fail','refresh','boot','stash'][i%8],from:60+i,to:i%3?61+i:undefined,cur:i%3?undefined:99,runs:9,cards:18,und:9,why:i%4?'':'changed',msg:i%5?'':'The database connection is closing.'}));
+    try{go('settings');await wait6();const d=view.querySelector('.slogbtn');if(d)slogToggle(d);await wait6();out.push(['Settings · save log open + version',layoutAudit(view)]);}catch(e){out.push(['Settings · save log',[{kind:'error',what:e.message}]]);}
+    for(const k of ['fail','app','ls']){try{storeBarSync(k);go('home');await wait6();const bar=$('#stbar');out.push(['Storage warning · '+k,bar?[...layoutAudit(bar),...layoutAudit(view)]:[{kind:'error',what:'no banner'}]]);}catch(e){out.push(['Storage warning · '+k,[{kind:'error',what:e.message}]]);}const b=$('#stbar');if(b)b.remove();}
+    try{openSearch();await wait6();const m=document.querySelector('.modal');out.push(['Search · version line',m?layoutAudit(m):[]]);closeSheets();}catch(e){out.push(['Search',[{kind:'error',what:e.message}]]);}
+    SLOG_MEM=keepL;}
   SES=null;if(typeof p1PracSync==='function')p1PracSync();L=null;if(keepPM===undefined)delete P1_MEM.planMode;else P1_MEM.planMode=keepPM;
   $('#prac').classList.add('hidden');
+  testRestore(keepX);
   const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);if(v.theory)VP.theory=v.theory;go(keep.cur==='practise'?'settings':'settings');
   return out;
 }

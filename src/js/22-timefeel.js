@@ -207,6 +207,7 @@ document.addEventListener('click',e=>{const T=e.target;let b;
 /* ---------- tests (?test=1 › Practise › Time feel › Run time-feel tests) ---------- */
 async function p3Tests(){
   const out=[],T=(name,pass,det)=>out.push({name,pass:!!pass,det:det===undefined?'':String(det)});
+  const keepX=testSnap();
   const keep=JSON.stringify({time:state.time,set:state.set,lat:state.lat,plan:state.plan,days:state.days,prog:state.prog,journal:state.journal}),keepN=state.sessions.length,keepSES=typeof SES!=='undefined'?SES:null,keepMem=JSON.stringify(P1_MEM),keepTF=TF.drift;
   const reset=()=>{closeSheets();if(run)stopRun(false);routineStop();SES=null;$('#prac').classList.add('hidden');$('#result').classList.add('hidden');L=null;};
   const last=()=>state.sessions[state.sessions.length-1];
@@ -310,7 +311,7 @@ async function p3Tests(){
     // minutes + streak
     T('Time runs add practice minutes for today',(state.days[today()]||0)>0);
   }catch(e){T('No errors',false,e.message+' '+(e.stack||'').split('\n')[1]);}
-  reset();const k=JSON.parse(keep);Object.assign(state,{time:k.time,set:k.set,lat:k.lat,plan:k.plan,days:k.days,prog:k.prog,journal:k.journal});state.sessions=state.sessions.slice(0,keepN);tfFill(state);p1Fill(state);
+  reset();const k=JSON.parse(keep);Object.assign(state,{time:k.time,set:k.set,lat:k.lat,plan:k.plan,days:k.days,prog:k.prog,journal:k.journal});state.sessions=state.sessions.slice(0,keepN);tfFill(state);p1Fill(state);testRestore(keepX);
   SES=keepSES;Object.keys(P1_MEM).forEach(x=>delete P1_MEM[x]);Object.assign(P1_MEM,JSON.parse(keepMem));TF.drift=keepTF;
   return out;
 }

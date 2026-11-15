@@ -35,7 +35,7 @@ let cloud=null, saveT=null, saving=false, dirty=false;
 let bootReady=false,bootPending=false;
 function save(){
   if(!bootReady){bootPending=true;return;}      // nothing is written until storage has loaded (02b-storage.js)
-  state.savedAt=Date.now();state.rev=(state.rev||0)+1;
+  state.savedAt=Date.now();state.rev=Math.max(state.rev||0,(typeof STORE!=='undefined'&&STORE.rev)||0)+1;   // v35: always above the stored copy this tab knows (import / reset included)
   if(SANDBOX)return;                              // testing mode: keep changes in memory only
   if(STORE.mode==='idb')storeSave();
   else try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}

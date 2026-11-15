@@ -10,6 +10,7 @@ script/style tag when files change so tablets pick up the new version.
 | `src/css/app.css` | Design tokens (light/dark), pad colours `--p-*`, fonts, all component styles |
 | `lessons/lib.js` | Pattern helpers (`X`, `rep`, `withFill`, `B8`, `B8_16`), `DP_LESSONS` |
 | `lessons/L0-2.js`, `lessons/L3.js` | Lesson data, one file per level band |
+| `src/js/00-version.js` | Build version (`APP.v`, `APP.commit`, `APP.date`) shown at the bottom of Settings and in Search (v35) |
 | `src/js/01-data.js` | Pads (`VOICES`, `LANES`), default MIDI map + articulations, levels, strands, `LATER` index |
 | `src/js/02-state.js` | Saved state (`localStorage` `drumpath.v1`, Claude account sync when framed), helpers |
 | `src/js/03-midi.js` | Web MIDI, articulation (open hi-hat / rim, CC 4 fallback), kit-check log, velocity check, test mode |
@@ -38,3 +39,10 @@ script/style tag when files change so tablets pick up the new version.
 `?test=1` adds Simulate on the practice screen and a lesson-data check on Lessons. Headless checks used:
 perfect / wrong-dynamics / wrong-sound / no-grace simulations for every Level 3 exercise; perfect runs for Levels 0–2;
 screenshots of every view in light and dark at 1280×800, 800×1280 and 400×860.
+
+## Headless checks (v35, `tools/headless/`)
+Serve the repo (`python3 -m http.server 8135`), then `node tools/headless/<check>.mjs http://localhost:8135` (Playwright + Chrome):
+- `suites.mjs` — every in-app test suite under `?test=1`, and that nothing simulated is left in memory afterwards.
+- `rollback.mjs` — the 15 Nov 2026 storage rollback (stale tab + failed pre-write check); `--expect-bug` against v34 reproduces it.
+- `resim.mjs <url> out.json [compare.json]` — Levels 0–4, every exercise × 6 modes through the real engine, seeded; compare two builds run for run.
+- `layout.mjs` — RULES C8: the in-app layout sweep on 13 sizes, fresh and seeded, normal and at-the-kit view, + 125 % on tablet sizes.

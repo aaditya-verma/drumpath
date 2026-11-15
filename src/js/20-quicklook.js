@@ -222,6 +222,7 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 /* ---------- tests (?test=1 › Settings › Today › Run Quick-look tests) ---------- */
 async function p1bTests(){
   const out=[],T=(name,pass,det)=>out.push({name,pass:!!pass,det:det||''});
+  const keepX=testSnap();
   const keep=JSON.stringify({plan:state.plan,journal:state.journal,days:state.days,prog:state.prog,done:state.done,theory:state.theory,set:state.set}),keepN=state.sessions.slice(),keepVP=JSON.stringify({t:VP.today,th:VP.theory,pr:VP.progress}),keepCur=cur,keepMem=JSON.stringify(P1_MEM),keepSES=SES;
   const lsBefore=(()=>{try{return JSON.stringify(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)]));}catch(_){return '';}})();
   const day0=new Date(2026,10,9,9).getTime(),setClock=t=>{p1Clock=t;thClock=t;};
@@ -339,7 +340,7 @@ async function p1bTests(){
       const ls=(()=>{try{return JSON.stringify(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)]));}catch(_){return '';}})();return w===0&&ls===lsBefore;})(),SANDBOX?'sandbox on':'not in testing mode');}
   }catch(e){T('Tests ran without an error',false,e.message+' '+(e.stack||'').split('\n')[1]);}
   // restore
-  setClock(null);SES=keepSES;p1ClosePrac();closeSheets();const k=JSON.parse(keep);Object.assign(state,{plan:k.plan,journal:k.journal,days:k.days,prog:k.prog,done:k.done,theory:k.theory,set:k.set});state.sessions=keepN;thFill(state);p1Fill(state);
+  setClock(null);SES=keepSES;p1ClosePrac();closeSheets();const k=JSON.parse(keep);Object.assign(state,{plan:k.plan,journal:k.journal,days:k.days,prog:k.prog,done:k.done,theory:k.theory,set:k.set});state.sessions=keepN;thFill(state);p1Fill(state);testRestore(keepX);
   Object.keys(P1_MEM).forEach(x=>delete P1_MEM[x]);Object.assign(P1_MEM,JSON.parse(keepMem));const v=JSON.parse(keepVP);VP.today=v.t;VP.theory=v.th;VP.progress=v.pr;cur=keepCur;EAR.qs=[];render();
   return out;
 }

@@ -180,7 +180,7 @@ async function syncNow(opts={}){
       if(DRV.lastSnapDay!==today()){DRV.lastSnapDay=today();const all=(await Drive.list(DRV.snapId)).filter(f=>/^\d{4}-\d\d-\d\d\.json$/.test(f.name)).sort((x,y)=>x.name.localeCompare(y.name));
         for(const f of all.slice(0,Math.max(0,all.length-KEEP_SNAPS)))await Drive.del(f.id);}
       DS.dirty=false;}
-    if(rmod)DRV.lastRemote=rmod;DRV.lastSync=Date.now();drvSaveCfg();setDrive('synced');if(!opts.test)try{dispatchEvent(new Event('drumpath:synced'));}catch(_){}
+    if(rmod)DRV.lastRemote=rmod;DRV.lastSync=Date.now();drvSaveCfg();DS.lastErr='';setDrive('synced');/* v35: a success clears the old error (fix-queue item 3) */if(!opts.test)try{dispatchEvent(new Event('drumpath:synced'));}catch(_){}
   }catch(e){DS.lastErr=e.message||String(e);
     if(/needs a tap|not granted|closed|sign-in|401/.test(DS.lastErr))setDrive('reconnect',DS.lastErr);
     else if(!navigator.onLine||/Failed to fetch|NetworkError|offline/i.test(DS.lastErr))setDrive('offline');
@@ -231,7 +231,7 @@ function driveCard(){
    <div class="stat"><div class="k">Folder</div><div class="v" style="font-size:20px">${esc(DRV.folderName||'DrumPath')}</div><div class="d">backup/ · midi/ · songs/</div></div>
    <div class="stat"><div class="k">Status</div><div class="v" style="font-size:20px">${esc({synced:'Synced',pending:'Changes waiting',syncing:'Syncing…',offline:'Offline',reconnect:'Needs sign-in',error:'Error',off:'Not started'}[DS.status]||DS.status)}</div><div class="d">last sync ${agoTxt(DRV.lastSync)}</div></div>
    <div class="stat"><div class="k">Snapshots</div><div class="v" style="font-size:20px">daily</div><div class="d">last 30 kept · today’s ${DRV.lastSnapDay===today()?'saved':'not yet'}</div></div></div>
-   ${DS.lastErr&&DS.status!=='synced'?`<p class="mut" style="font-size:13px">${esc(DS.lastErr)}</p>`:''}
+   ${DS.lastErr&&!['synced','pending','syncing'].includes(DS.status)?`<p class="mut" style="font-size:13px">${esc(DS.lastErr)}</p>`:''}
    <div class="row" style="margin-top:10px"><button class="pri" data-act="drivesync">Sync now</button>${DS.status==='reconnect'?'<button data-act="driveconnect">Reconnect Drive</button>':''}<button data-act="drivefolder">Choose Drive folder</button><span class="sp"></span><button class="ghost" data-act="drivedisconnect">Disconnect</button></div></div>`;
 }
 /* ---------- tests (in-memory Drive; the real one is never touched) ---------- */

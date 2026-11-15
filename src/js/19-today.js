@@ -380,6 +380,7 @@ document.addEventListener('click',e=>{
 /* ---------- tests (?test=1 › Settings › Run daily-plan tests) ---------- */
 async function p1Tests(){
   const out=[],T=(name,pass,det)=>out.push({name,pass:!!pass,det:det||''});
+  const keepX=testSnap();
   const keep=JSON.stringify({plan:state.plan,journal:state.journal,days:state.days,prog:state.prog,done:state.done,theory:state.theory,set:state.set,songs:state.songs}),keepN=state.sessions.slice(),keepVP=JSON.stringify(VP.today),keepCur=cur,keepMem=JSON.stringify(P1_MEM),keepSES=SES;
   const lsBefore=(()=>{try{return JSON.stringify(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)]));}catch(_){return '';}})();
   const fresh=()=>{state.plan={days:{},act:{},rev:{}};state.journal={};state.days={};state.prog={};state.sessions=[];state.theory={cards:{},review:{},bookmarks:[],lastCard:null};thFill(state);SES=null;p1Clock=null;};
@@ -503,7 +504,7 @@ async function p1Tests(){
       const ls=(()=>{try{return JSON.stringify(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)]));}catch(_){return '';}})();return w===0&&ls===lsBefore;})(),SANDBOX?'sandbox on':'not in testing mode');}
   }catch(e){T('Tests ran without an error',false,e.message+' '+(e.stack||'').split('\n')[1]);}
   // restore
-  p1Clock=null;SES=keepSES;p1ClosePrac();closeSheets();const k=JSON.parse(keep);Object.assign(state,{plan:k.plan,journal:k.journal,days:k.days,prog:k.prog,done:k.done,theory:k.theory,set:k.set,songs:k.songs});state.sessions=keepN;thFill(state);p1Fill(state);
+  p1Clock=null;SES=keepSES;p1ClosePrac();closeSheets();const k=JSON.parse(keep);Object.assign(state,{plan:k.plan,journal:k.journal,days:k.days,prog:k.prog,done:k.done,theory:k.theory,set:k.set,songs:k.songs});state.sessions=keepN;thFill(state);p1Fill(state);testRestore(keepX);
   Object.keys(P1_MEM).forEach(x=>delete P1_MEM[x]);Object.assign(P1_MEM,JSON.parse(keepMem));VP.today=JSON.parse(keepVP);cur=keepCur;EAR.qs=[];render();
   return out;
 }

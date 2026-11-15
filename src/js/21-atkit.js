@@ -228,6 +228,7 @@ setTimeout(kpViewSync,0);
 /* ---------- tests (?test=1 › Kit › Kit remote › Run kit-remote tests) ---------- */
 async function p2Tests(){
   const out=[],T=(name,pass,det)=>out.push({name,pass:!!pass,det:det===undefined?'':String(det)});
+  const keepX=testSnap();
   const keep=JSON.stringify({remote:state.remote,map:state.map,art:state.art,lat:state.lat,set:state.set}),keepN=state.sessions.length,keepMem=JSON.stringify(P1_MEM),keepCur=cur,keepFake=KP.fakeKit,keepSES=SES;
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const midiHit=(n,t,vel)=>onMidi({data:[0x99,n,vel||90],timeStamp:t});
@@ -327,7 +328,7 @@ async function p2Tests(){
       T('Testing mode: device choices stay in memory (nothing written)',ls===ls2,String(ls2));p1Dev('firstHit','off');
       const r0=state.rev;kpSetMap('again',[N.RIM]);T('Testing mode: learning saves nothing to the device',SANDBOX&&true,'rev '+r0+'→'+state.rev+' (in memory only)');}
   }catch(e){T('no errors',false,e.message+' '+(e.stack||'').split('\n')[1]);}
-  reset();const k=JSON.parse(keep);state.remote=k.remote;state.map=k.map;state.art=k.art;state.lat=k.lat;state.set=k.set;state.sessions.length=Math.min(state.sessions.length,keepN);
+  reset();const k=JSON.parse(keep);state.remote=k.remote;state.map=k.map;state.art=k.art;state.lat=k.lat;state.set=k.set;state.sessions.length=Math.min(state.sessions.length,keepN);testRestore(keepX);
   Object.keys(P1_MEM).forEach(x=>delete P1_MEM[x]);Object.assign(P1_MEM,JSON.parse(keepMem));KP.fakeKit=keepFake;SES=keepSES;kpViewSync();go(keepCur==='kit'?'kit':'settings');
   return out;
 }

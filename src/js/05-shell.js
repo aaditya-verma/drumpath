@@ -123,7 +123,7 @@ function closeSheets(){document.querySelectorAll('.modal').forEach(m=>m.remove()
 
 /* ---------- search ---------- */
 function openSearch(){
-  const m=openSheet('Search',`<input id="sq" placeholder="Lesson, rudiment, song, e.g. “flam” or “2.3”" style="width:100%;font-size:18px;padding:12px"><div id="sres" style="margin-top:10px"></div>`);
+  const m=openSheet('Search',`<input id="sq" placeholder="Lesson, rudiment, song, e.g. “flam” or “2.3”" style="width:100%;font-size:18px;padding:12px"><div id="sres" style="margin-top:10px"></div><p class="mut appver">${esc(appVerLine())}</p>`);
   const q=$('#sq',m);const run_=()=>{const t=q.value.trim().toLowerCase();const r=$('#sres',m);if(!t){r.innerHTML='<p class="mut">Type to search.</p>';return;}
     const ls=[...LESSONS,...LATER].filter(l=>(l.id+' '+l.t+' '+(l.d||'')).toLowerCase().includes(t)).slice(0,30);
     const ss=allSongs().filter(s=>(s.title+' '+s.artist+' '+s.genre).toLowerCase().includes(t)).slice(0,20);
