@@ -54,12 +54,14 @@ function p1RevAfter(rec){
 }
 
 /* ---------- gentle streak ---------- */
+// theory counts for the streak: every day on which a card was read, understood, played or heard (from the card timestamps, so older days count too)
+function p1TheoryDays(){const o=new Set(),c=(state.theory||{}).cards||{};Object.values(c).forEach(x=>{if(!x)return;['r','u','p','h','rd'].forEach(f=>{if(x[f])o.add(dkey(new Date(x[f])));});});return o;}
 function p1Act(n){const d=P1D(),k=p1Day();d.act[k]=(d.act[k]||0)+(n||1);}
 // walks every day from the first active one: a week (Sun–Sat) may hold 2 rest days; a further miss uses a freeze
 // (one earned every 7 active days, at most 2 held); only then does the streak end. Today never counts as a miss.
 function p1Streak(now){
   now=now||p1Now();const end=new Date(now);end.setHours(0,0,0,0);const tk=dkey(end),act=P1D().act;
-  const ks=new Set([...Object.keys(state.days).filter(k=>state.days[k]>0),...Object.keys(act).filter(k=>act[k]>0)]);
+  const ks=new Set([...Object.keys(state.days).filter(k=>state.days[k]>0),...Object.keys(act).filter(k=>act[k]>0),...p1TheoryDays()]);
   const out={cur:0,best:0,restLeft:P1_REST,freeze:0,used:0,today:ks.has(tk)};if(!ks.size)return out;
   const first=pdate([...ks].sort()[0]);if(first>end)return out;
   let have=0,ever=0,rest=0,wk='';
@@ -93,7 +95,9 @@ function p1WarmLesson(){
   const pl=p1PlayL(),ms=pl.filter(l=>statusOf(l)==='ms'),last=l=>(state.prog[l.id]||{}).last||0,lru=a=>a.sort((x,y)=>last(x)-last(y))[0];
   const r=ms.filter(l=>l.sd===3);if(r.length)return{l:lru(r),passed:true};
   const t=ms.filter(l=>l.sd===2);if(t.length)return{l:lru(t),passed:true};
-  return{l:pl.find(l=>l.sd===3&&l.lv<=1)||pl.find(l=>l.sd===2)||pl[0],passed:false};
+  // nothing passed yet: a rudiment you've already tried, else the first rudiment near your level, else a technique lesson other than the focus
+  const f=p1Focus(),lv=f?f.lv:1,tried=pl.filter(l=>l.sd===3&&(state.prog[l.id]||{}).attempts>0);
+  return{l:tried[0]||pl.find(l=>l.sd===3&&l.lv<=lv+1)||pl.find(l=>l.sd===2&&l!==f)||pl[0],passed:false};
 }
 function p1RunSec(l,b){const ex=l.ex[Math.min((state.prog[l.id]||{}).ex||0,l.ex.length-1)],spb=ex.steps||4*ex.sub;return (Math.max(state.set.bars,ex.bars)+(state.set.countin||1))*(spb/ex.sub)*60/b+12;}
 const p1Reps=(mins,l,b)=>Math.max(1,Math.round(mins*60/p1RunSec(l,b)));
@@ -362,6 +366,7 @@ async function p1Tests(){
     for(const m of P1_MINS){const it=p1BuildKit(m),ks=it.map(x=>x.k).join(' '),sum=it.reduce((a,x)=>a+(+x.mins||0),0);T('At the kit '+m+' min, beginner (nothing passed): '+ks,ks===want[m]&&Math.abs(sum-m)<0.01,sum+' min');}
     ['2.3.01','2.3.02','2.3.03','2.3.04'].forEach((id,i)=>master(id,day0-(30-i)*DAY));master('1.2.02',day0-40*DAY);
     const k10=p1BuildKit(10),k20=p1BuildKit(20),k40=p1BuildKit(40);
+    T('Nothing passed yet: the warm-up is a rudiment, not the focus lesson',(()=>{const s0=JSON.stringify(state.prog);state.prog={};const w0=p1WarmLesson();const ok=LBY[w0.l.id].sd===3&&w0.l.id!==p1Focus().id&&!w0.passed;state.prog=JSON.parse(s0);return ok;})(),'');
     T('Warm-up = a passed rudiment at its slow start tempo',k20[0].k==='warm'&&LBY[k20[0].id].sd===3&&k20[0].bpm===LBY[k20[0].id].bpm[0],k20[0].id+' @'+k20[0].bpm);
     T('Review: due passed lessons at goal −10 BPM (10 min: 1, 20 min: 2, 40 min: 3)',k10.filter(x=>x.k==='review').length===1&&k20.filter(x=>x.k==='review').length===2&&k40.filter(x=>x.k==='review').length===3&&k20.filter(x=>x.k==='review').every(x=>x.bpm===LBY[x.id].bpm[1]-10),k20.filter(x=>x.k==='review').map(x=>x.id+'@'+x.bpm).join(' '));
     const mx=k20.find(x=>x.k==='mix'),mx40=k40.find(x=>x.k==='mix');T('Mix: only with 3+ passed in a strand; none at 10 min; 20 min = 3 lessons once, 40 min = 4 lessons twice, interleaved',!k10.some(x=>x.k==='mix')&&mx&&mx.ids.length===3&&mx40&&mx40.ids.length>=7&&mx40.ids.every((id,i)=>id!==mx40.ids[i-1]),mx&&mx.ids.join(',')+' | '+(mx40&&mx40.ids.join(',')));
@@ -414,6 +419,7 @@ async function p1Tests(){
     state.days={};mk(sun,[1,1,1,1,1,0]);p1Clock=new Date(2026,10,6,8).getTime();s=p1Streak();T('Today isn’t a miss before you play',s.cur===5&&!s.today,JSON.stringify(s));
     state.days={};p1Clock=null;state.plan.act[today()]=1;T('A phone session (no kit, no minutes) counts',p1Streak().cur===1,'');
     state.plan.act={};const k=TH_ORDER.find(x=>x.rem);thMark(k.id,'r',true);thReview(k.id,true);T('A Remember-deck review counts',p1Streak().cur===1,'');
+    state.plan.act={};state.days={};state.theory={cards:{},review:{},bookmarks:[],lastCard:null};thFill(state);thMark(TH_ORDER[0].id,'r',true);T('Reading a theory card counts for the day',p1Streak().cur===1&&p1Streak().today,'');
     T('Home and Progress use the gentle streak',streakDays()===p1Streak().cur&&longestStreak()===p1Streak().best,'');
     T('No red alarms: the streak line never uses the “bad” colour',!/var\(--bad\)/.test(p1StreakLine()+p1TodayCard()),'');}
   // 7. journal + pain note
