@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/css/app.css?v=30">
+<link rel="stylesheet" href="src/css/app.css?v=31">
 </head>
 <body>
 <header class="top"><div class="top-in">
@@ -32,7 +32,7 @@
   <div id="sesbar" class="hidden" aria-label="Session"></div>
   <div class="ptop">
     <button class="ghost" data-act="pexit" title="Close">✕</button>
-    <div class="ptitle" id="ptitle"></div>
+    <div class="ptitle" id="ptitle"></div><span id="qlpw"></span>
     <div class="exsel" id="exsel"></div>
     <div class="seg nvsel" id="nvsel" role="group" aria-label="View"><button data-nview="grid">Grid</button><button data-nview="notation">Notation</button><button data-nview="both">Both</button></div>
     <button class="sm ghost" id="subbtn" data-act="subclick">Sub-click: Off</button>
@@ -47,59 +47,60 @@
   <div id="pads"></div>
 </div>
 
-<script src="lessons/lib.js?v=30"></script>
-<script src="lessons/L0-2.js?v=30"></script>
-<script src="lessons/L3.js?v=30"></script>
-<script src="lessons/L4.js?v=30"></script>
-<script src="lessons/songs.js?v=30"></script>
-<script src="src/js/01-data.js?v=30"></script>
-<script src="src/js/02-state.js?v=30"></script>
-<script src="src/js/02b-storage.js?v=30"></script>
-<script src="src/js/02c-drive.js?v=30"></script>
-<script src="src/js/03-midi.js?v=30"></script>
-<script src="src/js/04-engine.js?v=30"></script>
-<script src="src/js/05-shell.js?v=30"></script>
-<script src="src/js/06-charts-agg.js?v=30"></script>
-<script src="src/js/07-home.js?v=30"></script>
-<script src="src/js/08-lessons.js?v=30"></script>
-<script src="src/js/09-progress.js?v=30"></script>
-<script src="src/js/10-compare.js?v=30"></script>
-<script src="src/js/midi-analyse.js?v=30"></script>
-<script src="src/js/11a-songs-model.js?v=30"></script>
-<script src="src/js/11-songs.js?v=30"></script>
-<script src="src/js/11b-analyse.js?v=30"></script>
-<script src="src/js/13-studio.js?v=30"></script>
-<script src="src/js/14-layout-check.js?v=30"></script>
-<script src="src/js/15-library.js?v=30"></script>
-<script src="src/js/16-notation.js?v=30"></script>
-<script src="lib/tone.0.1.0.js?v=30"></script>
-<script src="theory/concepts.js?v=30"></script>
-<script src="theory/A1.js?v=30"></script>
-<script src="theory/A2.js?v=30"></script>
-<script src="theory/A3.js?v=30"></script>
-<script src="theory/A4.js?v=30"></script>
-<script src="theory/A5.js?v=30"></script>
-<script src="theory/A6.js?v=30"></script>
-<script src="theory/A7.js?v=30"></script>
-<script src="theory/A8.js?v=30"></script>
-<script src="theory/A9.js?v=30"></script>
-<script src="theory/A10.js?v=30"></script>
-<script src="theory/B1.js?v=30"></script>
-<script src="theory/B2.js?v=30"></script>
-<script src="theory/B3.js?v=30"></script>
-<script src="theory/B4.js?v=30"></script>
-<script src="theory/B5.js?v=30"></script>
-<script src="theory/B6.js?v=30"></script>
-<script src="theory/B7.js?v=30"></script>
-<script src="theory/B8.js?v=30"></script>
-<script src="theory/B9.js?v=30"></script>
-<script src="theory/B10.js?v=30"></script>
-<script src="theory/B11.js?v=30"></script>
-<script src="theory/B12.js?v=30"></script>
-<script src="src/js/17-theory.js?v=30"></script>
-<script src="src/js/18-theory-practice.js?v=30"></script>
-<script src="src/js/19-today.js?v=30"></script>
-<script src="src/js/12-kit-settings.js?v=30"></script>
-<script src="src/js/99-events.js?v=30"></script>
+<script src="lessons/lib.js?v=31"></script>
+<script src="lessons/L0-2.js?v=31"></script>
+<script src="lessons/L3.js?v=31"></script>
+<script src="lessons/L4.js?v=31"></script>
+<script src="lessons/songs.js?v=31"></script>
+<script src="src/js/01-data.js?v=31"></script>
+<script src="src/js/02-state.js?v=31"></script>
+<script src="src/js/02b-storage.js?v=31"></script>
+<script src="src/js/02c-drive.js?v=31"></script>
+<script src="src/js/03-midi.js?v=31"></script>
+<script src="src/js/04-engine.js?v=31"></script>
+<script src="src/js/05-shell.js?v=31"></script>
+<script src="src/js/06-charts-agg.js?v=31"></script>
+<script src="src/js/07-home.js?v=31"></script>
+<script src="src/js/08-lessons.js?v=31"></script>
+<script src="src/js/09-progress.js?v=31"></script>
+<script src="src/js/10-compare.js?v=31"></script>
+<script src="src/js/midi-analyse.js?v=31"></script>
+<script src="src/js/11a-songs-model.js?v=31"></script>
+<script src="src/js/11-songs.js?v=31"></script>
+<script src="src/js/11b-analyse.js?v=31"></script>
+<script src="src/js/13-studio.js?v=31"></script>
+<script src="src/js/14-layout-check.js?v=31"></script>
+<script src="src/js/15-library.js?v=31"></script>
+<script src="src/js/16-notation.js?v=31"></script>
+<script src="lib/tone.0.1.0.js?v=31"></script>
+<script src="theory/concepts.js?v=31"></script>
+<script src="theory/A1.js?v=31"></script>
+<script src="theory/A2.js?v=31"></script>
+<script src="theory/A3.js?v=31"></script>
+<script src="theory/A4.js?v=31"></script>
+<script src="theory/A5.js?v=31"></script>
+<script src="theory/A6.js?v=31"></script>
+<script src="theory/A7.js?v=31"></script>
+<script src="theory/A8.js?v=31"></script>
+<script src="theory/A9.js?v=31"></script>
+<script src="theory/A10.js?v=31"></script>
+<script src="theory/B1.js?v=31"></script>
+<script src="theory/B2.js?v=31"></script>
+<script src="theory/B3.js?v=31"></script>
+<script src="theory/B4.js?v=31"></script>
+<script src="theory/B5.js?v=31"></script>
+<script src="theory/B6.js?v=31"></script>
+<script src="theory/B7.js?v=31"></script>
+<script src="theory/B8.js?v=31"></script>
+<script src="theory/B9.js?v=31"></script>
+<script src="theory/B10.js?v=31"></script>
+<script src="theory/B11.js?v=31"></script>
+<script src="theory/B12.js?v=31"></script>
+<script src="src/js/17-theory.js?v=31"></script>
+<script src="src/js/18-theory-practice.js?v=31"></script>
+<script src="src/js/19-today.js?v=31"></script>
+<script src="src/js/20-quicklook.js?v=31"></script>
+<script src="src/js/12-kit-settings.js?v=31"></script>
+<script src="src/js/99-events.js?v=31"></script>
 </body>
 </html>

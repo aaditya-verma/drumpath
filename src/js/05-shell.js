@@ -125,8 +125,9 @@ function openSearch(){
   const q=$('#sq',m);const run_=()=>{const t=q.value.trim().toLowerCase();const r=$('#sres',m);if(!t){r.innerHTML='<p class="mut">Type to search.</p>';return;}
     const ls=[...LESSONS,...LATER].filter(l=>(l.id+' '+l.t+' '+(l.d||'')).toLowerCase().includes(t)).slice(0,30);
     const ss=allSongs().filter(s=>(s.title+' '+s.artist+' '+s.genre).toLowerCase().includes(t)).slice(0,20);
+    const th=typeof qlSearchHtml==='function'?qlSearchHtml(t):'';   // P1b: theory terms and cards
     r.innerHTML=(ls.length?`<div class="list">${ls.map(l=>`<div class="lrow ${l.later?'dim':''}" ${l.later?'':`data-open="${l.id}"`}><span class="idx">${l.id}</span><span>${esc(l.t)}</span><span class="sp"></span>${chip(statusOf(l))}</div>`).join('')}</div>`:'')+
-      (ss.length?`<h2>Songs</h2><div class="list">${ss.map(s=>`<div class="lrow" data-song="${esc(s.id)}"><b>${esc(s.title)}</b><span class="mut">${esc(s.artist)}</span></div>`).join('')}</div>`:'')||'<p class="mut">Nothing found.</p>';};
+      (ss.length?`<h2>Songs</h2><div class="list">${ss.map(s=>`<div class="lrow" data-song="${esc(s.id)}"><b>${esc(s.title)}</b><span class="mut">${esc(s.artist)}</span></div>`).join('')}</div>`:'')+th||'<p class="mut">Nothing found.</p>';};
   q.addEventListener('input',run_);run_();setTimeout(()=>q.focus(),50);
 }
 
@@ -135,6 +136,7 @@ const view=$('#view');
 function render(){
   const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,library:renderLibrary,theory:renderTheory,kit:renderKit,settings:renderSettings,today:renderToday}[cur]||renderHome;
   try{f();}catch(e){console.error(e);view.innerHTML=`<div class="card"><b>Something went wrong drawing this page.</b><p class="mut">${esc(e.message)}</p></div>`;}
+  if(typeof qlTerms==='function')qlTerms(view);   // P1b: dotted underline on known terms, first use per screen → Quick look
   if(typeof p1Bar==='function')p1Bar();   // P1 session strip at the top of the page while a session runs
   syncNav();
   if(typeof fillLibStatus==='function'&&document.querySelector('[data-libst]'))fillLibStatus().catch(()=>{});

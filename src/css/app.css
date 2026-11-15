@@ -413,3 +413,35 @@ h1{overflow-wrap:anywhere}
 #prac.tapmode:has(#result:not(.hidden)) #pads{display:none}
 .lrow .idx{flex:none}.thtier>div{min-width:0}.thtier .mut{overflow-wrap:anywhere}
 body:has(#prac.tapmode:not(.hidden)) .dock{display:none}
+/* ---------- P1b Quick look, terms, glossary, phases, Revise, peek (D-038/D-039) ---------- */
+.qli{padding:4px 7px;line-height:0;min-width:32px;min-height:30px;display:inline-flex;align-items:center;justify-content:center;color:var(--accent)}
+.qli svg{display:block}
+.p1btns{display:flex;flex:none;align-items:center;gap:6px;align-self:center}
+.p1ph{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin:4px 2px -2px}
+.p1ph:first-child{margin-top:0}
+.qlbo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-top:5px;font-size:12.5px}
+.qlchip{font:inherit;font-size:12.5px;padding:1px 8px;border-radius:999px;border:1px dashed color-mix(in srgb,var(--accent) 55%,var(--line));background:transparent;color:var(--ink);cursor:pointer;line-height:1.5}
+.qlterm{text-decoration:underline dotted color-mix(in srgb,var(--accent) 75%,var(--muted));text-decoration-thickness:1.5px;text-underline-offset:3px;cursor:pointer;border-radius:3px}
+.qlterm:hover,.qlterm:focus-visible{background:color-mix(in srgb,var(--accent) 14%,transparent);outline:none}
+.qlbody .qlt{margin:2px 0 4px;font-size:21px}
+.qlbody .thidea{margin:4px 0 8px}
+.qlk{font-size:12.5px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.qlchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.qlbtns{margin-top:12px;gap:8px}
+.qlnote{font-size:12.5px;margin:10px 0 0}
+.qlused{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.qlur{display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:baseline;font-size:14px}
+.qlur>div{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;min-width:0;overflow-wrap:anywhere}
+.qlusedl{font-size:13.5px}
+.qlpeek{margin:10px 0 0;padding:10px 12px;border-style:dashed;border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.qlpeek .qlpi{margin:4px 0 6px;font-size:14px}
+.qlpr{gap:6px;margin-top:6px;align-items:center}
+.p1peek{border-style:dashed}
+.p1qb{margin-bottom:6px}
+.qlrv{margin:10px 0}.qlrv .threm{margin:6px 0}
+.qlg .qlgi{font-size:13px}
+.qlg>svg{flex:none;color:var(--accent)}
+.qlgh{font-size:16px;margin:14px 0 6px}
+.thgl{margin:12px 0 0;align-items:center;gap:8px}
+@media (max-height:449px){#qlpw{order:3}#qlpw .qli{min-height:26px;padding:2px 6px}}
+@media (max-width:460px){.p1btns{flex-direction:column;gap:4px}.p1btns .qli{min-height:28px}.qlbo{font-size:12px}.qlchip{font-size:12px;padding:0 7px}}

@@ -6,10 +6,13 @@ const DEF_SET={tol:30,win:120,pass:90,dynPass:80,hhMode:'auto',hhOpenCC:40,hhLow
 let state;
 function freshState(){return{v:1,map:{...DEFAULT_MAP},art:{...DEFAULT_ART},lat:0,set:{...DEF_SET},prog:{},done:{},sessions:[],days:{},songs:[],savedAt:0,theory:{cards:{},review:{},bookmarks:[],lastCard:null},plan:{days:{},act:{},rev:{}},journal:{}};}
 /* Theory (T2, D-030): per-card statuses, Remember-deck review queue, bookmarks. Only new fields; back-filled on load. */
-function thFill(s){let t=s.theory;if(!t||typeof t!=='object'||Array.isArray(t))t=s.theory={};if(!t.cards||typeof t.cards!=='object')t.cards={};if(!t.review||typeof t.review!=='object')t.review={};if(!Array.isArray(t.bookmarks))t.bookmarks=[];if(!('lastCard' in t))t.lastCard=null;if(!t.skips||typeof t.skips!=='object')t.skips={};if(!t.auto||typeof t.auto!=='object')t.auto={};if(!Array.isArray(t.plog))t.plog=[];if(!t.fails||typeof t.fails!=='object')t.fails={};return s;}
+function thFill(s){let t=s.theory;if(!t||typeof t!=='object'||Array.isArray(t))t=s.theory={};if(!t.cards||typeof t.cards!=='object')t.cards={};if(!t.review||typeof t.review!=='object')t.review={};if(!Array.isArray(t.bookmarks))t.bookmarks=[];if(!('lastCard' in t))t.lastCard=null;if(!t.skips||typeof t.skips!=='object')t.skips={};if(!t.auto||typeof t.auto!=='object')t.auto={};if(!Array.isArray(t.plog))t.plog=[];if(!t.fails||typeof t.fails!=='object')t.fails={};
+  /* P1b (D-038): Quick-look lookups and wrong answers {card:[ts…]} (last 20 each), primers shown once {card:ts} */
+  ['look','miss','primed'].forEach(f=>{if(!t[f]||typeof t[f]!=='object'||Array.isArray(t[f]))t[f]={};});return s;}
 /* P1 daily plan (D-035): today's plans per mode, activity days for the gentle streak, the lesson review queue (P-2),
    and the one-line journal. Only new fields; back-filled on load (s may be a partial object). */
 function p1Fill(s){let p=s.plan;if(!p||typeof p!=='object'||Array.isArray(p))p=s.plan={};if(!p.days||typeof p.days!=='object')p.days={};if(!p.act||typeof p.act!=='object')p.act={};if(!p.rev||typeof p.rev!=='object')p.rev={};
+  if(!p.revise||typeof p.revise!=='object'||Array.isArray(p.revise))p.revise={};   // P1b: {day:[card…]} = that day's Revise slot
   if(!s.journal||typeof s.journal!=='object'||Array.isArray(s.journal))s.journal={};return s;}
 function loadLocal(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s);}catch(e){}return null;}
 state=Object.assign(freshState(),loadLocal()||{});

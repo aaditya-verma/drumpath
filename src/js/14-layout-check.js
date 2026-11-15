@@ -63,6 +63,23 @@ async function layoutSweep(){
   // P1: a tap drill on the screen pads, the session strip and a session result on the practice screen
   try{const pl=p1Plan('go',p1Mins()),ti=pl.items.findIndex(x=>x.k==='tap');if(ti>=0){SES={slot:'go',day:p1Day(),i:ti,runs:0,mixI:0};p1OpenTap(pl.items[ti]);await wait();out.push(['Practice · tap drill + session strip',layoutAudit($('#prac'),{fit:1})]);
      showResult('<div class="row"><div class="score">87%</div></div>'+p1NextBox());await wait();out.push(['Practice · session result',layoutAudit($('#prac'),{fit:1})]);}}catch(e){out.push(['Practice · tap drill',[{kind:'error',what:e.message}]]);}
+  // P1b: the Quick-look sheet over every Today item kind, the primer, the ear game with a peek, Revise, the glossary
+  if(typeof qlOpen==='function'){const wait2=()=>new Promise(r=>setTimeout(r,90));SES=null;$('#prac').classList.add('hidden');L=null;go('home');
+    const ms=LESSONS.filter(l=>l.type==='play'),chk=LESSONS.find(l=>l.type!=='play'&&!l.later&&qlLessonRefs(l.id).length),tapS=p1TapSpec(),song=allSongs()[0],cid=(TH_ORDER.find(k=>k.rem)||TH_ORDER[0]).id;
+    const kinds=[['card',{k:'card',card:TH_ORDER[0].id}],['tap',tapS?{k:'tap',src:tapS.src}:null],['ear',{k:'ear'}],['warm',{k:'warm',id:'2.3.01'}],['lesson',chk?{k:'lesson',id:chk.id}:null],['focus',{k:'focus',id:ms[0].id}],
+      ['review',{k:'review',id:'2.3.02'}],['mix',{k:'mix',ids:['2.3.01','2.3.02','2.3.03']}],['song',song?{k:'song',song:song.id}:null]];
+    for(const [n,it] of kinds){if(!it)continue;try{closeSheets();const m=qlOpen(qlItemRefs(it).join(','));await wait2();out.push(['Quick look · '+n,m?layoutAudit(m):[{kind:'error',what:'no sheet for '+n}]]);}catch(e){out.push(['Quick look · '+n,[{kind:'error',what:e.message}]]);}}
+    for(const n of ['deck','revise']){try{closeSheets();const m=qlOpenList(n,[cid,TH_ORDER[1].id]);await wait2();out.push(['Quick look · '+n+' list',m?layoutAudit(m):[]]);}catch(e){out.push(['Quick look · '+n,[{kind:'error',what:e.message}]]);}}
+    try{closeSheets();const m=qlOpen('swing');m.querySelector('[data-qlused]').click();await wait2();out.push(['Quick look · used in',layoutAudit(m)]);}catch(e){out.push(['Quick look · used in',[{kind:'error',what:e.message}]]);}
+    try{closeSheets();const m=qlPrimer('A1.06.1');await wait2();out.push(['Primer sheet',layoutAudit(m)]);}catch(e){out.push(['Primer sheet',[{kind:'error',what:e.message}]]);}
+    try{closeSheets();openPractice(lesson.id);closeSheets();const m=qlOpen(qlPracRefs().join(','));await wait2();out.push(['Quick look over the practice screen',m?layoutAudit(m):[]]);closeSheets();$('#prac').classList.add('hidden');L=null;}catch(e){out.push(['Quick look · practice',[{kind:'error',what:e.message}]]);}
+    const keepRv=JSON.stringify(P1D().revise);
+    try{closeSheets();EAR.qs=[];p1EarNew(7);if(!EAR.qs.some(q=>q.peek)){const st=qlEarState();if(st.peek)EAR.qs.push(Object.assign(p1EarQ(st.peek.k,p1Rnd(3)),{peek:true,card:st.peek.c,lab:st.peek.n}));}go('today',{mode:'ear'});await wait();out.push(['Ear game · with a peek',layoutAudit(view)]);
+      EAR.qs.forEach((q,i)=>{EAR.ans[i]=i%2?q.c:(q.c+1)%q.a.length;});render();await wait();out.push(['Ear game · peek answered',layoutAudit(view)]);}catch(e){out.push(['Ear game · peek',[{kind:'error',what:e.message}]]);}
+    try{P1D().revise[p1Day()]=[cid,'B2.04.1'];go('today',{mode:'revise'});await wait();out.push(['Revise',layoutAudit(view)]);}catch(e){out.push(['Revise',[{kind:'error',what:e.message}]]);}
+    P1D().revise=JSON.parse(keepRv);
+    try{thGo({mode:'glossary'});await wait();out.push(['A–Z glossary',layoutAudit(view)]);}catch(e){out.push(['A–Z glossary',[{kind:'error',what:e.message}]]);}
+    closeSheets();EAR.qs=[];}
   SES=null;if(typeof p1PracSync==='function')p1PracSync();L=null;if(keepPM===undefined)delete P1_MEM.planMode;else P1_MEM.planMode=keepPM;
   $('#prac').classList.add('hidden');
   const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);if(v.theory)VP.theory=v.theory;go(keep.cur==='practise'?'settings':'settings');

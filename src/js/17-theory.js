@@ -361,7 +361,9 @@ function thCheckHtml(k,qs,opts={}){
   return qs.map((q,i)=>{const pick=a[i];return `<div class="thq"><b>${opts.num?opts.num+i+1+'. ':''}${esc(q.q)}</b>${q.hear?` <button class="sm ghost" data-thqh="${k.id}:${i}">▶ Play</button>`:''}<div class="thans">${q.a.map((x,j)=>`<button class="sm ${pick===j?(j===q.c?'pri':'bad'):''}" data-thq="${k.id}" data-qi="${i}" data-qj="${j}">${esc(x)}</button>`).join('')}</div>${pick!=null?`<p class="mut thwhy">${pick===q.c?'✓ ':'✗ '}${esc(q.why||'')}</p>`:''}</div>`;}).join('');
 }
 function thAnswer(id,qi,qj){
-  const k=THC[id];if(!k||!k.check)return;const a=TH_ANS[id]=TH_ANS[id]||{};a[qi]=qj;
+  const k=THC[id];if(!k||!k.check)return;const a=TH_ANS[id]=TH_ANS[id]||{};
+  if(a[qi]!==qj&&k.check[qi]&&qj!==k.check[qi].c&&typeof qlWrong==='function')qlWrong(id,{quiet:true});   // P1b: a wrong Check answer → tomorrow's Revise
+  a[qi]=qj;
   if(k.check.every((q,i)=>a[i]===q.c)){thMark(id,'r',true);const u=thMark(id,'u',true),h=k.ear&&thMark(id,'h',true);if(h)toast('Can hear ✓');else if(u)toast('Understood ✓');save();}
 }
 
@@ -374,6 +376,7 @@ function renderTheory(){
   if(p.mode==='card'&&THC[p.card])return thRenderCard(THC[p.card]);
   if(p.mode==='part'&&THP.find(x=>x.id===p.part))return thRenderPart(THP.find(x=>x.id===p.part));
   if(p.mode==='review')return thRenderReview();
+  if(p.mode==='glossary'&&typeof qlGlossary==='function')return qlGlossary();   // P1b A–Z glossary
   thRenderHome();
 }
 function thTierStats(tier){const ks=TH_ORDER.filter(k=>k.part.tier===tier);return{n:ks.length,u:ks.filter(k=>thKnown(k.id)).length,r:ks.filter(k=>thSt(k.id)).length};}
@@ -390,6 +393,7 @@ function thRenderHome(){
     <div class="card tap" data-thcard="${c.id}"><div class="note-k" style="color:var(--accent)">${thSt(c.id)?'Last card':'Continue'}</div><b style="font-size:17px">${esc(c.t)}</b><div class="mut" style="font-size:14px">${c.part.id} ${esc(c.part.t)} · ${esc(c.chap.t)}</div></div>
     <div class="card ${due?'tap':''}" ${due?`data-thgo='{"mode":"review"}'`:''}><div class="note-k">Remember deck</div><b style="font-size:17px">${due?due+' due now':'Nothing due'}</b><div class="mut" style="font-size:14px">${Object.values(t.review).filter(r=>!r.done).length} cards in review · spaced 1, 3, 7, 21, 60 days</div></div>
   </div>
+  ${typeof qlGloss==='function'?`<div class="row thgl"><button class="sm" data-thgo='{"mode":"glossary"}'>A–Z glossary · ${qlGloss().length} terms</button><span class="mut" style="font-size:13px">tap any dotted word for a Quick look</span></div>`:''}
   <div class="thtiers">${Object.keys(TH_TIERS).map(k=>{const s=thTierStats(k);return `<div class="card thtier">${ring(s.n?s.u/s.n:0,52,6,s.n?null:'–')}<div style="min-width:0"><div class="thtk">Tier ${k}</div><b>${TH_TIERS[k][0]}</b><div class="mut" style="font-size:13px">${s.n?`${s.u} of ${s.n} understood`:'coming'}</div></div></div>`;}).join('')}</div>
   <div class="row" style="margin:16px 0 8px;align-items:center"><div class="seg"><button class="${by==='tier'?'on':''}" data-thby="tier">By tier</button><button class="${by==='thread'?'on':''}" data-thby="thread">By topic</button></div><span class="sp"></span><input id="thq" placeholder="Search theory, e.g. “ghost”" style="flex:1;min-width:150px;max-width:340px"></div>
   <div id="thres"></div>
@@ -417,7 +421,7 @@ function thWhere(k){   // lessons and songs moved to "Practise this" (T3); timin
 // the card itself (also used as a sheet over the practice screen: opts.sheet)
 function thCardHtml(k,opts={}){
   const t=thS(),sib=k.chap.cards,hs=thHearSpecs(k),bm=t.bookmarks.includes(k.id),lastOfCh=k.i===sib.length-1,chq=sib.reduce((a,c)=>a+(c.check||[]).length,0);
-  const side=`${typeof thPractiseThis==='function'?thPractiseThis(k,opts):''}${thWhere(k)}${k.backline?`<div class="thwl"><span class="note-k">In Backline</span> ${k.backline.map(x=>`<a class="btn sm" href="${TH_BL}${x.h?'#'+x.h:''}" target="_blank" rel="noopener">${esc(x.l)} ↗</a>`).join('')}</div>`:''}`;
+  const side=`${typeof qlUsedLine==='function'?qlUsedLine(k):''}${typeof thPractiseThis==='function'?thPractiseThis(k,opts):''}${thWhere(k)}${k.backline?`<div class="thwl"><span class="note-k">In Backline</span> ${k.backline.map(x=>`<a class="btn sm" href="${TH_BL}${x.h?'#'+x.h:''}" target="_blank" rel="noopener">${esc(x.l)} ↗</a>`).join('')}</div>`:''}`;
   return `<div class="thcard${opts.sheet?' thsheetcard':''}" ${opts.sheet?'':'data-thswipe'} data-thcid="${k.id}"><div class="thmain">
    <div class="thhead"><span class="mut thn">${opts.sheet?esc(k.part.id+' · '+k.chap.t)+' · ':''}Card ${k.i+1} of ${sib.length}</span><span class="sp"></span>${thChip(k.id)}<button class="icon ghost thstar ${bm?'on':''}" data-thbm="${k.id}" title="${bm?'Remove bookmark':'Bookmark'}">${bm?'★':'☆'}</button></div>
    <h1 class="tht">${esc(k.t)}</h1>

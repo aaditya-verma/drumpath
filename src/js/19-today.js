@@ -15,6 +15,7 @@ const P1_REST=2, P1_FREEZE_MAX=2, P1_FREEZE_EVERY=7;
 const P1_WARM_BAD=80;                // warm-up below this → the focus starts 10 BPM slower (coach rule D2)
 const P1_BUDGET={10:{warm:2,focus:5,review:2,revMax:1,mix:0,mixN:0,music:1},20:{warm:3,focus:8,review:4,revMax:2,mix:3,mixN:3,music:2},40:{warm:5,focus:15,review:8,revMax:3,mix:6,mixN:4,music:6}};
 const P1_PRACTICE=['warm','focus','review','mix'];
+const p1PhaseOf=it=>typeof qlPhase==='function'&&it?qlPhase(it.k):'';
 let p1Clock=null;const p1Now=()=>p1Clock!=null?p1Clock:Date.now();const p1Day=()=>dkey(new Date(p1Now()));
 const P1D=()=>p1Fill(state).plan;
 const p1Pl=(n,w)=>n+' '+w+(n===1?'':'s');
@@ -127,6 +128,7 @@ function p1BuildKit(mins){
   const mu=p1Music();
   if(mu.song)items.push({k:'song',key:'song:'+mu.song.id,song:mu.song.id,mins:B.music,t:'Song · '+mu.song.title,why:'Play along to your own recording, then log the play'});
   else items.push({k:'free',key:'free',mins:B.music,t:'Free play',why:'Play anything you like, no score (coach rule D7)'+(mu.near?' · or try '+mu.near.title:'')});
+  const rv=typeof qlReviseItem==='function'&&qlReviseItem();if(rv)items.push(rv);   // P1b: yesterday's lookups and misses
   items.push({k:'journal',key:'journal',mins:0,t:'One line for today',why:'How it felt; tick if anything hurt'});
   return items;
 }
@@ -150,12 +152,14 @@ function p1TapSpec(card){
   const q=card&&typeof thQuickTry==='function'&&thQuickTry(card);if(q){const t=p1TapEx(q.ex[0]);if(t)return{src:'th:'+card.id,ex:t,bpm:60,t:'Tap drill · '+card.t,why:'From the card · the click drops out in bar 3'};}
   return null;
 }
+// P1b: phases Learn (new card) → Practise (tap drill) → Check (ear game) → Revise (Revise slot, Remember deck, journal)
 function p1BuildGo(){
   const items=[],due=typeof thDue==='function'?thDue().length:0;
-  if(due)items.push({k:'deck',key:'deck',mins:Math.max(1,Math.round(due*0.4)),t:'Remember deck',why:p1Pl(due,'card')+' due · say it, then check'});
   const c=p1NewCard();if(c)items.push({k:'card',key:'card:'+c.k.id,card:c.k.id,mins:2,t:'New card · '+c.k.t,why:c.why});
   const tp=p1TapSpec(c&&c.k);if(tp)items.push({k:'tap',key:'tap:'+tp.src,src:tp.src,ex:tp.ex,bpm:tp.bpm,mins:2,t:tp.t,why:tp.why});
-  items.push({k:'ear',key:'ear',mins:1,t:'Ear game',why:'Straight or swing? How many bars? Which beat has the snare?'});
+  items.push({k:'ear',key:'ear',mins:1,t:'Ear game',why:typeof qlEarWhy==='function'?qlEarWhy():'Straight or swing? How many bars? Which beat has the snare?'});
+  const rv=typeof qlReviseItem==='function'&&qlReviseItem();if(rv)items.push(rv);
+  if(due)items.push({k:'deck',key:'deck',mins:Math.max(1,Math.round(due*0.4)),t:'Remember deck',why:p1Pl(due,'card')+' due · say it, then check'});
   items.push({k:'journal',key:'journal',mins:1,t:'One line for today',why:'How it felt; tick if anything hurt'});
   return items;
 }
@@ -185,15 +189,17 @@ function p1End(){const pl=SES&&p1PlanBySlot(SES.slot);if(!pl){SES=null;render();
 function p1Practice(id,b){openPractice(id);stretchMode=false;bpm=b;$('#bpmv').textContent=bpm;renderPracBar();makePreview();draw();}
 function p1OpenItem(it){
   closeSheets();if(!P1_PRACTICE.includes(it.k)&&it.k!=='tap')p1ClosePrac();
-  if(it.k==='mix'){const id=it.ids[SES.mixI||0];p1Practice(id,p1ItemBpm(it,id));return;}
-  if(P1_PRACTICE.includes(it.k)){p1Practice(it.id,p1ItemBpm(it));return;}
-  if(it.k==='tap'){if(p1TouchLat()==null)p1TouchCalib();else p1OpenTap(it);return;}
-  if(it.k==='lesson'){openLesson(it.id);return;}
+  if(it.k==='mix'){const id=it.ids[SES.mixI||0];p1Practice(id,p1ItemBpm(it,id));p1Prime(it);return;}
+  if(P1_PRACTICE.includes(it.k)){p1Practice(it.id,p1ItemBpm(it));p1Prime(it);return;}
+  if(it.k==='tap'){if(p1TouchLat()==null)p1TouchCalib();else{p1OpenTap(it);p1Prime(it);}return;}
+  if(it.k==='lesson'){openLesson(it.id);p1Prime(it);return;}
   if(it.k==='deck'){TH_RV.list=[];thGo({mode:'review'});return;}
   if(it.k==='card'){thGo({mode:'card',card:it.card});return;}
-  if(it.k==='song'){go('songs',{id:it.song});return;}
-  go('today',{mode:it.k});
+  if(it.k==='song'){go('songs',{id:it.song});p1Prime(it);return;}
+  go('today',{mode:it.k});if(it.k==='free')p1Prime(it);
 }
+// P1b: a 30-second primer, once, before an item whose idea is new (never blocks: Got it / Skip)
+function p1Prime(it){if(typeof qlPrimeItem==='function')qlPrimeItem(it);}
 function p1OpenTap(it){
   L={id:'tap:'+it.src,t:it.t.replace(/^Tap drill · /,''),tap:true,src:it.src,type:'play',lv:0,sd:7,bpm:[it.bpm,it.bpm],step:5,ex:[it.ex]};stretchMode=false;exI=0;bpm=it.bpm;
   $('#prac').classList.remove('hidden');$('#result').classList.add('hidden');$('#ptitle').innerHTML=`<span class="idx">Tap drill</span>${esc(L.t)}`;
@@ -229,12 +235,12 @@ function p1NextBox(){
 }
 function p1Peek(){const pl=p1PlanBySlot(SES.slot);for(let i=SES.i+1;i<pl.items.length;i++)if(!p1Stat(pl.items[i],pl))return pl.items[i];return null;}
 // strip on the practice screen
-function p1PracSync(){const el=$('#sesbar');if(!el)return;const it=p1Cur();if(!it){el.classList.add('hidden');el.innerHTML='';return;}const pl=p1PlanBySlot(SES.slot);
-  el.classList.remove('hidden');el.innerHTML=`<span class="p1sk">Session ${SES.i+1}/${pl.items.length}</span><b>${esc(it.t)}</b>${P1_PRACTICE.includes(it.k)?`<span class="mut">${it.k==='mix'?'mix '+Math.min((SES.mixI||0)+1,it.ids.length)+'/'+it.ids.length:'run '+Math.min(SES.runs+1,it.reps)+'/'+it.reps}</span>`:''}<span class="sp"></span><button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button>`;}
+function p1PracSync(){if(typeof qlPracSync==='function')qlPracSync();const el=$('#sesbar');if(!el)return;const it=p1Cur();if(!it){el.classList.add('hidden');el.innerHTML='';return;}const pl=p1PlanBySlot(SES.slot);
+  el.classList.remove('hidden');el.innerHTML=`<span class="p1sk">Session ${SES.i+1}/${pl.items.length} · ${p1PhaseOf(it)}</span><b>${esc(it.t)}</b>${P1_PRACTICE.includes(it.k)?`<span class="mut">${it.k==='mix'?'mix '+Math.min((SES.mixI||0)+1,it.ids.length)+'/'+it.ids.length:'run '+Math.min(SES.runs+1,it.reps)+'/'+it.reps}</span>`:''}<span class="sp"></span><button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button>`;}
 // strip at the top of every other page
 function p1Bar(){const it=p1Cur();if(!it||cur==='today')return;const pl=p1PlanBySlot(SES.slot),st=p1Stat(it,pl),pr=P1_PRACTICE.includes(it.k)||it.k==='tap';
   const auto=it.k==='deck'&&typeof thDue==='function'&&!thDue().length;
-  view.insertAdjacentHTML('afterbegin',`<div class="card p1bar"><div class="p1bt"><span class="note-k">Session ${SES.i+1} of ${pl.items.length}</span><b>${esc(it.t)}</b>${st||auto?' <span class="chip ms">Done</span>':''}</div><div class="row">${pr&&!st?`<button class="sm pri" data-p1="resume">Continue ›</button>`:`<button class="sm pri" data-p1="next">Next ›</button>`}<button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button></div></div>`);}
+  view.insertAdjacentHTML('afterbegin',`<div class="card p1bar"><div class="p1bt"><span class="note-k">Session ${SES.i+1} of ${pl.items.length} · ${p1PhaseOf(it)}</span><b>${esc(it.t)}</b>${st||auto?' <span class="chip ms">Done</span>':''}</div><div class="row">${pr&&!st?`<button class="sm pri" data-p1="resume">Continue ›</button>`:`<button class="sm pri" data-p1="next">Next ›</button>`}<button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button></div></div>`);}
 
 /* ---------- Today card (Home, Practise) ---------- */
 function p1PainNote(){const j=state.journal||{},t=p1Day(),y=dkey(new Date(p1Now()-DAY)),k=[t,y].find(x=>j[x]&&j[x].pain);
@@ -246,7 +252,9 @@ function p1TodayCard(){
     const meta=[it.mins?(it.mins<1?'under a minute':'~'+Math.round(it.mins)+' min'):'',P1_PRACTICE.includes(it.k)?(it.k==='mix'?it.ids.join(' · '):(it.k==='focus'?(pl.adapt?p1ItemBpm(it)+' BPM (−10 today)':p1ItemBpm(it)+' BPM'):p1ItemBpm(it)+' BPM')+(it.reps>1?' · '+it.reps+' runs':'')):'',it.k==='tap'?it.bpm+' BPM · screen pads':''].filter(Boolean).join(' · ');
     const maint=it.k==='review'?(()=>{const m=p1Maint(it.id),b=(state.prog[it.id]||{}).bestBpm;return `<div class="mut p1m">Best ever ${b||'–'} BPM · last 30 days ${m||'–'}</div>`;})():'';
     const rc=lid&&LBY[lid]&&typeof thPlanRecap==='function'&&it.k!=='card'?thPlanRecap(lid):'';
-    return `<li class="p1it ${st}${here?' here':''}"><span class="p1n">${st==='done'?'✓':st==='skip'?'–':i+1}</span><div class="p1b"><div class="p1tt"><b>${esc(it.t)}</b>${st==='skip'?' <span class="mut">skipped</span>':''}</div><div class="mut p1w">${esc(it.why)}</div>${meta?`<div class="mut p1m">${esc(meta)}</div>`:''}${maint}${st?'':rc}</div><button class="sm ghost" data-p1go="${i}">${st?'Again':'Open'}</button></li>`;};
+    const ph=p1PhaseOf(it),phH=ph&&ph!==p1PhaseOf(items[i-1])?`<li class="p1ph" aria-hidden="true">${ph}</li>`:'';
+    const ql=typeof qlItemBtn==='function'?qlItemBtn(it):'',bo=typeof qlBuiltOn==='function'?qlBuiltOn(it):'';
+    return `${phH}<li class="p1it ${st}${here?' here':''}"><span class="p1n">${st==='done'?'✓':st==='skip'?'–':i+1}</span><div class="p1b"><div class="p1tt"><b>${esc(it.t)}</b>${st==='skip'?' <span class="mut">skipped</span>':''}</div><div class="mut p1w">${esc(it.why)}</div>${meta?`<div class="mut p1m">${esc(meta)}</div>`:''}${maint}${bo}${st?'':rc}</div><div class="p1btns">${ql}<button class="sm ghost" data-p1go="${i}">${st?'Again':'Open'}</button></div></li>`;};
   return `<section class="card p1today" id="p1today">
    <div class="p1h"><div style="min-width:0"><div class="note-k">Today</div><div class="p1title">${mode==='go'?'On the go':'At the kit'} · about ${tot} min</div></div>
      <div class="seg" role="group" aria-label="Mode"><button class="${mode==='go'?'on':''}" data-p1mode="go">On the go</button><button class="${mode==='kit'?'on':''}" data-p1mode="kit">At the kit</button></div></div>
@@ -261,43 +269,59 @@ function p1TodayCard(){
 VP.today=VP.today||{mode:'plan'};
 function renderToday(){
   const m=VP.today.mode,it=p1Cur(),pl=SES&&p1PlanBySlot(SES.slot);
-  const head=it&&it.k===m?`<div class="card p1bar"><div class="p1bt"><span class="note-k">Session ${SES.i+1} of ${pl.items.length}</span><b>${esc(it.t)}</b></div><div class="row"><button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button></div></div>`:'';
+  const head=it&&it.k===m?`<div class="card p1bar"><div class="p1bt"><span class="note-k">Session ${SES.i+1} of ${pl.items.length} · ${p1PhaseOf(it)}</span><b>${esc(it.t)}</b></div><div class="row"><button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button></div></div>`:'';
   if(m==='ear')return view.innerHTML=head+p1EarHtml();
-  if(m==='free')return view.innerHTML=head+p1FreeHtml();
+  if(m==='free'){view.innerHTML=head+p1FreeHtml();if(FREE.t0)p1FreeTick();return;}
+  if(m==='revise')return view.innerHTML=head+(typeof qlReviseHtml==='function'?qlReviseHtml():'');
   if(m==='journal')return view.innerHTML=head+p1JournalHtml();
   view.innerHTML=`<h1>Today</h1>${p1TodayCard()}`;
 }
 
-/* ---------- ear game: straight or swing, count the bars, which beat has the snare (existing patterns + the synth) ---------- */
+/* ---------- ear game (P1b "middle way", D-038/D-039): question kinds unlock with the cards you've read; a round is 3
+   questions from unlocked kinds (no kind twice in a row when there's a choice) + 1 Peek from the next locked kind with its
+   primer in front. A wrong answer queues its card for tomorrow's Revise (a miss); a wrong peek is only queued, never counted.
+   Sounds: existing patterns + the kit synth. ---------- */
 const EAR={qs:[],ans:{},nodes:[],on:-1,seed:0};
 function p1Rnd(seed){let x=seed>>>0||1;return()=>{x^=x<<13;x>>>=0;x^=x>>17;x^=x<<5;x>>>=0;return x/4294967296;};}
+// one question of a kind; `avoid` = answers already used for this kind in the round (so a repeat is a different bar)
+function p1EarQ(k,r,avoid){avoid=avoid||[];const rb=(LBY['1.5.03']&&LBY['1.5.03'].ex[0])||X('Rock beat',2,B8);
+  const draw=(n,off)=>{const pool=[...Array(n).keys()].map(x=>x+(off||0)).filter(x=>!avoid.includes(x));const a=pool.length?pool:[...Array(n).keys()].map(x=>x+(off||0));return a[Math.floor(r()*a.length)];};
+  if(k==='swing'){const sw=r()<0.5;return{k,q:'Straight 8ths or swing?',a:['Straight','Swing'],c:sw?1:0,ex:Object.assign({},rb,{bars:1,swing:sw?0.64:0.5}),bars:2,bpm:84,why:sw?'Long–short pairs: the second 8th of each beat comes late.':'Even 8ths: every note is the same distance apart.'};}
+  if(k==='bars'){const n=draw(3,2);return{k,q:'How many bars after the count-in?',a:['2','3','4'],c:n-2,ex:X('Bars',2,{HH:'xxxxxxxx',K:'x...x...',S:'..x...x.'}),bars:n,cin:1,crash:true,bpm:110,why:'Each bar starts with the crash and kick on “1”: count the ones.'};}
+  if(k==='strong'){const b=draw(4);const S='xxxx'.split('');S[b]='X';return{k,q:'Which beat is the strong one?',a:['1','2','3','4'],c:b,ex:X('Strong',1,{S:S.join('')}),bars:2,bpm:84,dyn:true,why:'The louder hit is on beat '+(b+1)+'. In most music the strongest beat is “1”, where each bar starts.'};}
+  if(k==='tempo'){const up=draw(2)===0;return{k,q:'Two clips: is the second one faster or slower?',a:['Faster','Slower'],c:up?0:1,ex:X('Beat',2,{HH:'xxxxxxxx',K:'x...x...',S:'..x...x.'}),parts:[{bpm:84,bars:1},{bpm:up?112:63,bars:1}],why:up?'In the second clip the beats come closer together: a higher tempo (more BPM).':'In the second clip the beats are further apart: a lower tempo (fewer BPM).'};}
+  if(k==='meter'){const six=draw(2)===1;return{k,q:'Six 8ths a bar: 3/4 or 6/8?',a:['3/4','6/8'],c:six?1:0,ex:X('Six',2,{S:six?'XxxXxx':'XxXxXx'},{steps:6}),bars:2,bpm:150,dyn:true,why:six?'Accents in two groups of three (3 + 3): that’s 6/8.':'Accents in three pairs (2 + 2 + 2): that’s 3/4.'};}
+  const b=draw(3,1);const S='....'.split('');S[b]='x';return{k:'snare',q:'Which beat has the snare?',a:['1','2','3','4'],c:b,ex:X('Where',1,{HH:'xxxx',K:'x...',S:S.join('')}),bars:2,bpm:80,why:'Count 1 2 3 4 along with the hi-hat; the snare lands on beat '+(b+1)+'.'};}
 function p1EarNew(seed){
-  const r=p1Rnd(seed||(Date.now()&0xffffffff)),pick=a=>a[Math.floor(r()*a.length)],kinds=['swing','bars','snare'];kinds.push(pick(kinds));
-  const rb=(LBY['1.5.03']&&LBY['1.5.03'].ex[0])||X('Rock beat',2,B8);
-  EAR.qs=kinds.map(k=>{
-    if(k==='swing'){const sw=r()<0.5;return{k,q:'Straight 8ths or swing?',a:['Straight','Swing'],c:sw?1:0,ex:Object.assign({},rb,{bars:1,swing:sw?0.64:0.5}),bars:2,bpm:84,why:sw?'Long–short pairs: the second 8th of each beat comes late.':'Even 8ths: every note is the same distance apart.'};}
-    if(k==='bars'){const n=2+Math.floor(r()*3);return{k,q:'How many bars after the count-in?',a:['2','3','4'],c:n-2,ex:X('Bars',2,{HH:'xxxxxxxx',K:'x...x...',S:'..x...x.'}),bars:n,cin:1,crash:true,bpm:110,why:'Each bar starts with the crash and kick on “1”: count the ones.'};}
-    const b=1+Math.floor(r()*3);const S='....'.split('');S[b]='x';return{k,q:'Which beat has the snare?',a:['1','2','3','4'],c:b,ex:X('Where',1,{HH:'xxxx',K:'x...',S:S.join('')}),bars:2,bpm:80,why:'Count 1 2 3 4 along with the hi-hat; the snare lands on beat '+(b+1)+'.'};});
+  const r=p1Rnd(seed||(Date.now()&0xffffffff)),st=typeof qlEarState==='function'?qlEarState():{un:['swing','bars','snare'].map(k=>({k,c:''})),peek:null,since:{}};
+  const U=st.un.map(x=>x.k),seq=[],n=U.length?(st.peek?3:4):0;
+  for(let i=0;i<n;i++){let ch=U.filter(k=>k!==seq[i-1]);if(!ch.length)ch=U;const cnt=k=>seq.filter(x=>x===k).length,lo=Math.min(...ch.map(cnt));ch=ch.filter(k=>cnt(k)===lo);seq.push(ch[Math.floor(r()*ch.length)]);}
+  const used={},mk=(k,peek)=>{const q=p1EarQ(k,r,used[k]);(used[k]=used[k]||[]).push(q.c);const kd=typeof qlEarKind==='function'&&qlEarKind(k);q.card=kd?kd.c:'';q.lab=kd?kd.n:k;if(peek)q.peek=true;else q.isNew=typeof qlEarNew==='function'&&qlEarNew(k,st);return q;};
+  EAR.qs=seq.map(k=>mk(k,false));if(st.peek)EAR.qs.push(mk(st.peek.k,true));
   EAR.ans={};EAR.on=-1;return EAR.qs;
 }
-// the sound plan for one question: [{v,t}] in seconds from the start (count-in clicks as v:'click')
-function p1EarPlan(q){const ex=q.ex,spb=ex.steps||4*ex.sub,beat=60/q.bpm,step=beat/ex.sub,sw=((ex.swing||0.5)-0.5)*2*step,ev=[],cin=q.cin?spb/ex.sub:0;
+// the sound plan for one question: [{v,t,gain?}] in seconds from the start (count-in clicks as v:'click'); two-clip questions in turn
+function p1EarPlan(q){
+  if(q.parts){let t=0;const ev=[];q.parts.forEach((p,pi)=>{const P0=p1EarPlan(Object.assign({},q,{parts:null,bpm:p.bpm,bars:p.bars,cin:pi?0:q.cin}));P0.ev.forEach(e=>ev.push(Object.assign({},e,{t:e.t+t})));t+=P0.total+(pi<q.parts.length-1?1.1:0);});return{ev,total:t};}
+  const ex=q.ex,spb=ex.steps||4*ex.sub,beat=60/q.bpm,step=beat/ex.sub,sw=((ex.swing||0.5)-0.5)*2*step,ev=[],cin=q.cin?spb/ex.sub:0;
   for(let i=0;i<cin;i++)ev.push({v:'click',t:i*beat,acc:i===0});
-  const t0=cin*beat;for(let b=0;b<q.bars;b++)for(let i=0;i<spb;i++){const t=t0+(b*spb+i)*step+(i%2?sw:0);for(const v in ex.v)if(ex.v[v][i]&&ex.v[v][i]!=='.')ev.push({v,t});if(q.crash&&i===0)ev.push({v:'C',t});}
+  const t0=cin*beat;for(let b=0;b<q.bars;b++)for(let i=0;i<spb;i++){const t=t0+(b*spb+i)*step+(i%2?sw:0);for(const v in ex.v){const ch=ex.v[v][i];if(ch&&ch!=='.')ev.push(q.dyn?{v,t,gain:ch==='X'?1:0.36}:{v,t});}if(q.crash&&i===0)ev.push({v:'C',t});}
   return{ev,total:t0+q.bars*spb*step};}
-function p1EarStop(){EAR.nodes.forEach(n=>{try{n.stop(0);}catch(_){}});EAR.nodes=[];EAR.on=-1;}
+function p1EarStop(){EAR.nodes.forEach(n=>{try{n.stop(0);}catch(_){}});EAR.nodes=[];EAR.on=-1;if(typeof HEAR!=='undefined'){HEAR.nodes.forEach(n=>{try{n.stop(0);}catch(_){}});HEAR.nodes=[];}}
 async function p1EarPlay(i){p1EarStop();const a=audio();if(a.state!=='running'){try{await a.resume();}catch(_){}}const P0=p1EarPlan(EAR.qs[i]),t0=a.currentTime+0.15;EAR.on=i;
-  P0.ev.forEach(e=>e.v==='click'?click(t0+e.t,e.acc?'acc':'beat',EAR.nodes):drum(e.v,t0+e.t,EAR.nodes));}
+  P0.ev.forEach(e=>e.v==='click'?click(t0+e.t,e.acc?'acc':'beat',EAR.nodes):e.gain!=null&&typeof thVoice==='function'?thVoice(e.v,t0+e.t,e.gain,'x'):drum(e.v,t0+e.t,EAR.nodes));}
 function p1EarHtml(){
-  if(!EAR.qs.length)p1EarNew();const n=Object.keys(EAR.ans).length,ok=EAR.qs.filter((q,i)=>EAR.ans[i]===q.c).length,fin=n===EAR.qs.length;
-  return `<h1>Ear game</h1><p class="sub">About a minute. Tap ▶ to hear each one (as often as you like), then answer.</p>
-  ${EAR.qs.map((q,i)=>{const p=EAR.ans[i];return `<div class="card p1q"><div class="row" style="flex-wrap:nowrap"><b style="flex:1;min-width:0">${i+1}. ${esc(q.q)}</b><button class="sm" data-p1ear="play" data-i="${i}">▶ Play</button></div>
-    <div class="thans">${q.a.map((x,j)=>`<button class="sm ${p===j?(j===q.c?'pri':'bad'):p!=null&&j===q.c?'ghost':''}" data-p1ear="ans" data-i="${i}" data-j="${j}"${p!=null?' disabled':''}>${esc(x)}</button>`).join('')}</div>${p!=null?`<p class="mut thwhy">${p===q.c?'✓ ':'✗ '}${esc(q.why)}</p>`:''}</div>`;}).join('')}
-  <div class="row" style="margin-top:12px">${fin?`<b>${ok} of ${EAR.qs.length} right</b><span class="sp"></span><button data-p1ear="again">New round</button><button class="pri" data-p1ear="done">Done ›</button>`:`<span class="mut">${n} of ${EAR.qs.length} answered</span>`}</div>`;
+  if(!EAR.qs.length)p1EarNew();const main=EAR.qs.filter(q=>!q.peek),n=Object.keys(EAR.ans).length,ok=EAR.qs.filter((q,i)=>!q.peek&&EAR.ans[i]===q.c).length,fin=n===EAR.qs.length,pi=EAR.qs.findIndex(q=>q.peek);
+  return `<h1>Ear game</h1><p class="sub">About a minute. Tap ▶ to hear each one (as often as you like), then answer. ${main.length?'More kinds unlock as you read their cards.':'Read a card to unlock more questions.'}</p>
+  ${EAR.qs.map((q,i)=>{const p=EAR.ans[i];return `${q.peek&&typeof qlPeekPrimer==='function'?qlPeekPrimer(q.card):''}<div class="card p1q${q.peek?' p1peek':''}">${q.peek||q.isNew?`<div class="p1qb">${q.peek?'<span class="chip ip">Peek · doesn’t count</span>':`<span class="chip ms">New: ${esc(q.lab)}</span>`}</div>`:''}<div class="row" style="flex-wrap:nowrap;align-items:center"><b style="flex:1;min-width:0">${i+1}. ${esc(q.q)}</b>${typeof qlI==='function'&&q.card?qlI([q.card],q.lab):''}<button class="sm" data-p1ear="play" data-i="${i}">▶ Play</button></div>
+    <div class="thans">${q.a.map((x,j)=>`<button class="sm ${p===j?(j===q.c?'pri':'bad'):p!=null&&j===q.c?'ghost':''}" data-p1ear="ans" data-i="${i}" data-j="${j}"${p!=null?' disabled':''}>${esc(x)}</button>`).join('')}</div>${p!=null?`<p class="mut thwhy">${p===q.c?'✓ ':'✗ '}${esc(q.why)}${p!==q.c?(q.peek?' A peek never counts against you; this card comes back in tomorrow’s Revise.':' This card comes back in tomorrow’s Revise.'):''}</p>`:''}</div>`;}).join('')}
+  <div class="row" style="margin-top:12px">${fin?`<b>${main.length?ok+' of '+main.length+' right':'Peek done'}</b>${pi>=0&&main.length?`<span class="mut">peek ${EAR.ans[pi]===EAR.qs[pi].c?'✓':'✗'} (doesn’t count)</span>`:''}<span class="sp"></span><button data-p1ear="again">New round</button><button class="pri" data-p1ear="done">Done ›</button>`:`<span class="mut">${n} of ${EAR.qs.length} answered</span>`}</div>`;
 }
-function p1EarDone(){const ok=EAR.qs.filter((q,i)=>EAR.ans[i]===q.c).length,it=p1Cur();p1EarStop();
-  if(it&&it.k==='ear'){const pl=p1PlanBySlot(SES.slot);pl.ear={n:EAR.qs.length,ok,at:p1Now()};p1Mark(it,'done');EAR.qs=[];p1Next();return;}
-  const pl=p1Plan('go',p1Mins());pl.ear={n:EAR.qs.length,ok,at:p1Now()};const e=pl.items.find(x=>x.k==='ear');if(e&&!pl.done.ear){pl.done.ear=p1Now();p1Act();}save();EAR.qs=[];go('home');}
+function p1EarAnswer(i,j){const q=EAR.qs[i];if(!q||EAR.ans[i]!=null)return;EAR.ans[i]=j;if(j!==q.c&&q.card&&typeof qlWrong==='function')qlWrong(q.card,{peek:!!q.peek});}
+function p1EarDone(){const main=EAR.qs.filter(q=>!q.peek),ok=EAR.qs.filter((q,i)=>!q.peek&&EAR.ans[i]===q.c).length,pk=EAR.qs.findIndex(q=>q.peek),it=p1Cur();p1EarStop();
+  const rec={n:main.length,ok,at:p1Now()};if(pk>=0)rec.peek={k:EAR.qs[pk].k,ok:EAR.ans[pk]===EAR.qs[pk].c?1:0};
+  if(it&&it.k==='ear'){const pl=p1PlanBySlot(SES.slot);pl.ear=rec;p1Mark(it,'done');EAR.qs=[];p1Next();return;}
+  const pl=p1Plan('go',p1Mins());pl.ear=rec;const e=pl.items.find(x=>x.k==='ear');if(e&&!pl.done.ear){pl.done.ear=p1Now();p1Act();}save();EAR.qs=[];go('home');}
 
 /* ---------- free play (D7): a timer, no score; the minutes count ---------- */
 const FREE={t0:0,iv:null};
@@ -329,7 +353,7 @@ document.addEventListener('click',e=>{
   if((b=T.closest('[data-p1mode]'))){p1SetMode(b.dataset.p1mode);render();return;}
   if((b=T.closest('[data-p1mins]'))){state.set.planMins=+b.dataset.p1mins;save();render();return;}
   if((b=T.closest('[data-p1go]'))){const i=+b.dataset.p1go;if(SES&&SES.slot===p1Slot(p1Mode(),p1Mins())){SES.i=i;SES.runs=0;SES.mixI=0;p1OpenItem(p1PlanBySlot(SES.slot).items[i]);}else p1Start(i);return;}
-  if((b=T.closest('[data-p1ear]'))){const a=b.dataset.p1ear,i=+b.dataset.i;if(a==='play'){p1EarPlay(i);return;}if(a==='ans'){if(EAR.ans[i]==null)EAR.ans[i]=+b.dataset.j;render();return;}if(a==='again'){p1EarStop();p1EarNew();render();return;}if(a==='done'){p1EarDone();return;}return;}
+  if((b=T.closest('[data-p1ear]'))){const a=b.dataset.p1ear,i=+b.dataset.i;if(a==='play'){p1EarPlay(i);return;}if(a==='ans'){p1EarAnswer(i,+b.dataset.j);render();return;}if(a==='again'){p1EarStop();p1EarNew();render();return;}if(a==='done'){p1EarDone();return;}return;}
   if((b=T.closest('[data-p1free]'))){if(b.dataset.p1free==='start'){FREE.t0=Date.now();render();p1FreeTick();}else p1FreeDone();return;}
   if((b=T.closest('[data-p1j]'))){p1JournalSave(($('#p1jt')||{}).value,($('#p1jp')||{}).checked);toast('Saved in your journal');if(SES){if(SES.ending){SES.ending=false;p1Finish();}else p1Next();}else go('home');return;}
   if((b=T.closest('[data-p1]'))){const a=b.dataset.p1;
@@ -337,7 +361,7 @@ document.addEventListener('click',e=>{
     if(!SES){render();return;}
     const it=p1Cur();
     if(a==='resume'){p1OpenItem(it);return;}
-    if(a==='tapgo'){p1OpenTap(it);return;}
+    if(a==='tapgo'){p1OpenTap(it);p1Prime(it);return;}
     if(a==='mixnext'){p1OpenItem(it);return;}
     if(a==='next'){if(it&&!p1Stat(it,p1PlanBySlot(SES.slot)))p1Mark(it,'done');if(SES.ending){SES.ending=false;p1Finish();return;}p1Next();return;}
     if(a==='skip'){if(it&&!p1Stat(it,p1PlanBySlot(SES.slot)))p1Mark(it,'skip');if(SES.ending){SES.ending=false;p1Finish();return;}p1Next();return;}
@@ -356,7 +380,7 @@ async function p1Tests(){
   try{
   // 1. plan building: On the go
   {fresh();p1Clock=day0;const go=p1BuildGo().map(x=>x.k);T('On the go with nothing due: new card → tap drill → ear game → journal',go.join(' ')==='card tap ear journal',go.join(' '));
-    const k=TH_ORDER.find(x=>x.rem);thMark(k.id,'r',true);state.theory.review[k.id].due=thNow()-1;const g2=p1BuildGo();T('…with Remember cards due, the deck comes first',g2[0].k==='deck'&&/1 card due/.test(g2[0].why),g2.map(x=>x.k).join(' '));
+    const k=TH_ORDER.find(x=>x.rem);thMark(k.id,'r',true);state.theory.review[k.id].due=thNow()-1;const g2=p1BuildGo(),di=g2.findIndex(x=>x.k==='deck');T('…with Remember cards due, the deck is in Revise, after the ear game (P1b phases)',di>g2.findIndex(x=>x.k==='ear')&&/1 card due/.test(g2[di].why),g2.map(x=>x.k).join(' '));
     const tap=g2.find(x=>x.k==='tap'),lanes=Object.keys(tap.ex.v);T('Tap drill: from the current lesson, ≤ 2 lanes, 4 bars, 1-bar gap in the click, slow tempo',tap.src===p1Focus().id&&lanes.length<=2&&tap.ex.bars>=4&&JSON.stringify(tap.ex.gap)==='[2]'&&tap.bpm<=72&&tap.ex.dyn===false,tap.src+' '+lanes.join('+')+' '+tap.ex.bars+' bars @'+tap.bpm);
     const sum=g2.reduce((a,x)=>a+x.mins,0);T('On the go fits a break (5–10 min)',sum>=5&&sum<=10,sum+' min');
     // card-only fallback for the tap drill
@@ -450,13 +474,14 @@ async function p1Tests(){
     const ji=pl.items.findIndex(x=>x.k==='journal');SES.i=ji-1;document.querySelector('#p1today,[data-p1]')&&0;p1Next();T('Journal item opens its own screen',cur==='today'&&VP.today.mode==='journal'&&!!$('#p1jt'),'');
     $('#p1jt').value='ok';document.querySelector('[data-p1j]').click();T('Saving the journal finishes the session',!SES&&state.journal[today()].t==='ok','');
     p1Start(1);document.querySelector('[data-p1="end"]')?.click();T('End session (with something done) asks for the journal line first',!SES||VP.today.mode==='journal','');SES=null;p1ClosePrac();}
-  // 9. ear game
-  {const qs=p1EarNew(12345);T('Ear game: 4 questions (swing, bars, snare + one more), each with a right answer',qs.length===4&&['swing','bars','snare'].every(k=>qs.some(q=>q.k===k))&&qs.every(q=>q.c>=0&&q.c<q.a.length),qs.map(q=>q.k).join(' '));
-    const plans=qs.map(p1EarPlan);T('Ear sounds: built from patterns + the synth, each under 12 s',plans.every(p=>p.ev.length>0&&p.total>0&&p.total<12),plans.map(p=>p.total.toFixed(1)).join(' '));
-    const sw=p1EarNew(7).find(q=>q.k==='swing')||p1EarNew(8).find(q=>q.k==='swing'),pp=p1EarPlan(Object.assign({},sw,{ex:Object.assign({},sw.ex,{swing:0.64})})),ps=p1EarPlan(Object.assign({},sw,{ex:Object.assign({},sw.ex,{swing:0.5})}));
+  // 9. ear game (P1b: kinds unlocked by cards + one peek; the unlock rules themselves are in p1bTests)
+  {fresh();['A1.02.1','A1.02.2','A1.02.3','A1.06.1','A1.03.1','B2.04.1'].forEach(id=>thMark(id,'r',true));const qs=p1EarNew(12345),main=qs.filter(q=>!q.peek);
+    T('Ear game: 3 questions from unlocked kinds + 1 peek, each with a right answer',qs.length===4&&main.length===3&&qs[3].peek&&qs[3].k==='meter'&&qs.every(q=>q.c>=0&&q.c<q.a.length),qs.map(q=>q.k+(q.peek?'(peek)':'')).join(' '));
+    const all=['snare','strong','bars','tempo','swing','meter'].map(k=>p1EarQ(k,p1Rnd(9))),plans=all.map(p1EarPlan);T('Ear sounds: built from patterns + the synth, each under 12 s',plans.every(p=>p.ev.length>0&&p.total>0&&p.total<12),plans.map(p=>p.total.toFixed(1)).join(' '));
+    const sw=p1EarQ('swing',p1Rnd(3)),pp=p1EarPlan(Object.assign({},sw,{ex:Object.assign({},sw.ex,{swing:0.64})})),ps=p1EarPlan(Object.assign({},sw,{ex:Object.assign({},sw.ex,{swing:0.5})}));
     T('Swing question really swings (off-beat 8ths late)',pp.ev.filter(e=>e.v==='HH')[1].t>ps.ev.filter(e=>e.v==='HH')[1].t,'');
-    fresh();p1SetMode('go');const pl=p1Plan('go',20,{rebuild:true});SES={slot:'go',day:p1Day(),i:pl.items.findIndex(x=>x.k==='ear'),runs:0,mixI:0};go('today',{mode:'ear'});
-    EAR.qs.forEach((q,i)=>{EAR.ans[i]=q.c;});render();document.querySelector('[data-p1ear="done"]').click();T('Answering every question ticks the ear game off',!!pl.done.ear&&pl.ear&&pl.ear.ok===4,'');SES=null;}
+    p1SetMode('go');const pl=p1Plan('go',20,{rebuild:true});SES={slot:'go',day:p1Day(),i:pl.items.findIndex(x=>x.k==='ear'),runs:0,mixI:0};go('today',{mode:'ear'});
+    EAR.qs.forEach((q,i)=>{EAR.ans[i]=q.c;});render();document.querySelector('[data-p1ear="done"]').click();T('Answering every question ticks the ear game off (the peek isn’t scored)',!!pl.done.ear&&pl.ear&&pl.ear.ok===3&&pl.ear.n===3&&pl.ear.peek,JSON.stringify(pl.ear));SES=null;}
   // 10. data: back-fill, merge, testing mode
   {const old=normaliseState({v:1,prog:{},done:{},sessions:[],songs:[],savedAt:1});T('Old saves get state.plan and state.journal back-filled',old.plan&&old.plan.days&&old.plan.act&&old.plan.rev&&old.journal&&old.set.planMins===20,'');
     const A={days:{'2026-11-14':{go:{items:[{key:'a'}],done:{a:5},skip:{},at:1}}},act:{'2026-11-14':1},rev:{'2.3.01':{due:100,step:1,at:50}}};

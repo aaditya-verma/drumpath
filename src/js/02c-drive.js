@@ -121,6 +121,9 @@ function thMerge(A,B){
   m.auto=Object.assign({},a.auto);Object.entries(b.auto).forEach(([k,v])=>{if(!m.auto[k]||v>m.auto[k])m.auto[k]=v;});
   m.plog=(a.plog.length>=b.plog.length?a.plog:b.plog).slice(-40);
   m.fails=Object.assign({},a.fails);Object.entries(b.fails).forEach(([k,v])=>{if(!m.fails[k]||(v.ts||0)>(m.fails[k].ts||0))m.fails[k]=v;});
+  // P1b: lookups and wrong answers = union of timestamps (last 20 per card); a primer shown on either device counts (earliest)
+  ['look','miss'].forEach(f=>{m[f]={};new Set([...Object.keys(a[f]),...Object.keys(b[f])]).forEach(id=>{m[f][id]=[...new Set([...(a[f][id]||[]),...(b[f][id]||[])])].sort((x,y)=>x-y).slice(-20);});});
+  m.primed=Object.assign({},a.primed);Object.entries(b.primed).forEach(([k,v])=>{m.primed[k]=m.primed[k]?Math.min(m.primed[k],v):v;});
   return m;
 }
 /* P1: plans per day and slot (done/skipped items: union, earliest time), activity days (larger count), lesson review
@@ -134,6 +137,8 @@ function p1Merge(A,B){
       if(z.adapt&&!w.adapt)o[sl].adapt=z.adapt;if(p.ear||q.ear)o[sl].ear=(((p.ear||{}).at||0)>=((q.ear||{}).at||0)?p.ear:q.ear)||p.ear||q.ear;});m.days[d]=o;});
   new Set([...Object.keys(a.act),...Object.keys(b.act)]).forEach(d=>{m.act[d]=Math.max(a.act[d]||0,b.act[d]||0);});
   new Set([...Object.keys(a.rev),...Object.keys(b.rev)]).forEach(id=>{const x=a.rev[id],y=b.rev[id];m.rev[id]=!x?y:!y?x:((y.at||0)>(x.at||0)||((y.at||0)===(x.at||0)&&(y.step||0)>(x.step||0)))?y:x;});
+  // P1b: each day's Revise slot = the cards queued on either device
+  m.revise={};new Set([...Object.keys(a.revise),...Object.keys(b.revise)]).forEach(d=>{m.revise[d]=[...new Set([...(a.revise[d]||[]),...(b.revise[d]||[])])];});
   return m;
 }
 function p1JMerge(A,B){const m=Object.assign({},A||{});Object.entries(B||{}).forEach(([d,v])=>{if(!m[d]||((v&&v.at)||0)>((m[d].at)||0))m[d]=v;});return m;}

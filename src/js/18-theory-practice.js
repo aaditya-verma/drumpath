@@ -57,7 +57,7 @@ function thPanelOnOpen(){
   TH_P.lesson=null;TH_P.open=false;TH_P.all=false;const rail=$('#thrail'),chip=$('#thchipw');if(rail)rail.classList.add('hidden');if(chip)chip.innerHTML='';
   if(!L||L.theory||L.calib||!LBY[L.id])return;
   const m=thPanelMode(L.id,{busy:thPanelBusy()});Object.assign(TH_P,{lesson:L.id,mode:m.mode,rows:m.rows,why:m.why});
-  if(m.mode==='open'){thT3Fill().auto[L.id]=today();save();if(thWide())TH_P.open=true;else setTimeout(()=>{if(TH_P.lesson===L.id&&!run)thPanelSheet();},60);}
+  if(m.mode==='open'){thT3Fill().auto[L.id]=today();save();if(thWide())TH_P.open=true;else setTimeout(()=>{if(L&&TH_P.lesson===L.id&&!run&&!document.querySelector('.modal'))thPanelSheet();},60);}
   thPanelSync();
 }
 function thPanelSync(){
@@ -89,7 +89,7 @@ function thCardSheet(id,opts={}){
 }
 function thRecapSheet(){
   const att=TH_P.rows.filter(r=>r.need<4).slice(0,3);
-  openSheet('30-second recap',att.map(r=>{const k=THC[r.id],hs=thHearSpecs(k);thMark(r.id,'r',true);return `<div class="threcap"><b>${esc(k.t)}</b><div class="threm" style="margin:6px 0"><span class="note-k">Remember</span><span>${esc(k.rem||k.idea)}</span></div>${hs.length?`<button class="sm" data-thhear="${k.id}:0" data-lab="▶ Hear it">▶ Hear it</button>`:''} <button class="sm ghost" data-thsheet="${k.id}">Whole card</button></div>`;}).join('')+`<div class="row" style="margin-top:12px"><span class="sp"></span><button class="pri" data-thpstart>Start now</button></div>`);
+  openSheet('30-second recap',att.map(r=>{const k=THC[r.id],hs=thHearSpecs(k);thMark(r.id,'r',true);return `<div class="threcap"><b>${esc(k.t)}</b><div class="threm" style="margin:6px 0"><span class="note-k">Remember</span><span>${esc(k.rem||k.idea)}</span></div>${hs.length?`<button class="sm" data-thhear="${k.id}:0" data-lab="▶ Hear it">▶ Hear it</button>`:''} <button class="sm ghost" data-thsheet="${k.id}">Whole card</button>${typeof qlI==='function'?' '+qlI([k.id],k.t):''}</div>`;}).join('')+`<div class="row" style="margin-top:12px"><span class="sp"></span><button class="pri" data-thpstart>Start now</button></div>`);
   save();
 }
 
@@ -112,10 +112,11 @@ function thFixRows(R,res){
 function thFixHtml(R,res){
   try{if(!R||!R.lesson||R.lesson.theory||!LBY[R.lesson.id])return '';const t=thT3Fill(),id=R.lesson.id,rows=thFixRows(R,res);
     if(res.passed)delete t.fails[id];else t.fails[id]={ts:thNow(),cards:rows};
+    if(typeof qlWrong==='function')rows.forEach(r=>qlWrong(r.card,{quiet:true}));   // P1b: each mistake → tomorrow's Revise
     const rs=state.sessions.filter(s=>s.id===id),prev=rs[rs.length-2],last=rs[rs.length-1];
     const twice=!res.passed&&prev&&last&&prev.bpm===last.bpm&&!runPassed(prev);
     if(!rows.length&&!twice)return '';
-    return `<div class="card thfix"><div class="note-k" style="color:var(--accent)">Fix it with theory</div>${rows.map(r=>`<div class="thprow"><div style="flex:1;min-width:0"><b>${esc(THC[r.card].t)}</b><div class="mut thpwhy">${esc(r.text)}</div></div><button class="sm" data-thsheet="${r.card}">Read</button></div>`).join('')}
+    return `<div class="card thfix"><div class="note-k" style="color:var(--accent)">Fix it with theory</div>${rows.map(r=>`<div class="thprow"><div style="flex:1;min-width:0"><b>${esc(THC[r.card].t)}</b><div class="mut thpwhy">${esc(r.text)}</div></div>${typeof qlI==='function'?qlI([r.card],THC[r.card].t):''}<button class="sm" data-thsheet="${r.card}">Read</button></div>`).join('')}
       ${twice?`<p class="mut" style="font-size:14px;margin:8px 0 0">Two misses in a row at ${last.bpm} BPM: drop 10 BPM and build it back up (coach rule D2).</p>`:''}</div>`;}
   catch(e){console.warn('fix-it',e);return '';}
 }
@@ -154,6 +155,7 @@ function progTheory(){
   <div class="thq4">${TH_Q.map(([k,l,h])=>`<div class="card tap thq4c ${sel===k?'on':''}" data-thquad="${k}"><div class="k">${l}</div><div class="v">${x[k].length}<small>concepts</small></div><div class="d">${h}</div></div>`).join('')}</div>
   ${sel?`<h2>${esc(TH_Q.find(q=>q[0]===sel)[1])}</h2>${x[sel].length?`<div class="list">${x[sel].map(tag=>{const c=thBestCard(tag),ls=thConceptLessons(tag),l=ls.find(q=>statusOf(q)!=='ms')||ls[0];
      return `<div class="lrow"><span style="flex:1;min-width:0"><b>${esc(thConceptName(tag))}</b><span class="mut" style="font-size:13px"> · ${ls.length} lesson${ls.length===1?'':'s'}</span></span>${c?`<button class="sm ghost" data-thcard="${c}">Card</button>`:''}${l?`<button class="sm ghost" data-open="${l.id}">${l.id}</button>`:''}</div>`;}).join('')}</div>`:'<div class="card mut">None.</div>'}`:''}
+  ${typeof qlTopHtml==='function'?qlTopHtml():''}
   <h2>Cards</h2><div class="hero-stats">${[['','New'],['r','Read'],['u','Understood'],['p','Can play'],['h','Can hear']].map(([k,l])=>`<div class="card stat"><div class="k">${l}</div><div class="v">${cnt[k]}<small>/ ${TH_ORDER.length}</small></div></div>`).join('')}</div>
   <p class="mut" style="font-size:13px">Concept × lesson and timing by note position come to Compare in theory step T5.</p>`;
 }
@@ -161,7 +163,7 @@ function progTheory(){
 /* ---------- Practise plan: one short recap per item; Remember deck ---------- */
 function thPlanRecap(lessonId){
   const r=LBY[lessonId]?thPanelRows(lessonId).find(x=>x.need<4):null;if(!r)return '';const k=THC[r.id],hs=thHearSpecs(k);
-  return `<div class="threcap tiny"><div class="note-k">Theory recap · under a minute</div><b>${esc(k.t)}</b> <span class="mut">— ${esc(k.rem||k.idea)}</span><div class="row" style="margin-top:6px;gap:6px">${hs.length?`<button class="sm ghost" data-thhear="${k.id}:0" data-lab="▶ Hear">▶ Hear</button>`:''}<button class="sm ghost" data-thsheet="${k.id}">Read</button></div></div>`;
+  return `<div class="threcap tiny"><div class="note-k">Theory recap · under a minute</div><b>${esc(k.t)}</b> <span class="mut">— ${esc(k.rem||k.idea)}</span><div class="row" style="margin-top:6px;gap:6px">${hs.length?`<button class="sm ghost" data-thhear="${k.id}:0" data-lab="▶ Hear">▶ Hear</button>`:''}<button class="sm ghost" data-thsheet="${k.id}">Read</button>${typeof qlI==='function'?qlI([k.id],k.t):''}</div></div>`;
 }
 function thPlanDeck(){const n=thDue().length;if(!n)return '';return `<div class="card"><div class="note-k" style="color:var(--accent)">Remember deck</div><b style="font-size:18px">${n} card${n===1?'':'s'} due</b><div class="mut">About ${Math.max(1,Math.round(n*0.3))} min · theory reviews</div><div class="row" style="margin-top:10px"><button class="pri" data-thgo='{"mode":"review"}'>Review</button></div></div>`;}
 
