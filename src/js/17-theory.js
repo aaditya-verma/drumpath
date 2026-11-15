@@ -48,7 +48,7 @@ function thReview(id,ok){
   const t=thS(),r=t.review[id]||(t.review[id]={due:0,step:0,at:0});
   if(ok){r.step=(r.step||0)+1;if(r.step>=TH_REV.length){r.done=true;r.due=null;}else r.due=thNow()+TH_REV[r.step]*DAY;}
   else{r.step=0;r.done=false;r.due=thNow()+TH_REV[0]*DAY;}
-  r.at=thNow();save();return r;
+  r.at=thNow();if(typeof p1Act==='function')p1Act();save();return r;   // a deck review keeps the gentle streak (P1)
 }
 function thDue(){const t=thS(),now=thNow();return Object.entries(t.review).filter(([id,r])=>THC[id]&&!r.done&&r.due!=null&&r.due<=now).sort((a,b)=>a[1].due-b[1].due).map(([id])=>id);}
 function thContinue(){const t=thS();const lc=t.lastCard&&THC[t.lastCard];if(lc&&!thSt(lc.id))return lc;return TH_ORDER.find(k=>!thSt(k.id))||lc||TH_ORDER[0];}

@@ -72,6 +72,7 @@ function viewLabel(){
   if(cur==='lessons'){const p=VP.lessons;if(p.id)return p.id;if(p.lv!=null)return 'Level '+p.lv+(p.sd?' · '+STRANDS[p.sd]:'');return 'Skill map';}
   if(cur==='songs'&&VP.songs.id){const s=songById(VP.songs.id);if(s)return s.title;}
   if(cur==='theory'){const p=VP.theory||{};if(p.mode==='card'&&typeof THC!=='undefined'&&THC[p.card])return THC[p.card].t;if(p.mode==='part')return 'Theory · '+p.part;if(p.mode==='review')return 'Remember deck';return 'Theory';}
+  if(cur==='today')return 'Today';
   if(cur==='progress'){const p=VP.progress;return 'Progress'+(p.path.length?' · '+periodName(p.path[p.path.length-1]):'');}
   return NAVI[cur]?NAVI[cur][0]:cur;
 }
@@ -132,8 +133,9 @@ function openSearch(){
 /* ---------- render ---------- */
 const view=$('#view');
 function render(){
-  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,library:renderLibrary,theory:renderTheory,kit:renderKit,settings:renderSettings}[cur]||renderHome;
+  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,library:renderLibrary,theory:renderTheory,kit:renderKit,settings:renderSettings,today:renderToday}[cur]||renderHome;
   try{f();}catch(e){console.error(e);view.innerHTML=`<div class="card"><b>Something went wrong drawing this page.</b><p class="mut">${esc(e.message)}</p></div>`;}
+  if(typeof p1Bar==='function')p1Bar();   // P1 session strip at the top of the page while a session runs
   syncNav();
   if(typeof fillLibStatus==='function'&&document.querySelector('[data-libst]'))fillLibStatus().catch(()=>{});
 }

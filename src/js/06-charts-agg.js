@@ -75,8 +75,8 @@ function statsOf(runs,mins){
   return{runs:runs.length,mins:mins!=null?mins:runs.reduce((a,s)=>a+(s.dur||0),0)/60,timing:n?100*on/n:null,dyn:dy.length?dy.reduce((a,s)=>a+s.dyn,0)/dy.length:null,
     lessons:new Set(runs.map(s=>s.id)).size,passed:runs.filter(runPassed).length,best:runs.length?Math.max(...runs.map(s=>s.score)):null};
 }
-function streakDays(){let n=0;const d=new Date();if(!state.days[dkey(d)])d.setDate(d.getDate()-1);while(state.days[dkey(d)]){n++;d.setDate(d.getDate()-1);}return n;}
-function longestStreak(){const ks=Object.keys(state.days).filter(k=>state.days[k]>0).sort();let best=0,c=0,prev=null;ks.forEach(k=>{const d=pdate(k);if(prev&&(d-prev)/864e5<1.5)c++;else c=1;best=Math.max(best,c);prev=d;});return best;}
+function streakDays(){if(typeof p1Streak==='function')return p1Streak().cur;let n=0;const d=new Date();if(!state.days[dkey(d)])d.setDate(d.getDate()-1);while(state.days[dkey(d)]){n++;d.setDate(d.getDate()-1);}return n;}
+function longestStreak(){if(typeof p1Streak==='function')return p1Streak().best;const ks=Object.keys(state.days).filter(k=>state.days[k]>0).sort();let best=0,c=0,prev=null;ks.forEach(k=>{const d=pdate(k);if(prev&&(d-prev)/864e5<1.5)c++;else c=1;best=Math.max(best,c);prev=d;});return best;}
 function weekStart(){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay());return d;}
 // per-pad aggregate over runs that saved per-pad detail
 function padAgg(runs){const a={};runs.forEach(s=>{if(!s.pads)return;Object.entries(s.pads).forEach(([v,r])=>{const q=a[v]||(a[v]={n:0,on:0,miss:0,ext:0,offSum:0,offN:0,dynSum:0,dynN:0});

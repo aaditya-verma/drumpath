@@ -50,7 +50,7 @@ function routineAfter(passed){
 }
 /* Theory tries (T2) run on this screen as a lesson-like object with .theory set: they use a throwaway progress record,
    so nothing is written to lesson progress (state.prog). For every real lesson LP() is exactly P(L.id). */
-function LP(){return L&&L.theory?(L._p||(L._p={bpm:L.bpm[0],streak:0,best:0,bestBpm:0,attempts:0,ms:0,status:'new',last:0,ex:0})):P(L.id);}
+function LP(){return L&&(L.theory||L.tap)?(L._p||(L._p={bpm:L.bpm[0],streak:0,best:0,bestBpm:0,attempts:0,ms:0,status:'new',last:0,ex:0})):P(L.id);}
 let stretchMode=false, lastRunTs=0, L=null, exI=0, bpm=60, run=null, preview=null, lastFeed=0, flashes={}, wake=null;
 const cv=$('#cv'), cx=cv.getContext('2d');
 
@@ -87,9 +87,11 @@ function buildRun(lesson,ex,bpmv,base,opts={}){
   const totalBars=reps*ex.bars;
   for(let b=0;b<totalBars;b++)for(let st=0;st<spb;st++){
     const t=cinMs+b*barMs+st*stepMs+sw(st);
+    // gap click (P1, opt-in): bars listed in ex.gap (bar index within the exercise) play no click at all
+    if(!(ex.gap&&ex.gap.includes(b%ex.bars))){
     if(play.includes(st))clicks.push({t,k:st===0?'acc':'beat'});
     else if(subOn&&!beats.includes(st))clicks.push({t,k:'sub'});
-    else if(subOn&&mode!=='all'&&beats.includes(st))clicks.push({t,k:'sub'});
+    else if(subOn&&mode!=='all'&&beats.includes(st))clicks.push({t,k:'sub'});}
     if(beats.includes(st))grid.push({t,bar:st===0});
   }
   grid.push({t:cinMs+totalBars*barMs,bar:true});
@@ -105,11 +107,13 @@ function openPractice(id){
   if(typeof thPanelOnOpen==='function')thPanelOnOpen();   // theory side panel (display only)
 }
 function renderPracBar(){
+  if(typeof p1PracSync==='function')p1PracSync();   // P1 session strip (display only)
   const sb=$('#subbtn');if(sb)sb.textContent='Sub-click: '+(state.set.subclick?'On':'Off');
   const sw=$('#simwrap');if(sw)sw.innerHTML=TEST&&!L.calib?`<select id="simj" class="sm"><option value="0">jitter 0</option><option value="15">jitter 15</option><option value="40">jitter 40</option></select><select id="simm"><option value="ok">all correct</option><option value="dyn">wrong dynamics</option><option value="art">wrong sound</option><option value="nograce">no graces</option></select><button class="sm" data-act="simulate">Simulate</button>`:'';
   $('#exsel').innerHTML=L.ex.length>1?L.ex.map((e,i)=>`<button class="${i===exI?'on':''}" data-act="ex" data-i="${i}">${esc(e.n)}</button>`).join(''):`<span class="mut">${esc(L.ex[0].n)}</span>`;
   $('#bpmv').textContent=bpm;
   if(L.calib){$('#pdots').innerHTML='<span>Latency test</span>';return;}
+  if(L.tap){$('#stretchwrap').innerHTML='';$('#pdots').innerHTML='<span>Tap drill · on-screen pads · counts for minutes and streak only</span>';return;}
   if(L.theory){$('#stretchwrap').innerHTML='';$('#pdots').innerHTML='<span>Theory try · '+TH_PLAY+'% or more = Can play · counts for minutes and streak only</span>';return;}
   const p=P(L.id);
   const sx=stretchMax(L.id),cs=canStretch(L.id);
@@ -122,7 +126,8 @@ function renderPracBar(){
 function canStretch(id){const l=LBY[id];if(!l||!l.bpm)return false;const p=state.prog[id];if(p&&p.status==='mastered')return true;try{return (songCtx().pass[id]||0)>=l.bpm[1];}catch(e){return false;}}
 function renderPads(ex){
   const vs=LANES.filter(v=>ex.v[v]);
-  $('#pads').classList.toggle('hidden',!state.set.pads);
+  const tap=!!(L&&L.tap);$('#prac').classList.toggle('tapmode',tap);
+  $('#pads').classList.toggle('hidden',!(state.set.pads||tap));
   $('#pads').innerHTML=vs.map(v=>`<button data-pad="${v}" style="border-color:${VOICES[v].c};color:${VOICES[v].c}">${VOICES[v].n}</button>`).join('');
 }
 function sizeCv(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d,0,0,d,0,0);}
@@ -145,7 +150,7 @@ async function startRun(){
 }
 function stopRun(save_=true){
   if(!run)return; run.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
-  if(save_&&!run.calib){if(L.theory)thAddTime(performance.now()-run.startPerf);else addTime(L.id,performance.now()-run.startPerf);save();}
+  if(save_&&!run.calib){if(L.theory||L.tap)thAddTime(performance.now()-run.startPerf);else addTime(L.id,performance.now()-run.startPerf);save();}
   run=null; $('#go').textContent='Start'; draw();
   if(typeof thPanelSync==='function')thPanelSync();
 }
@@ -159,7 +164,7 @@ function hit(v,vel,tp,art){
   if(typeof REC!=='undefined'&&REC&&REC.on){recordHit(v,vel,tp,art);return;}   // Analyse & tag › From my playing
 
   if(!run||$('#prac').classList.contains('hidden'))return;
-  const lat=run.calib?0:state.lat;
+  const lat=run.calib?0:run.lesson.tap&&typeof p1TouchLat==='function'?p1TouchLat():state.lat;
   const t=tp-lat;
   const start=run.base+run.cinMs;
   if(t<start-state.set.win)return; // ignore count-in
@@ -271,7 +276,9 @@ function finish(){
   if(R.calib){
     const ds=sc.filter(e=>e.hitT!=null).map(e=>e.dt).sort((a,b)=>a-b);
     if(ds.length<8){showResult(`<h2>Not enough hits</h2><p class="mut">Hit the snare on every click (got ${ds.length} of ${sc.length}).</p>`);return;}
-    const med=ds[Math.floor(ds.length/2)]; state.lat=Math.round(med); state.done['0.7.01']=true; save();
+    const med=ds[Math.floor(ds.length/2)];
+    if(L.tapCalib){p1TouchSet(med,ds);return;}   // P1: touch delay of this device's screen, kept on this device only
+    state.lat=Math.round(med); state.done['0.7.01']=true; save();
     showResult(`<h2>Latency set: ${state.lat} ms</h2><p class="mut">Median offset of ${ds.length} hits. Scores now subtract this. Spread: ${Math.round(ds[0])} to ${Math.round(ds[ds.length-1])} ms.</p>`,true);return;
   }
   const tol=state.set.tol;
@@ -310,6 +317,7 @@ function finish(){
     }
     dynScore=tot?Math.round(100*ok/tot):null;
   }
+  if(L.tap){p1TapDone(R,{score,dynScore,on:on.length,n:sc.length,ext,miss,avg,elapsed});return;}   // P1 tap drill: minutes + streak only
   if(L.theory){thTryDone(R,{score,dynScore,on:on.length,n:sc.length,ext,miss,avg,elapsed});return;}   // Theory try: minutes + streak only
   const p=P(L.id); p.attempts++; p.last=Date.now(); p.ex=exI; addTime(L.id,elapsed);
   if(p.status==='new')p.status='progress';
@@ -350,6 +358,7 @@ function finish(){
    ${R.graceWarn?'<p style="color:var(--warn)">No grace notes arrived from the kit in this run. If you did play them, the module may be merging the two hits: set <b>Grace notes</b> to <b>Lenient</b> in Kit &amp; Settings, or lower the snare’s retrigger/mask time on the module.</p>':''}
    ${sndCol&&!R.evs.some(e=>e.hitArt)?'<p class="mut">Open/closed and rim/head weren’t reported for these hits (on-screen pads), so they weren’t checked.</p>':''}
    ${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}${typeof thFixHtml==='function'?thFixHtml(R,{passed,score,dynScore,avg}):''}${routineAfter(passed)}`);
+  if(typeof p1AfterRun==='function')p1AfterRun(state.sessions[state.sessions.length-1],passed);   // P1: review queue + session (after scoring)
 }
 function showResult(html,calib){
   const r=$('#result');r.classList.remove('hidden');

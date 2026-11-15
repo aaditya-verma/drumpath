@@ -68,6 +68,8 @@ document.addEventListener('click',async e=>{
   if(a==='midi'){connectMidi();return;}
   if(a==='latency'){L={id:'latency',t:'Latency test',calib:true,bpm:[90,90],ex:[X('Snare on the click',1,{S:'x'.repeat(16)},{bars:4})],loop:1};exI=0;bpm=90;
     $('#prac').classList.remove('hidden');$('#result').classList.add('hidden');$('#ptitle').textContent='Latency test: hit the snare exactly on each click';renderPracBar();renderPads(L.ex[0]);sizeCv();makePreview();draw();return;}
+  if(a==='p1touch'){p1TouchCalib();return;}
+  if(a==='p1test'){const el=$('#p1tests');el.innerHTML='Running…';const t=await p1Tests();const e2=$('#p1tests')||el;e2.innerHTML=`<div style="font-size:13px;margin-top:6px"><b>Daily plan: ${t.filter(x=>x.pass).length}/${t.length} pass</b></div>`+t.map(x=>`<div style="font-size:13px">${x.pass?'✓':'✗'} ${esc(x.name)} <span class="mut">${esc(x.det)}</span></div>`).join('');return;}
   if(a==='lat-'||a==='lat+'){state.lat+=a==='lat+'?5:-5;save();render();return;}
   if(a==='resetmap'){state.map={...DEFAULT_MAP};state.art={...DEFAULT_ART};save();render();return;}
   if(a==='export'){exportData();return;}
@@ -135,7 +137,7 @@ async function exportData(){
 function importData(){
   const m=openSheet('Import backup',`<p class="mut">Choose a backup file or paste its text. This replaces current progress.</p><input type="file" accept=".json,application/json" id="if"><textarea id="it" rows="6" style="width:100%;margin-top:10px" placeholder="…or paste backup text"></textarea><div class="row" style="margin-top:10px"><button class="pri" id="ig">Import</button></div>`);
   $('#if',m).onchange=async ev=>{const f=ev.target.files[0];if(f)$('#it',m).value=await f.text();};
-  $('#ig',m).onclick=()=>{try{const d=JSON.parse($('#it',m).value);if(!d.v)throw 0;state=Object.assign(freshState(),d);state.set=Object.assign({...DEF_SET},state.set);state.art=Object.assign({...DEFAULT_ART},state.art||{});songStateFill(state);updateSongHist();save();m.remove();render();toast('Backup restored');}catch(_){toast('That doesn’t look like a DrumPath backup');}};
+  $('#ig',m).onclick=()=>{try{const d=JSON.parse($('#it',m).value);if(!d.v)throw 0;state=Object.assign(freshState(),d);state.set=Object.assign({...DEF_SET},state.set);state.art=Object.assign({...DEFAULT_ART},state.art||{});thFill(state);p1Fill(state);songStateFill(state);updateSongHist();save();m.remove();render();toast('Backup restored');}catch(_){toast('That doesn’t look like a DrumPath backup');}};
 }
 /* ---------- boot ---------- */
 buildShell();applyTheme();view.innerHTML='<p class="mut">Loading your logbook…</p>';

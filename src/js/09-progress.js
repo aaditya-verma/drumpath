@@ -19,9 +19,10 @@ function snapCard(k,st){
 }
 function renderProgress(){
   const p=VP.progress;
-  const seg=`<div class="seg" style="margin-bottom:14px">${[['timeline','Timeline'],['calendar','Calendar'],['pads','Pads & limbs'],['records','Records'],['theory','Theory']].map(([k,l])=>`<button class="${p.mode===k?'on':''}" data-pmode="${k}">${l}</button>`).join('')}</div>`;
+  const seg=`<div class="seg" style="margin-bottom:14px">${[['timeline','Timeline'],['calendar','Calendar'],['pads','Pads & limbs'],['records','Records'],['theory','Theory'],['journal','Journal']].map(([k,l])=>`<button class="${p.mode===k?'on':''}" data-pmode="${k}">${l}</button>`).join('')}</div>`;
   let body='';
   if(p.mode==='theory'&&typeof progTheory==='function')body=progTheory();
+  else if(p.mode==='journal'&&typeof p1JournalList==='function')body=p1JournalList();
   else if(!state.sessions.length&&!Object.keys(state.days).length)body='<div class="card mut">No practice logged yet. Play a lesson and your timeline, calendar and pad stats will fill in here.</div>';
   else body=({timeline:progTimeline,calendar:progCalendar,pads:progPads,records:progRecords}[p.mode]||progTimeline)();
   view.innerHTML=`<h1>Progress</h1>${seg}${body}`;
@@ -51,7 +52,7 @@ function progCalendar(){
   const ms=statsOf(runsWhere(s=>{const d=new Date(s.ts);return d.getFullYear()===p.calY&&d.getMonth()===p.calM;}),dayMinutes(d=>d.getFullYear()===p.calY&&d.getMonth()===p.calM));
   let dayHtml='';
   if(p.day){const dr=runsWhere(s=>dkey(new Date(s.ts))===p.day),st=statsOf(dr,(state.days[p.day]||0)/60000);
-    dayHtml=`<h2>${esc(periodName('D'+p.day))}</h2><div class="grid" style="margin-bottom:10px"><div class="card stat"><div class="k">Minutes</div><div class="v">${Math.round(st.mins)}</div></div><div class="card stat"><div class="k">Runs</div><div class="v">${st.runs}</div><div class="d">${st.passed} passed</div></div><div class="card stat"><div class="k">Timing</div><div class="v">${fmtN(st.timing)}<small>%</small></div></div></div>${runList([...dr].reverse(),'No scored runs this day.')}`;}
+    dayHtml=`<h2>${esc(periodName('D'+p.day))}</h2><div class="grid" style="margin-bottom:10px"><div class="card stat"><div class="k">Minutes</div><div class="v">${Math.round(st.mins)}</div></div><div class="card stat"><div class="k">Runs</div><div class="v">${st.runs}</div><div class="d">${st.passed} passed</div></div><div class="card stat"><div class="k">Timing</div><div class="v">${fmtN(st.timing)}<small>%</small></div></div></div>${typeof p1JournalDay==='function'?p1JournalDay(p.day):''}${runList([...dr].reverse(),'No scored runs this day.')}`;}
   return `<div class="row" style="margin-bottom:10px"><button data-cal="-1">‹</button><div class="h2" style="margin:0;min-width:200px;text-align:center">${MON[p.calM]} ${p.calY}</div><button data-cal="1">›</button><button class="ghost" data-cal="0">Today</button><span class="sp"></span><span class="mut">${Math.round(ms.mins)} min · ${ms.runs} runs · ${new Set(Object.keys(state.days).filter(k=>{const d=pdate(k);return d.getFullYear()===p.calY&&d.getMonth()===p.calM&&state.days[k]>0;})).size} days</span></div>
    <div class="card"><div class="cal">${cells}</div></div>${dayHtml}`;
 }

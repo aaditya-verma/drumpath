@@ -102,6 +102,8 @@ function mergeStates(A,B){
   Object.keys(lib).forEach(k=>{if(m.libDel[k]&&m.libDel[k]>=(lib[k].updatedAt||0))delete lib[k];});m.lib=lib;
   // theory (T2): per card, a status reached on either device is kept; review entries: the later review wins
   m.theory=thMerge(a.theory,b.theory);
+  // P1 daily plan + journal (D-035)
+  m.plan=p1Merge(a.plan,b.plan);m.journal=p1JMerge(a.journal,b.journal);
   m.lastBackup=Math.max(a.lastBackup||0,b.lastBackup||0)||undefined;
   m.rev=Math.max(a.rev||0,b.rev||0)+1;m.savedAt=Math.max(a.savedAt||0,b.savedAt||0);
   return m;
@@ -121,7 +123,21 @@ function thMerge(A,B){
   m.fails=Object.assign({},a.fails);Object.entries(b.fails).forEach(([k,v])=>{if(!m.fails[k]||(v.ts||0)>(m.fails[k].ts||0))m.fails[k]=v;});
   return m;
 }
-const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs)&&JSON.stringify(x.lib||{})===JSON.stringify(y.lib||{})&&JSON.stringify(x.theory||{})===JSON.stringify(y.theory||{});
+/* P1: plans per day and slot (done/skipped items: union, earliest time), activity days (larger count), lesson review
+   queue (the later review wins, like the Remember deck), journal (per day, the later edit wins) */
+function p1Merge(A,B){
+  const a=p1Fill({plan:JSON.parse(JSON.stringify(A||{}))}).plan,b=p1Fill({plan:JSON.parse(JSON.stringify(B||{}))}).plan,m={days:{},act:{},rev:{}};
+  const un=(x,y)=>{const o=Object.assign({},x||{});Object.entries(y||{}).forEach(([k,v])=>{o[k]=o[k]?Math.min(o[k],v):v;});return o;};
+  new Set([...Object.keys(a.days),...Object.keys(b.days)]).forEach(d=>{const x=a.days[d]||{},y=b.days[d]||{},o={};
+    new Set([...Object.keys(x),...Object.keys(y)]).forEach(sl=>{const p=x[sl],q=y[sl];if(!p||!q){o[sl]=p||q;return;}
+      const w=(p.at||0)<=(q.at||0)?p:q,z=w===p?q:p;o[sl]=Object.assign({},z,w,{done:un(p.done,q.done),skip:un(p.skip,q.skip)});
+      if(z.adapt&&!w.adapt)o[sl].adapt=z.adapt;if(p.ear||q.ear)o[sl].ear=(((p.ear||{}).at||0)>=((q.ear||{}).at||0)?p.ear:q.ear)||p.ear||q.ear;});m.days[d]=o;});
+  new Set([...Object.keys(a.act),...Object.keys(b.act)]).forEach(d=>{m.act[d]=Math.max(a.act[d]||0,b.act[d]||0);});
+  new Set([...Object.keys(a.rev),...Object.keys(b.rev)]).forEach(id=>{const x=a.rev[id],y=b.rev[id];m.rev[id]=!x?y:!y?x:((y.at||0)>(x.at||0)||((y.at||0)===(x.at||0)&&(y.step||0)>(x.step||0)))?y:x;});
+  return m;
+}
+function p1JMerge(A,B){const m=Object.assign({},A||{});Object.entries(B||{}).forEach(([d,v])=>{if(!m[d]||((v&&v.at)||0)>((m[d].at)||0))m[d]=v;});return m;}
+const sameData=(x,y)=>x.sessions.length===y.sessions.length&&JSON.stringify(x.prog)===JSON.stringify(y.prog)&&JSON.stringify(x.done)===JSON.stringify(y.done)&&JSON.stringify(x.songs)===JSON.stringify(y.songs)&&JSON.stringify(x.lib||{})===JSON.stringify(y.lib||{})&&JSON.stringify(x.theory||{})===JSON.stringify(y.theory||{})&&JSON.stringify(x.plan||{})===JSON.stringify(y.plan||{})&&JSON.stringify(x.journal||{})===JSON.stringify(y.journal||{});
 
 /* ---------- folder layout ---------- */
 async function ensureLayout(){
