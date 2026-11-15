@@ -29,6 +29,8 @@ script/style tag when files change so tablets pick up the new version.
 | `src/js/21-atkit.js` | P2 at the kit, hands-free (D-040): kit remote (learned pad shortcuts, `state.remote`), start on your first hit (tap-in / first hit, per device), at-the-kit view (`html.atkit`, per device), `p2Tests()` |
 | `src/js/22-timefeel.js` | P3 time feel (D-041): gap-click ladder (`TF_GAP`, kit + screen-pads ladders in `state.time`), tempo-drift test (`tfDriftCurve`, own SVG chart), pocket/consistency (`tfPocket`, per pad and note position; last 30 days), Time feel page (`go('time')`), Today items (`k:'time'`), `p3Tests()` |
 | `src/js/23-reflect.js` | P4 reflection (D-042): weekly review per Sun–Sat week (`rfWeek`: stats, best improvement, weak spot, next week's focus), Sunday card on Home, Reflection page (`go('reflect')`), share-as-image (own canvas), pain notes → coach rule D5 on Today, badges (`RF_BADGES`, earned ones kept in `state.reflect`), `p4Tests()` |
+| `src/js/24-guide.js` | G1 Guide (D-044): tour player (spotlight + bubble, Look / Do it / Go steps, Back · Next · Steps, resume, Android Back = previous step, pauses during runs and sheets, kit remote: high tom Next · rim Back · kick + pedal close), the one route helper `guideGo()` every cross-page step uses, "?" page help (`gdHelp`), How it works sheets + Show me, More › Guide hub (`go('guide')`), hints pill (off by default), What's new, `state.guide` (`gdFill` / `gdMerge`), `gdTests()`, `gdWalkAll()`, `gdSweep()` |
+| `src/guide/tours.js`, `src/guide/how.js` | Guide data: tours 1–5, 10, 11 + What's new (`GD_TOURS`, `GD_NEW`), page help map (`GD_PAGES`), How it works pages with live numbers (`GD_HOW`); `GD_CHECKED` = the app version they were checked against (RULES C10) |
 | `src/js/99-events.js` | Event delegation, dialogs, backup import/export, boot |
 
 ## Data per run (`state.sessions[]`)
@@ -40,9 +42,10 @@ script/style tag when files change so tablets pick up the new version.
 perfect / wrong-dynamics / wrong-sound / no-grace simulations for every Level 3 exercise; perfect runs for Levels 0–2;
 screenshots of every view in light and dark at 1280×800, 800×1280 and 400×860.
 
-## Headless checks (v35, `tools/headless/`)
+## Headless checks (v35–v36, `tools/headless/`)
 Serve the repo (`python3 -m http.server 8135`), then `node tools/headless/<check>.mjs http://localhost:8135` (Playwright + Chrome):
 - `suites.mjs` — every in-app test suite under `?test=1`, and that nothing simulated is left in memory afterwards.
 - `rollback.mjs` — the 15 Nov 2026 storage rollback (stale tab + failed pre-write check); `--expect-bug` against v34 reproduces it.
 - `resim.mjs <url> out.json [compare.json]` — Levels 0–4, every exercise × 6 modes through the real engine, seeded; compare two builds run for run.
+- `guide.mjs` — G1: every tour step's page + target and the bubble (on screen, off the pads, off its target, C8-clean) on all 13 sizes, fresh and seeded (`SEED=backup.json` loads a real backup in memory), normal and at-the-kit view, + 125 % on tablet sizes; then the in-app guide tests.
 - `layout.mjs` — RULES C8: the in-app layout sweep on 13 sizes, fresh and seeded, normal and at-the-kit view, + 125 % on tablet sizes.

@@ -4,7 +4,7 @@
 'use strict';
 /* v35 (fix-queue item 5): test suites and the layout sweep put back what their simulated runs earned in memory
    (badges via rfAfterRun, theory cards, plan, minutes) — testing mode saves nothing, but the in-memory view stayed off until reload */
-const TEST_SNAP_KEYS=['reflect','theory','plan','journal','days','time','prog','done'];
+const TEST_SNAP_KEYS=['reflect','theory','plan','journal','days','time','prog','done','guide'];
 function testSnap(){const o={};TEST_SNAP_KEYS.forEach(k=>{o[k]=state[k]===undefined?undefined:JSON.stringify(state[k]);});o._n=state.sessions.length;return o;}
 function testRestore(o){if(!o)return;TEST_SNAP_KEYS.forEach(k=>{if(o[k]===undefined)delete state[k];else state[k]=JSON.parse(o[k]);});if(state.sessions.length>o._n)state.sessions=state.sessions.slice(0,o._n);
   thFill(state);p1Fill(state);if(typeof tfFill==='function')tfFill(state);if(typeof rfFill==='function')rfFill(state);}
@@ -141,6 +141,7 @@ async function layoutSweep(){
     for(const k of ['fail','app','ls']){try{storeBarSync(k);go('home');await wait6();const bar=$('#stbar');out.push(['Storage warning · '+k,bar?[...layoutAudit(bar),...layoutAudit(view)]:[{kind:'error',what:'no banner'}]]);}catch(e){out.push(['Storage warning · '+k,[{kind:'error',what:e.message}]]);}const b=$('#stbar');if(b)b.remove();}
     try{openSearch();await wait6();const m=document.querySelector('.modal');out.push(['Search · version line',m?layoutAudit(m):[]]);closeSheets();}catch(e){out.push(['Search',[{kind:'error',what:e.message}]]);}
     SLOG_MEM=keepL;}
+  if(typeof gdSweep==='function')await gdSweep(out,()=>new Promise(r=>setTimeout(r,120)));   // G1: Guide hub, How pages, "?" sheets, hints pill, tour bubbles
   SES=null;if(typeof p1PracSync==='function')p1PracSync();L=null;if(keepPM===undefined)delete P1_MEM.planMode;else P1_MEM.planMode=keepPM;
   $('#prac').classList.add('hidden');
   testRestore(keepX);

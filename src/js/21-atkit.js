@@ -79,6 +79,7 @@ function kpTarget(k){
   const mods=[...document.querySelectorAll('.modal')].filter(ok),top=mods[mods.length-1];
   if(top){const c=k==='back'&&top.querySelector('[data-close]');return c?{el:c,lab:'Close'}:null;}   // a sheet: only Back (close)
   if(!$('#msheet').classList.contains('hidden'))return k==='back'?{fn:closeMore,lab:'Close'}:null;
+  if(typeof gdKp==='function'){const g=gdKp(k);if(g)return g;}   // G1: while a tour shows, high tom = Next, rim = Back, kick + pedal = close
   if(!$('#prac').classList.contains('hidden')&&L){
     const res=!$('#result').classList.contains('hidden');
     if(k==='start'||k==='again')return {fn:()=>{$('#result').classList.add('hidden');kpStart();},lab:res&&k==='again'?'Again':'Start'};

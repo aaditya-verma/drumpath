@@ -7,3 +7,4 @@
 - Pad colours come from `--p-*` tokens; never hard-code colours in views or the canvas (use `TH`).
 - No song audio or lyrics in the app; songs are titles + lesson tags, played along to the owner's own audio.
 - Weeks run Sunday to Saturday.
+- RULES C10 (v36): a build step that changes behaviour updates the matching How it works page(s) and tour step(s) (`src/guide/`) in the same step, bumps `GD_CHECKED`, and writes that version's What's new (2–4 bullets, `GD_NEW`). Tours reach other pages only through `guideGo()`.

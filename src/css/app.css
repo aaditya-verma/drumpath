@@ -559,3 +559,45 @@ html.atkit .ptop{padding:10px 14px;gap:10px}
 .rfimg{width:100%;max-width:420px;display:block;margin:0 auto 10px;border-radius:14px}
 .rfpain .sm{margin-left:4px}
 html.atkit .rfln{font-size:17px}
+
+/* ---------- G1 Guide (24-guide.js): tour bubble + spotlight, "?" help, hub, hints pill ---------- */
+.gdq b{font-size:15px;line-height:1;font-weight:800}
+.gdqp{font-weight:800;font-size:17px;min-width:36px}
+#gdlay{position:fixed;inset:0;z-index:58;pointer-events:none}
+#gdlay.hidden{display:none}
+.gdspot{position:fixed;border-radius:12px;box-shadow:0 0 0 3px var(--accent),0 0 0 200vmax rgb(10 12 16 / .38);pointer-events:none;transition:left .15s,top .15s,width .15s,height .15s}
+.gdb{position:fixed;pointer-events:auto;background:var(--L1);color:var(--ink);border-radius:16px;box-shadow:var(--edge),0 14px 40px rgb(0 0 0 / .32);padding:10px 14px 12px;overflow:auto;max-height:calc(100% - 12px);box-sizing:border-box}
+.gdb.gddock{left:6px;right:6px;width:auto;max-width:none}
+.gdb-h{display:flex;align-items:center;gap:8px;min-width:0}.gdb-h .note-k{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gdb .gdx{padding:4px;min-height:0}
+.gdb-t{margin:4px 0 6px;font-size:16px;line-height:1.38}
+.gdb-why{margin:4px 0;font-size:14px;color:var(--muted)}
+.gdb-do{margin:4px 0;font-weight:600;color:var(--accent)}
+.gdb-run{font-size:13px;margin:2px 0}
+.gdb-f{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+.gdb-x{display:flex;align-items:center;gap:6px;margin-top:6px}
+.gddots{display:inline-flex;gap:5px;flex-wrap:wrap}.gddots i{width:8px;height:8px;border-radius:50%;background:var(--line)}.gddots i.d{background:color-mix(in srgb,var(--accent) 55%,transparent)}.gddots i.c{background:var(--accent)}
+.gdsteps{margin:6px 0 0;padding-left:22px;font-size:14px}.gdsteps button{background:none;border:0;box-shadow:none;padding:3px 0;text-align:left;color:var(--ink);font-size:14px;min-height:0}.gdsteps button.on{font-weight:700;color:var(--accent)}
+.gdkit{margin-top:6px;font-size:13px}.gdkit .kpk{margin-right:4px}
+.gdb.compact .gdb-x,.gdb.compact .gdhow,.gdb.compact .gdb-run,.gdb.compact .gdkit{display:none}
+.gdb.compact .gdb-t{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;font-size:15px;margin:2px 0 4px}
+html.atkit .gdb-t{font-size:20px}html.atkit .gdb .sm{min-height:46px;font-size:16px;padding:8px 16px}html.atkit .gdkit{font-size:16px}
+.gdhelp .gdwhat{margin:2px 0 10px}
+.gdtour{display:flex;gap:10px;align-items:center;width:100%;text-align:left;margin:4px 0}
+.gdwords{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.gdhw .gdline{font-size:17px;margin:2px 0 10px}.gdhw .gdol{margin:4px 0 10px;padding-left:22px}.gdhw .gdol li{margin:3px 0}
+.gdmine{background:color-mix(in srgb,var(--accent) 10%,transparent);border-radius:12px;padding:8px 12px;margin:4px 0 10px;line-height:1.45}
+.gdsrc{font-size:12.5px;margin-top:10px}
+.gddg{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:4px 0 12px;font-size:14px}
+.gddg>span,.gddg>i{border-radius:10px;padding:6px 10px;background:var(--L0);border:1px solid var(--line);font-style:normal}
+.gddg .ok{border-color:var(--good);color:var(--good);font-weight:700}.gddg .bad{color:var(--bad)}.gddg .q{border-style:dashed}
+.gddg.gdkr{display:table;border-collapse:collapse}.gdkr td{padding:4px 10px;border-bottom:1px solid var(--line)}
+.gddata small{color:var(--muted)}
+.gdtabs{margin:6px 0 12px}
+.gdrow{gap:10px;align-items:center}.gdnum{flex:none;width:26px;height:26px;border-radius:50%;display:inline-grid;place-items:center;background:var(--L0);border:1px solid var(--line);font-size:13px;font-weight:700}
+.gdrt{flex:1;min-width:0}.gdrs{display:block;font-size:13px}
+.gdmore{font-size:13px;margin-top:8px}.gdul{margin:6px 0 10px;padding-left:20px}
+.gdnew{font-size:11px;padding:1px 7px;margin-left:4px;vertical-align:middle}
+.gdpill{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px;padding:6px 8px 6px 12px;border-radius:999px;background:color-mix(in srgb,var(--accent) 12%,transparent);font-size:14px;width:fit-content;max-width:100%}
+.gddot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+@media (max-width:420px){.brand-row .pbtn{padding:7px 10px}.brand-row .gdq{padding:7px 11px}}
