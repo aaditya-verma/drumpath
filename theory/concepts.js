@@ -7,6 +7,12 @@
 /* TX = X() for theory cards: a lane or sticking written for one bar is repeated to fill every bar (never changes the lesson helpers' objects) */
 var TX=(n,sub,v,o={})=>{const e=Object.assign({n,sub,bars:1},o,{v:Object.assign({},v)}),len=(e.steps||4*sub)*e.bars,fill=x=>x.length<len?x.repeat(Math.ceil(len/x.length)).slice(0,len):x;
   for(const k in e.v)e.v[k]=fill(e.v[k]);if(e.st)e.st=fill(e.st);return e;};
+/* Konnakol (Tier B on, D-035): syllables per jathi (group size). 2 = ta ka, 3 = tisra, 4 = chatusra, 5 = khanda, 7 = misra. */
+var TH_KON={1:['ta'],2:['ta','ka'],3:['ta','ki','ta'],4:['ta','ka','di','mi'],5:['ta','ka','ta','ki','ta'],6:['ta','ka','di','mi','ta','ka'],7:['ta','ki','ta','ta','ka','di','mi'],8:['ta','ka','di','mi','ta','ka','ju','na']};
+// syllables for a run of groups, e.g. thKonRun([3,3,2]) → ta ki ta ta ki ta ta ka ; 0 = a one-step gap ('-')
+var thKonRun=gs=>gs.flatMap(g=>g?TH_KON[g]:['-']);
+// accent pattern for a run of groups: X on the first note of each group, x on the rest, . for a gap
+var thKonAcc=gs=>gs.map(g=>g?'X'+'x'.repeat(g-1):'.').join('');
 var DP_CONCEPTS={
   pulse:{t:'Pulse and beat',cards:['A1.02.1','A1.02.2']},
   tempo:{t:'Tempo and BPM',cards:['A1.03.1','A1.03.2','A1.03.4']},
@@ -15,7 +21,7 @@ var DP_CONCEPTS={
   click24:{t:'A click that ticks less',cards:['A1.05.3']},
   bars:{t:'Bars and barlines',cards:['A1.06.1','A1.06.4']},
   meter44:{t:'4/4 time',cards:['A1.07.1','A1.07.2']},
-  meter34:{t:'3/4 time',cards:['A1.07.3'],later:'B3'},
+  meter34:{t:'3/4 time',cards:['A1.07.3','B3.02.1','B3.02.2']},
   timefeel:{t:'Steady, rushing, dragging',cards:['A1.09.1','A1.09.2','A1.09.3','A1.09.4']},
   quarter:{t:'Quarter notes',cards:['A2.02.2']},
   wholehalf:{t:'Half and whole notes',cards:['A2.02.3','A2.02.4']},
@@ -45,9 +51,24 @@ var DP_CONCEPTS={
   ending:{t:'Endings',cards:['A10.02.2','A4.07.3']},
   cues:{t:'Cues',cards:['A10.04.1','A10.04.2']},
   mistakes:{t:'Keeping going',cards:['A10.05.1','A10.05.3']},
-  triplet:{t:'Triplets',cards:[],later:'B2'},swing:{t:'Swing and shuffle',cards:[],later:'B2'},compound:{t:'6/8 and 12/8',cards:[],later:'B3'},
-  flam:{t:'Flams',cards:[],later:'B4'},drag:{t:'Drags',cards:[],later:'B4'},roll32:{t:'Rolls and 32nds',cards:[],later:'B4'},
+  triplet:{t:'Triplets',cards:['B2.01.1','B2.01.2','B2.01.3','B2.02.1','B2.03.1']},
+  swing:{t:'Swing and shuffle',cards:['B2.04.1','B2.04.2','B2.05.1','B2.05.2']},
+  compound:{t:'6/8 and 12/8',cards:['B3.01.1','B3.01.2','B3.03.1','B3.03.2']},
+  flam:{t:'Flams',cards:['B4.01.1']},drag:{t:'Drags',cards:['B4.01.2']},roll32:{t:'Rolls on the page',cards:['B4.02.1','B4.02.2']},
+  dotted:{t:'Dotted notes',cards:['B1.01.1','B1.01.2']},ties:{t:'Ties',cards:['B1.02.1','B1.02.2']},
+  syncopation:{t:'Syncopation and pushes',cards:['B1.03.1','B1.03.2','B1.03.3']},
+  shapes16:{t:'16th-note shapes',cards:['B1.04.2','B1.05.1','B1.05.3','B1.05.4']},
+  twovoice:{t:'Two-voice drum music',cards:['B1.06.1','B1.06.2']},
+  konnakol:{t:'Konnakol',cards:['B1.07.1','B1.07.2','B1.07.3','B2.06.1','B3.07.1']},
+  groupings:{t:'Groupings (jathis)',cards:['B3.07.1','B3.07.2','B3.07.3']},
+  halftime:{t:'Half-time and double-time',cards:['B3.05.1','B3.05.2']},
+  cuttime:{t:'2/4 and cut time',cards:['B3.04.1','B3.04.2']},pickup:{t:'Pick-ups',cards:['B3.06.1']},
+  roadmap:{t:'Road maps (D.C., D.S., coda, endings)',cards:['B4.03.1','B4.03.2','B4.03.3','B4.03.4']},
+  hits:{t:'Band hits',cards:['B4.06.1','B4.06.2']},rudiments:{t:'The rudiments',cards:['B4.01.3']},
+  chart:{t:'Reading a real chart',cards:['B4.04.1','B4.07.1','B4.07.2']},
   _lessons:{'0.1.01':['drumkey'],'2.1.01':['drumkey'],'1.2.02':['pulse','count'],'1.7.01':['click','timefeel'],'2.1.05':['bars','meter44'],'2.1.06':['tempo'],
-    '1.6.02':['bars','fill','phrase'],'1.6.04':['crash1','countin','ending','cues'],'2.1.07':['mixed'],'2.7.01':['count','listen'],'3.7.01':['listen'],'3.7.03':['form','phrase'],'4.7.02':['form','blues','chords'],'2.6.01':['phrase'],'4.5.02':['phrase'],'3.1.01':['wholehalf'],'3.1.04':['dynamics','accent','ghost'],'3.1.05':['repeat'],
-    '3.4.05':['dynamics'],'3.7.02':['click24','timefeel'],'4.4.03':['dynamics'],'4.7.01':['click24','timefeel']}
+    '1.6.02':['bars','fill','phrase'],'1.6.04':['crash1','countin','ending','cues'],'2.1.07':['mixed'],'2.7.01':['count','listen'],'3.7.01':['listen'],'3.7.03':['form','phrase','roadmap','chart'],'4.7.02':['form','blues','chords'],'2.6.01':['phrase'],'4.5.02':['phrase','groupings'],'3.1.01':['wholehalf'],'3.1.04':['dynamics','accent','ghost'],'3.1.05':['repeat','chart'],
+    '3.4.05':['dynamics'],'3.7.02':['click24','timefeel'],'4.4.03':['dynamics'],'4.7.01':['click24','timefeel'],
+    '4.1.02':['dotted'],'2.4.05':['syncopation'],'3.6.02':['syncopation','groupings'],'4.5.03':['syncopation'],'4.5.01':['halftime'],
+    '3.4.01':['twovoice'],'3.4.03':['twovoice'],'3.8.01':['chart'],'4.1.01':['triplet'],'2.3.05':['rudiments'],'3.3.03':['rudiments']}
 };

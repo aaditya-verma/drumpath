@@ -17,6 +17,9 @@ const TH_PLAN=[['A1','R','Sound, beat and time'],['A2','R','Reading rhythm 1'],[
 /* Tier A spoken count = TAKADIMI (each syllable names a position in the beat: “di” is always halfway), shown next to 1 e & a.
    Konnakol proper (tala, jathis, tihai) starts in Tier B. */
 const TH_SYL={1:['ta'],2:['ta','di'],3:['ta','ki','da'],4:['ta','ka','di','mi'],6:['ta','va','ki','di','da','ma'],8:['ta','','ka','','di','','mi','']};
+/* Konnakol syllables (TH_KON, thKonRun) live in theory/concepts.js so the part files can use them. */
+// what the bottom row of a count grid says at step i: dg.syl = 'kon' (konnakol by beat), an array (one per step), else takadimi
+function thSylAt(syl,mt,j,i){if(Array.isArray(syl))return syl[i%syl.length]||'';const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0];return((syl==='kon'?TH_KON:TH_SYL)[g]||[])[j-grp[0]]||'';}
 
 /* ---------- content index ---------- */
 const THP=(typeof DP_THEORY!=='undefined'?DP_THEORY:[]).slice().sort((a,b)=>TH_PLAN.findIndex(p=>p[0]===a.id)-TH_PLAN.findIndex(p=>p[0]===b.id));
@@ -120,9 +123,9 @@ const TH_DG={
       const word=(mt.full||mt.count)[j]||'';s+=`<text class="thcw${beat?' b':''}" x="${x+cw/2}" y="18">${esc(word)}</text>`;
       lanes.forEach((v,li)=>{const c=ex.v[v][i];if(!c||c==='.')return;const yy=rowN+6+li*9,r=c==='X'?4.6:c==='g'?2.4:3.4;
         s+=c==='o'?`<circle cx="${x+cw/2}" cy="${yy}" r="3.4" fill="none" stroke="${VOICES[v].c}" stroke-width="1.6"/>`:`<circle cx="${x+cw/2}" cy="${yy}" r="${r}" fill="${VOICES[v].c}"/>`;});
-      if(kon){const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0],syl=(TH_SYL[g]||[])[j-grp[0]]||'';s+=`<text class="thkw" x="${x+cw/2}" y="${h-8}">${syl}</text>`;}}
+      if(kon){const syl=thSylAt(dg.syl,mt,j,i);s+=`<text class="thkw" x="${x+cw/2}" y="${h-8}">${esc(syl)}</text>`;}}
     if(lanes.length>1)s+='';
-    return thSvg(w,h,s)+(lanes.length>1?`<div class="thleg">${lanes.map(v=>`<span><i style="background:${VOICES[v].c}"></i>${VOICES[v].n}</span>`).join('')}</div>`:'')+(kon?'<div class="thleg mut">top: count · bottom: takadimi syllables</div>':'');},
+    return thSvg(w,h,s)+(lanes.length>1?`<div class="thleg">${lanes.map(v=>`<span><i style="background:${VOICES[v].c}"></i>${VOICES[v].n}</span>`).join('')}</div>`:'')+(kon?`<div class="thleg mut">top: count · bottom: ${dg.syl?'konnakol':'takadimi'} syllables</div>`:'');},
   tree(dg){ // note-value tree: each row splits the one above in two
     const rows=dg.rows||[1,2,4,8],W=Math.min(thW(),560),lab=74,w=W,rh=42,h=rows.length*rh+6;let s='';
     rows.forEach((d,ri)=>{const y=ri*rh+26,cw=(w-lab-6)/d;s+=`<text class="thtl" x="0" y="${y+4}">${{1:'whole',2:'half',4:'quarter',8:'8th',16:'16th'}[d]}</text>`;
@@ -190,6 +193,32 @@ const TH_DG={
     bars.forEach((b,i)=>{const r=Math.floor(i/per),x=(i%per)*bw,y=r*(rh+6);s+=`<rect class="thsec" x="${x+1}" y="${y}" width="${bw-2}" height="${rh}" rx="6"/>`;
       [].concat(b).forEach((c,j,arr)=>{const cx=x+bw*(j+0.5)/arr.length;s+=`<text class="thchd" data-ci="${ci}" x="${cx}" y="${y+24}">${esc(c)}</text>`;if(dg.rn&&dg.rn[ci])s+=`<text class="thsm c" x="${cx}" y="${y+42}">${esc(dg.rn[ci])}</text>`;ci++;});});
     return thSvg(W,h,s)+(dg.note?`<div class="thleg mut">${esc(dg.note)}</div>`:'');},
+  tala(dg){ // tala circle: one dot per beat with its hand gesture (clap / finger count / wave); lights in time with Hear it
+    const g=dg.g,n=g.length,lab={clap:'clap',wave:'wave'};
+    if(thW()<600){ // phones: one row of beats (the circle would push the card past one screen)
+      const W=Math.min(thW(),560),cw=W/n,h=64;let s='';
+      g.forEach((x,i)=>{const px=i*cw+cw/2,big=x==='clap';s+=`<circle class="thtb${big?' clap':x==='wave'?' wave':''}" cx="${px}" cy="20" r="${big?14:11}"/><text class="thtl c b" x="${px}" y="25">${i+1}</text><text class="thsm c" x="${px}" y="54">${esc(lab[x]||x)}</text>`;});
+      (dg.split||[]).forEach(b=>{s+=`<line class="thbar" x1="${b*cw}" x2="${b*cw}" y1="2" y2="38"/>`;});
+      return thSvg(W,h,s)+`<div class="thleg mut">${esc((dg.name?dg.name+' · ':'')+(dg.note||''))}${/\d/.test(g.join(''))?' · numbers under the dots = fingers':''}</div>`;}
+    const W=Math.min(thW(),340),R=W/2-34,cx=W/2,cy=R+30,h=2*R+64;let s=`<circle class="thgl" cx="${cx}" cy="${cy}" r="${R}" fill="none"/>`;
+    g.forEach((x,i)=>{const a=-Math.PI/2+i*2*Math.PI/n,px=cx+R*Math.cos(a),py=cy+R*Math.sin(a),big=x==='clap';
+      s+=`<circle class="thtb${big?' clap':x==='wave'?' wave':''}" cx="${px}" cy="${py}" r="${big?15:12}"/><text class="thtl c b" x="${px}" y="${py+4.5}">${i+1}</text>`;
+      const lx=cx+(R+0)*Math.cos(a)*0.62,ly=cy+R*Math.sin(a)*0.62;s+=`<text class="thsm c" x="${lx}" y="${ly+4}">${esc(lab[x]||('finger '+x))}</text>`;});
+    if(dg.split)dg.split.forEach(b=>{const a=-Math.PI/2+(b-0.5)*2*Math.PI/n;s+=`<line class="thbar" x1="${cx+(R-22)*Math.cos(a)}" y1="${cy+(R-22)*Math.sin(a)}" x2="${cx+(R+22)*Math.cos(a)}" y2="${cy+(R+22)*Math.sin(a)}"/>`;});
+    s+=`<text class="thtl c b" x="${cx}" y="${cy+5}">${esc(dg.name||'')}</text>`;
+    return thSvg(W,h,s)+(dg.note?`<div class="thleg mut">${esc(dg.note)}</div>`:'');},
+  swing(dg){ // straight vs swung 8ths, drawn on a triplet ruler: swung = long (2/3) + short (1/3)
+    const W=Math.min(thW(),560),rows=dg.rows||[['straight',0.5],['swung',2/3]],bw=(W-78)/2,h=rows.length*34+22;let s='';
+    for(let b=0;b<=2;b++){const x=78+b*bw;s+=`<line class="thgl" x1="${x}" x2="${x}" y1="6" y2="${h-18}"/>`;if(b<2){s+=`<text class="thsm c" x="${x+8}" y="${h-4}">${b+1}</text>`;for(let k=1;k<3;k++)s+=`<line class="thgl dash" x1="${x+k*bw/3}" x2="${x+k*bw/3}" y1="10" y2="${h-22}"/>`;}}
+    rows.forEach(([lb,f],r)=>{const y=r*34+22;s+=`<text class="thtl" x="0" y="${y+4}">${esc(lb)}</text>`;
+      for(let b=0;b<2;b++){const x=78+b*bw;s+=`<rect class="thz z1" x="${x+2}" y="${y-8}" width="${f*bw-4}" height="16" rx="5"/><rect class="thz z0" x="${x+f*bw+2}" y="${y-8}" width="${(1-f)*bw-4}" height="16" rx="5"/><circle class="thmkc" cx="${x+3}" cy="${y}" r="4"/><circle class="thmkc" cx="${x+f*bw+3}" cy="${y}" r="4"/>`;}});
+    return thSvg(W,h,s)+`<div class="thleg mut">dashed lines = the beat cut in three (triplets)</div>`;},
+  road(dg){ // chart road map: the written order (boxes) and the order you actually play (letters below)
+    const sec=dg.written,W=Math.min(thW(),620),cw=W/sec.length,h=96;let s='';
+    sec.forEach((t,i)=>{const x=i*cw;s+=`<rect class="thsec s${i%4}" x="${x+2}" y="4" width="${cw-4}" height="30" rx="6"/><text class="${t.length*7.5>cw-8?'thsm':'thtl'} c" x="${x+cw/2}" y="24">${esc(t)}</text>`;});
+    (dg.marks||[]).forEach(([i,t])=>{s+=`<text class="thsm c b" x="${i*cw+cw/2}" y="48">${esc(t)}</text>`;});
+    s+=`<text class="thtl" x="0" y="${h-12}">play: ${esc(dg.play.join(' → '))}</text>`;
+    return thSvg(W,h,s);},
   simile(dg){ // one-bar repeat: bar 1 written out, bar 2 the slash-and-dots sign
     const W=Math.min(thW(),520),st=24,h=st+40+26,bw=(W-30)/2;let s='';
     for(let i=0;i<5;i++)s+=`<line class="thsl" x1="0" x2="${W}" y1="${st+i*10}" y2="${st+i*10}"/>`;
@@ -231,7 +260,7 @@ function thHearStop(){
   HEAR.nodes.forEach(n=>{try{n.stop(0);}catch(_){}});HEAR.nodes=[];if(HEAR.tone)HEAR.tone.stop();document.querySelectorAll('.thkey.on,.thchd.on,.thfret.on').forEach(x=>x.classList.remove('on'));cancelAnimationFrame(HEAR.raf);HEAR.timers.forEach(clearTimeout);HEAR.timers=[];
   try{window.speechSynthesis&&speechSynthesis.cancel();}catch(_){}
   HEAR.on=null;document.querySelectorAll('[data-thhear].on').forEach(b=>{b.classList.remove('on');b.innerHTML=b.dataset.lab;});
-  document.querySelectorAll('.thcell.on').forEach(c=>c.classList.remove('on'));const bc=$('#thbig');if(bc)bc.textContent='';
+  document.querySelectorAll('.thcell.on,.thtb.on').forEach(c=>c.classList.remove('on'));const bc=$('#thbig');if(bc)bc.textContent='';
   Object.keys(TH_LAY).forEach(kk=>{const ph=document.querySelector(`[data-thdg="${kk}"] .nph`);if(ph){ph.setAttribute('x1',-9);ph.setAttribute('x2',-9);}});
 }
 // plan the sound of one spec: events {t (s from start), v, ch, gain} + clicks + count words per step
@@ -240,11 +269,12 @@ function thHearPlan(sp){
   const stepS=60/bpmv/sub,reps=sp.reps||(n*stepS<4?2:1),cin=sp.cin!=null?sp.cin:!!sp.ex,cinS=cin?spb*stepS:0,mts=ntMeters(ex);
   const evs=[],clicks=[],words=[];const beats=beatStepsOf(ex),mode=sp.click||'all';
   if(cin)beats.forEach((st,i)=>clicks.push({t:st*stepS,k:i===0?'acc':'beat'}));
-  for(let r=0;r<reps;r++)for(let i=0;i<n;i++){const t=cinS+(r*n+i)*stepS,j=i%spb,b=Math.floor(i/spb),mt=mts[b];
+  const swOff=((ex.swing||0.5)-0.5)*2*stepS; // same long–short as the scoring engine (04-engine buildRun)
+  for(let r=0;r<reps;r++)for(let i=0;i<n;i++){const j=i%spb,t=cinS+(r*n+i)*stepS+(j%2?swOff:0),b=Math.floor(i/spb),mt=mts[b];
     const ramp=sp.ramp?sp.ramp[0]+(sp.ramp[1]-sp.ramp[0])*((r*n+i)/Math.max(1,reps*n-1)):1;
     for(const v in ex.v){const c=ex.v[v][i];if(!c||c==='.')continue;evs.push({t,v,ch:c,gain:(c==='X'?1:c==='g'?0.22:0.62)*ramp*(sp.gain||1)});}
     if(mode!=='none'&&beats.includes(j)&&(mode==='all'||(mode==='24'&&(j===beats[1]||j===beats[3]))||(mode==='1'&&j===0)))clicks.push({t,k:j===0?'acc':'beat'});
-    const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0];words.push({t,i,w:(mt.full||mt.count)[j]||'',kon:(TH_SYL[g]||[])[j-grp[0]]||'',beat:j===grp[0],bn:mt.beatOf[j]+1});}
+    const grp=mt.groups[mt.beatOf[j]],g=grp[1]-grp[0];words.push({t,i,w:(mt.full||mt.count)[j]||'',kon:thSylAt(sp.syl,mt,j,i),beat:j===grp[0],bn:mt.beatOf[j]+1});}
   return{evs,clicks,words,stepS,total:cinS+reps*n*stepS,cinS,n};
 }
 async function thHear(id,idx,spec){
@@ -256,13 +286,14 @@ async function thHear(id,idx,spec){
   P0.evs.forEach(e=>thVoice(e.v,t0+e.t,e.gain,e.ch));P0.clicks.forEach(c=>click(t0+c.t,c.k,HEAR.nodes));
   const b=document.querySelector(`[data-thhear="${key}"]`);if(b){b.classList.add('on');b.innerHTML='■ Stop';}
   // spoken count (Settings: voice on): beat numbers, or syllables when there is time for them
-  if(state.set.thVoice&&window.speechSynthesis){const lead=0.06;P0.words.forEach(w=>{const say=(state.set.thKon||sp.kon)?(P0.stepS>=0.24||w.beat?w.kon:''):(w.beat?String(w.bn):(P0.stepS>=0.24?w.w:''));if(!say)return;
+  if(state.set.thVoice&&window.speechSynthesis){const lead=0.06;P0.words.forEach(w=>{const say=(state.set.thKon||sp.kon||sp.syl)?(P0.stepS>=0.24||w.beat?w.kon:''):(w.beat?String(w.bn):(P0.stepS>=0.24?w.w:''));if(!say)return;
     HEAR.timers.push(setTimeout(()=>{try{const u=new SpeechSynthesisUtterance(say);u.rate=1.6;u.volume=1;speechSynthesis.speak(u);}catch(_){}},Math.max(0,(t0+w.t-a.currentTime-lead)*1000)));});}
   const dgKey=k.id,lay=TH_LAY[dgKey],wrap=document.querySelector(`[data-thdg="${dgKey}"]`);let lastI=-1;
   const tick=()=>{if(HEAR.on!==key)return;const el=a.currentTime-t0;if(el>P0.total+0.2){thHearStop();return;}
     const cur=P0.words.filter(w=>w.t<=el).pop();const bc=$('#thbig');
     if(el<P0.cinS){if(bc)bc.textContent='count-in';}
-    else if(cur&&cur.i!==lastI){lastI=cur.i;if(bc)bc.textContent=(state.set.thKon||sp.kon)?cur.kon:cur.w;
+    else if(cur&&cur.i!==lastI){lastI=cur.i;if(bc)bc.textContent=(state.set.thKon||sp.kon||sp.syl)?cur.kon:cur.w;
+      if(wrap&&sp.ex){const tb=wrap.querySelectorAll('.thtb');if(tb.length){const nb=tb.length,bi=Math.floor(cur.i/sp.ex.sub)%nb;tb.forEach((x,ii)=>x.classList.toggle('on',ii===bi));}}
       if(wrap){wrap.querySelectorAll('.thcell.on').forEach(c=>c.classList.remove('on'));const c=wrap.querySelector(`.thcell[data-st="${cur.i}"]`);if(c)c.classList.add('on');
         if(lay&&lay.steps[cur.i]){const ph=wrap.querySelector('.nph'),s=lay.steps[cur.i],sy=lay.sys[s.sys];if(ph){ph.setAttribute('x1',s.x);ph.setAttribute('x2',s.x);ph.setAttribute('y1',sy.top+6);ph.setAttribute('y2',sy.top+sy.h-8);}}}}
     HEAR.raf=requestAnimationFrame(tick);};
@@ -517,6 +548,7 @@ async function theoryTests(){
     const mm=mergeStates(normaliseState({v:1,savedAt:1,theory:A}),normaliseState({v:1,savedAt:2,theory:B}));T('mergeStates carries theory',mm.theory&&mm.theory.cards['A1.01.1'].p===9,'');
     T('Testing mode: nothing is written',!SANDBOX||(()=>{let w=0;const o=storeSave;storeSave=()=>{w++;};try{thMark(TH_ORDER[3].id,'r');thReview(TH_ORDER[3].id,true);}finally{storeSave=o;}return w===0;})(),SANDBOX?'sandbox on':'not in testing mode');}
   if(typeof thT3Tests==='function')out.push(...await thT3Tests());
+  if(typeof thT4Tests==='function')out.push(...await thT4Tests());
   // restore
   const k=JSON.parse(keep);state.theory=k.theory;state.days=k.days;state.prog=k.prog;state.sessions=state.sessions.slice(0,k.n);state.set=k.set;thFill(state);Object.keys(TH_ANS).forEach(x=>delete TH_ANS[x]);
   VP.theory=JSON.parse(keepVP);cur=keepCur;render();

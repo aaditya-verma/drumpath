@@ -242,3 +242,34 @@ async function thT3Tests(){
   state.sessions=keepSess;const k2=JSON.parse(keep);state.theory=k2.theory;state.set=k2.set;state.prog=k2.prog;state.sessions=state.sessions.slice(0,k2.n);thFill(state);thT3Fill();
   return out;
 }
+
+/* ---------- T4 tests (Tier B: konnakol, swing in Hear it, new diagrams, concept links) ---------- */
+async function thT4Tests(){
+  const out=[],T=(name,pass,det)=>out.push({name,pass:!!pass,det:det||''});
+  const B=TH_ORDER.filter(k=>k.id[0]==='B');
+  T('Tier B content: B1–B4 loaded ('+B.length+' cards), ids unique and in plan order',B.length>=60&&new Set(B.map(k=>k.id)).size===B.length&&['B1','B2','B3','B4'].every(p=>THP.some(x=>x.id===p)),THP.map(p=>p.id).join());
+  // konnakol syllables
+  const m4=ntMeters(TX('t',3,{S:'xxx'}))[0];
+  T('Konnakol: tisra = ta ki ta; jathis 5 and 7 built from 2+3 and 3+4',[0,1,2].map(j=>thSylAt('kon',m4,j,j)).join(' ')==='ta ki ta'&&TH_KON[5].join(' ')==='ta ka ta ki ta'&&TH_KON[7].join(' ')==='ta ki ta ta ka di mi',[0,1,2].map(j=>thSylAt('kon',m4,j,j)).join(' '));
+  T('Konnakol: 5 + 7 + 4 fills a bar of 16ths, accents on each group start',thKonRun([5,7,4]).length===16&&thKonAcc([5,7,4])==='XxxxxXxxxxxxXxxx'&&thKonAcc([3,3,2])==='XxxXxxXx');
+  // swing in Hear it matches the scoring engine
+  const pl=thHearPlan({ex:TX('s',2,{R:'xxxxxxxx'},{swing:0.67}),bpm:60,cin:false,reps:1}),pl0=thHearPlan({ex:TX('s',2,{R:'xxxxxxxx'}),bpm:60,cin:false,reps:1});
+  const d1=pl.evs[1].t-pl.evs[0].t,d2=pl.evs[2].t-pl.evs[1].t;
+  T('Hear it swings like the engine: 2/3 + 1/3 of the beat at swing 0.67; straight stays even',Math.abs(d1-0.67)<0.01&&Math.abs(d2-0.33)<0.01&&Math.abs((pl0.evs[1].t-pl0.evs[0].t)-0.5)<1e-6,d1.toFixed(3)+' / '+d2.toFixed(3));
+  T('Hear it words use the card’s syllables (konnakol) when given',thHearPlan({ex:TX('k',4,{S:'xxxx'}),bpm:60,cin:false,reps:1,syl:'kon'}).words.map(w=>w.kon).join(' ')==='ta ka di mi ta ka di mi ta ka di mi ta ka di mi');
+  // every Tier B diagram draws and every sound plan builds
+  const badDg=[],badHear=[];
+  for(const k of B){const h=thDiagram(k,k.dg,'t4'+k.id);if(k.dg&&(!/<svg/.test(h)||/can’t draw/.test(h)))badDg.push(k.id);
+    for(const sp of thHearSpecs(k)){try{const p=sp.seq||sp.chords?thTonePlan(sp):thHearPlan(sp);if(!(p.total>0))badHear.push(k.id);}catch(e){badHear.push(k.id+':'+e.message);}}
+    for(const q of k.check||[])if(q.hear){try{thHearPlan(q.hear);}catch(e){badHear.push(k.id+' check');}}}
+  T('Every Tier B diagram draws',!badDg.length,badDg.join(' '));
+  T('Every Tier B Hear it (incl. listening checks) builds a plan',!badHear.length,badHear.join(' '));
+  T('Tala diagram: one dot per beat (Adi tala = 8), clap/wave marked',(()=>{const h=TH_DG.tala({g:['clap','1','2','3','clap','wave','clap','wave'],split:[4,6],name:'Adi tala'});return (h.match(/class="thtb/g)||[]).length===8&&(h.match(/thtb clap/g)||[]).length===3&&(h.match(/thtb wave/g)||[]).length===2;})());
+  // concept links: tags that were “later” now point at real cards
+  const con=thCon(),later=['triplet','swing','compound','flam','drag','roll32'].filter(t=>!thCardsFor(t).length||con[t].later);
+  T('Triplets, swing, 6/8–12/8, flams, drags and rolls now link to Tier B cards',!later.length,later.join());
+  const lc=id=>thLessonCards(id);
+  T('Lessons suggest the new cards (3.1.02 → triplets, 4.5.07 → swing, 4.1.05 → 12/8, 3.3.07 → flam)',lc('3.1.02').includes('B2.01.1')&&lc('4.5.07').some(c=>c.startsWith('B2.04'))&&lc('4.1.05').some(c=>c.startsWith('B3.0'))&&lc('3.3.07').includes('B4.01.1'));
+  T('Every card id in concepts exists',Object.entries(con).filter(([k])=>k[0]!=='_').every(([,v])=>(v.cards||[]).every(id=>THC[id])),Object.entries(con).filter(([k])=>k[0]!=='_').flatMap(([,v])=>(v.cards||[]).filter(id=>!THC[id])).join(' '));
+  return out;
+}

@@ -358,3 +358,8 @@ h1{overflow-wrap:anywhere}
   #nexp{bottom:6px;padding:6px 40px 6px 10px;font-size:12.5px;line-height:1.35;max-height:calc(100% - 12px);overflow:auto}
   #nexp .nxh1{margin-bottom:1px}
 }
+
+/* T4 (Tier B) diagrams: tala circle, swing ruler */
+.thsvg .thtb{fill:var(--L2);stroke:var(--line);stroke-width:1.5}.thsvg .thtb.clap{fill:var(--L3)}.thsvg .thtb.wave{fill:none;stroke-dasharray:3 3}
+.thsvg .thtb.on{fill:var(--accent-soft);stroke:var(--accent)}
+.thsvg .thgl.dash{stroke-dasharray:3 4;opacity:.7}

@@ -1,0 +1,108 @@
+/* DrumPath Theory — Tier B · Part B4: The drum chart 2 (threads R/B). Own words. Card ids are permanent once shipped. */
+'use strict';
+var DP_THEORY=window.DP_THEORY=window.DP_THEORY||[];
+DP_THEORY.push({id:'B4',tier:'B',th:'R',t:'The drum chart 2',d:'Reading a real band chart: grace notes and rolls, road maps (D.C., D.S., coda, endings), rehearsal letters, slashes, band hits, and how to read a chart from top to bottom.',ch:[
+{id:'B4.01',t:'Grace notes: flams and drags',cards:[
+ {id:'B4.01.1',t:'The flam',idea:'A flam is a main note with one tiny grace note just before it, played by the other hand. On a chart the grace note is a small note with a slash, tied to the main note.',
+  dg:{type:'nt',ex:TX('Flams',1,{S:'f.f.'},{st:'R.L.'})},hear:{ex:TX('Flams',1,{S:'f.f.'},{bars:2}),bpm:70},
+  try:{ex:[TX('Flams',1,{S:'f.f.'},{bars:2,st:'R.L.'})],bpm:70},
+  rem:'Flam = one grace note + main note, hands close together: “flam”, not “fa-lam”.',links:{lessons:['3.3.07','3.3.08']},
+  more:['The grace note is low and very close to the main note; the main note is the one that counts for time. A flam sounds like a fatter single note.','The sticking letter names the main note: a right flam (lR) has the left hand’s grace and the right hand’s main note.'],
+  check:[{q:'In a flam, the note that sits on the beat is…',a:['the main (big) note','the grace note','both, exactly together'],c:0,why:'The grace comes just before; the main note is on time.'}]},
+ {id:'B4.01.2',t:'The drag',idea:'A drag (ruff) has two quick grace notes before the main note, played as a small double by one hand. It’s written as two small notes before the main note.',
+  dg:{type:'nt',ex:TX('Drags',1,{S:'d.d.'})},hear:{ex:TX('Drags',1,{S:'d.d.'},{bars:2}),bpm:70},
+  try:{ex:[TX('Drags',1,{S:'d.d.'},{bars:2})],bpm:66},
+  rem:'Drag = two grace notes (a quick double) + main note.',links:{lessons:['3.3.09','3.3.10']},
+  more:['Keep the two grace notes soft and close together; they should blur into a short “brrr” in front of the main note.'],
+  check:[{q:'How many grace notes does a drag have?',a:['2','1','3'],c:0,why:'A flam has one, a drag two.'}]},
+ {id:'B4.01.3',t:'The rudiments',idea:'Drummers share a standard list of 40 rudiments: rolls, diddles, flams and drags. Charts and method books refer to them by name, so knowing the names saves time.',
+  dg:{type:'ladder',items:['rolls','diddles','flams','drags'],note:'the four families of the 40 standard rudiments'},
+  rem:'40 rudiments, four families: rolls, diddles, flams, drags.',links:{lessons:['2.3.05','3.3.03']},
+  more:['Your lessons already cover the singles, doubles, paradiddles, five-stroke roll, flam and drag. Each family grows from them.'],
+  check:[{q:'A paradiddle belongs to which family?',a:['diddles','flams','drags'],c:0,why:'It’s built from singles and a double (“diddle”).'}]}
+]},
+{id:'B4.02',t:'Rolls on the page',cards:[
+ {id:'B4.02.1',t:'Slashes on the stem',idea:'Slashes through a note’s stem mean “repeat this faster”: one slash = 8ths, two = 16ths. Three slashes usually mean a buzz roll: as many notes as you can, smoothly.',
+  dg:{type:'ladder',items:['/ 8ths','// 16ths','/// buzz roll'],note:'slashes through the stem of one note'},
+  rem:'Stem slashes: 1 = 8ths, 2 = 16ths, 3 = buzz roll.',
+  more:['A long buzz roll is often joined by ties from note to note, ending on a final note without slashes: that last note is where the roll stops.'],
+  check:[{q:'Two slashes through a quarter-note stem mean…',a:['play 16th notes for that beat','play two notes','a buzz roll'],c:0,why:'Two slashes = 16ths.'}]},
+ {id:'B4.02.2',t:'Stroke rolls',idea:'Rolls are named by how many strokes they have, counting the last single: a five-stroke roll is two doubles and a final accent, a seven-stroke roll three doubles and one, and so on.',
+  dg:{type:'nt',ex:TX('Five-stroke roll',4,{S:'xxxxX...xxxxX...'},{st:'RRLLR...LLRRL...',meter:'2/4',steps:8,bars:2})},
+  hear:{ex:TX('Five-stroke roll',4,{S:'xxxxX...xxxxX...'},{meter:'2/4',steps:8,bars:2}),bpm:70},
+  rem:'Five-stroke = 2 doubles + accent. Seven = 3 doubles + accent.',links:{lessons:['3.3.01','4.3.04','4.3.05']},
+  more:['The roll’s name tells you its length; the chart tells you where it starts and where it lands.'],
+  check:[{q:'A seven-stroke roll has how many doubles?',a:['3','2','7'],c:0,why:'3 doubles (6 notes) + 1 final note = 7.'}]}
+]},
+{id:'B4.03',t:'Road maps',cards:[
+ {id:'B4.03.1',t:'D.C.: back to the start',idea:'D.C. (da capo, “from the head”) tells you to go back to the very beginning of the chart and play it again.',
+  dg:{type:'road',written:['A','B','C'],marks:[[2,'D.C.']],play:['A','B','C','A','B','C']},
+  rem:'D.C. = go back to the very start.',links:{lessons:['3.7.03']},
+  more:['“D.C. al Fine” means: back to the start, then stop at the word Fine (“end”).'],
+  check:[{q:'D.C. tells you to go back to…',a:['the beginning','the sign','the coda'],c:0,why:'Capo = head: the start of the chart.'}]},
+ {id:'B4.03.2',t:'D.S.: back to the sign',idea:'D.S. (dal segno) sends you back to the sign: a slanted S with a line and two dots. Charts use it to skip the intro on the repeat.',
+  dg:{type:'road',written:['Intro','Verse','Chorus'],marks:[[1,'▲ sign here'],[2,'D.S.']],play:['Intro','Verse','Chorus','Verse','Chorus']},
+  rem:'D.S. = go back to the sign, not to the start.',links:{lessons:['3.7.03']},
+  more:['The sign is printed at the top of the bar where the repeat starts. Look for it before you count in, so the jump doesn’t surprise you.'],
+  check:[{q:'With D.S., the intro is usually…',a:['skipped on the repeat','played again','played twice'],c:0,why:'You jump back to the sign, after the intro.'}]},
+ {id:'B4.03.3',t:'Coda: the jump to the end',idea:'The coda sign (a circle with a cross) marks a jump. On the way through a D.C. or D.S. repeat, when you reach “to Coda”, jump straight to the Coda section.',
+  dg:{type:'road',written:['Verse','Chorus ⊕','Bridge','⊕ Coda'],marks:[[0,'▲ sign'],[2,'D.S. al Coda']],play:['Verse','Chorus','Bridge','Verse','Chorus','Coda']},
+  rem:'“D.S. al Coda”: back to the sign, then at ⊕ jump to the Coda.',links:{lessons:['3.7.03']},
+  more:['The first time through you ignore the coda sign. You only take the jump on the repeat.'],
+  check:[{q:'The first time you pass “to Coda ⊕”, you…',a:['ignore it and keep going','jump to the coda','stop'],c:0,why:'The jump is only taken on the repeat.'}]},
+ {id:'B4.03.4',t:'1st and 2nd endings',idea:'Brackets over the last bars of a repeated section: play the 1st ending the first time, then repeat; the second time skip the 1st ending and play the 2nd.',
+  dg:{type:'road',written:['A','1. end','2. end'],marks:[[1,'1st time'],[2,'2nd time']],play:['A','1. end','A','2. end']},
+  rem:'1st time: 1st ending. 2nd time: jump to the 2nd ending.',
+  more:['Endings save space: the long section is written once, only the last bars change.'],
+  check:[{q:'On the repeat, the 1st ending is…',a:['skipped','played again','played twice'],c:0,why:'The second time you go straight to the 2nd ending.'}]}
+]},
+{id:'B4.04',t:'Rehearsal letters and long rests',cards:[
+ {id:'B4.04.1',t:'Rehearsal letters',idea:'Big boxed letters (A, B, C…) or names (Verse, Chorus) mark the sections of a chart, so the band can say “from letter C”.',
+  dg:{type:'form',parts:[['A',8],['B',8],['C',8],['D',4]]},
+  rem:'Boxed letters = section marks. “From C” = start of section C.',
+  more:['Write the section names next to the letters in pencil the first time you play a song: Intro, Verse, Chorus.'],
+  check:[{q:'“Let’s go from letter B” means…',a:['start at section B','play bar 2','play the B chord'],c:0,why:'Letters mark sections.'}]},
+ {id:'B4.04.2',t:'Multi-bar rests',idea:'A thick bar with a number above it means rest for that many bars. Count them, often with fingers: the band won’t wait.',
+  dg:{type:'ladder',items:['4','8','16'],note:'a number over a thick rest = bars to rest'},
+  rem:'Thick bar + number = rest that many bars. Count every bar.',links:{lessons:['3.1.05']},
+  more:['Count bars as “1 2 3 4, 2 2 3 4, 3 2 3 4…”: the first number tells you which bar you’re in.'],
+  check:[{q:'A multi-bar rest with 8 above it means…',a:['rest 8 bars','rest 8 beats','play 8 notes'],c:0,why:'The number counts bars.'}]}
+]},
+{id:'B4.05',t:'Slashes and “time”',cards:[
+ {id:'B4.05.1',t:'Slash notation',idea:'Slashes on the beats mean “play time”: keep a groove that fits the style, written or not. The style or a groove written once above tells you what to play.',
+  dg:{type:'simile'},
+  rem:'Slashes = play a groove in the style. You choose the details.',
+  more:['Charts with slashes trust you to make the part. Keep it simple and steady, and follow any written accents or hits.'],
+  check:[{q:'Bars of slashes on a drum chart mean…',a:['play a fitting groove','rest','play quarter notes on the snare'],c:0,why:'Slashes = time, your choice of groove.'}]},
+ {id:'B4.05.2',t:'“Fill” over slashes',idea:'A chart may write “fill” over the last bar of a section. Play time until then, a fill in that bar, and land on the next “1”.',
+  dg:{type:'form',parts:[['time',7],['fill',1]],fills:false},
+  rem:'“Fill” over slashes: your fill, in that bar only.',links:{lessons:['2.6.01']},
+  more:['Length matters more than notes: a one-beat fill at the end of the bar is often enough.'],
+  check:[{q:'If “fill” is written over bar 8, your fill should end…',a:['at the end of bar 8, landing on the next 1','halfway through bar 8','in bar 9'],c:0,why:'The fill sets up the next section.'}]}
+]},
+{id:'B4.06',t:'Band hits',cards:[
+ {id:'B4.06.1',t:'Hits written above the staff',idea:'Rhythms written above the staff (often with “kicks” or “band”) are hits the whole band plays. Catch them with crash and kick, keeping time around them.',
+  dg:{type:'count',ex:TX('Hits',2,{C:'x....x..',K:'x....x..',HH:'.xxx..xx',S:'..x...x.'})},
+  hear:{ex:TX('Hits',2,{C:'x....x..',K:'x....x..',HH:'.xxx..xx',S:'..x...x.'},{bars:2}),bpm:96},
+  rem:'Notes above the staff = band hits. Crash + kick, keep the time.',
+  more:['A small fill or snare note just before a hit (“set-up”) tells the band it’s coming. That’s one of the drummer’s main jobs in a band.'],
+  check:[{q:'Band hits written above the staff are played by…',a:['the whole band together','the drummer only','nobody, they’re cues'],c:0,why:'They are ensemble hits.'}]},
+ {id:'B4.06.2',t:'Short or long hits',idea:'A dot over a hit means short (stop the sound); a long line or “^” means full length and strong. Short hits: choke the cymbal or use a short snare hit; long hits: let the crash ring.',
+  dg:{type:'ladder',items:['· short','– full','^ strong + short','> accent'],note:'marks over band hits'},
+  rem:'Dot = short (choke). Line = full. ^ = strong and short.',
+  more:['Choking a crash means grabbing it with your hand just after the hit. On an electronic kit, most cymbals choke when you squeeze the edge.'],
+  check:[{q:'A dot over a band hit means…',a:['play it short','play it twice','play it soft'],c:0,why:'Staccato: short.'}]}
+]},
+{id:'B4.07',t:'Reading a real chart',cards:[
+ {id:'B4.07.1',t:'Top to bottom, before you play',idea:'Before you count in, read the chart in order: title and tempo, style, time signature, road map (repeats, D.S., coda, endings), sections, hits, and the ending.',
+  dg:{type:'ladder',items:['tempo','style','meter','road map','hits','ending'],note:'a 30-second scan before the count-in'},
+  rem:'Scan first: tempo · style · meter · road map · hits · ending.',links:{lessons:['3.7.03','3.8.01']},
+  more:['Trace the road map with your finger before playing: where are the jumps, how many times does the chorus go round?','The ending is the part most often missed: find it before you start.'],
+  check:[{q:'What should you find on a chart before you count in?',a:['the road map and the ending','only the first bar','the last note'],c:0,why:'Knowing the jumps and ending avoids getting lost.'}]},
+ {id:'B4.07.2',t:'Read ahead',idea:'While you play one bar, your eyes should already be on the next. Reading ahead is what keeps you from stopping at a hard bar.',
+  dg:{type:'form',parts:[['playing',1],['looking',1],['next',2]]},
+  rem:'Play this bar, look at the next.',
+  more:['Practise reading ahead by covering the bar you’re playing with a card. DrumPath’s Read-it drills (coming in T5) will train this.'],
+  check:[{q:'While playing a bar, a good reader is looking at…',a:['the next bar','the bar being played','the drums'],c:0,why:'Reading ahead prevents surprises.'}]}
+]}
+]});

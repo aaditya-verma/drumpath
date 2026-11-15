@@ -143,6 +143,14 @@ fake clock).
 - **Data (new fields only):** `state.theory.skips / auto / plog / fails`, `state.set.thPanel`; merged on sync.
   Engine hooks are display-only (`thPanelOnOpen`, `thPanelSync`, `thFixHtml`); scoring unchanged.
 
+### Theory T4, stage 1 (15 Nov 2026, D-035; v26)
+- **Tier B parts B1–B4** (`theory/B1.js`–`B4.js`, 68 cards): Reading rhythm 2 (dots, ties, syncopation and pushes, rests inside the beat, all 16 one-beat shapes, two-voice music), Triplets and swing, Meter 2 (simple vs compound, 3/4, 6/8, 12/8, 2/4, cut time, half/double time, pick-ups), The drum chart 2 (flams, drags, rudiments, roll notation, D.C./D.S./coda/endings, rehearsal letters, slashes, band hits, reading a chart).
+- **Konnakol starts** (D-033): Adi tala, the three speeds, tisra, jathis 3/4/5/7 as groupings across the bar. Syllables live in `theory/concepts.js` (`TH_KON`, `thKonRun`, `thKonAcc`); a count grid or Hear-it spec takes `syl:'kon'` or an explicit syllable list.
+- **Hear it swings** exactly like the scoring engine (odd steps late by `(swing − 0.5) × 2` steps).
+- New diagrams: `tala` (circle on tablets, a row of beats on phones, lights in time), `swing` (straight vs swung on a triplet ruler), `road` (written order vs played order).
+- Concept tags `triplet`, `swing`, `compound`, `flam`, `drag`, `roll32` now point at Tier B cards, plus new tags (dotted, ties, syncopation, shapes16, twovoice, konnakol, groupings, halftime, cuttime, pickup, roadmap, hits, rudiments, chart).
+- Tests: `thT4Tests()` (11) inside **Run theory tests** (77 in all).
+
 ## Drive library (S3, 11 Nov 2026, D-025)
 **Library** (More › Library, and a **Files** section on each song page) lists MIDI files, audio and documents from the
 Drive folder. With the `drive.file` scope the app sees only files it created or files you pick, so files uploaded to
