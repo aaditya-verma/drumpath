@@ -143,13 +143,22 @@ fake clock).
 - **Data (new fields only):** `state.theory.skips / auto / plog / fails`, `state.set.thPanel`; merged on sync.
   Engine hooks are display-only (`thPanelOnOpen`, `thPanelSync`, `thFixHtml`); scoring unchanged.
 
-### Theory T4, stage 1 (15 Nov 2026, D-035; v26)
+### Theory T4, stage 1 (15 Nov 2026, D-037; v26)
 - **Tier B parts B1–B4** (`theory/B1.js`–`B4.js`, 68 cards): Reading rhythm 2 (dots, ties, syncopation and pushes, rests inside the beat, all 16 one-beat shapes, two-voice music), Triplets and swing, Meter 2 (simple vs compound, 3/4, 6/8, 12/8, 2/4, cut time, half/double time, pick-ups), The drum chart 2 (flams, drags, rudiments, roll notation, D.C./D.S./coda/endings, rehearsal letters, slashes, band hits, reading a chart).
 - **Konnakol starts** (D-033): Adi tala, the three speeds, tisra, jathis 3/4/5/7 as groupings across the bar. Syllables live in `theory/concepts.js` (`TH_KON`, `thKonRun`, `thKonAcc`); a count grid or Hear-it spec takes `syl:'kon'` or an explicit syllable list.
 - **Hear it swings** exactly like the scoring engine (odd steps late by `(swing − 0.5) × 2` steps).
 - New diagrams: `tala` (circle on tablets, a row of beats on phones, lights in time), `swing` (straight vs swung on a triplet ruler), `road` (written order vs played order).
 - Concept tags `triplet`, `swing`, `compound`, `flam`, `drag`, `roll32` now point at Tier B cards, plus new tags (dotted, ties, syncopation, shapes16, twovoice, konnakol, groupings, halftime, cuttime, pickup, roadmap, hits, rudiments, chart).
 - Tests: `thT4Tests()` (11) inside **Run theory tests** (77 in all).
+
+### Theory T4, stages 2–3: Tier B complete (15 Nov 2026, D-037; v29)
+- **Tier B parts B5–B8** (48 cards): Minor keys and more scales (natural/harmonic/melodic minor, relative keys, pentatonics, blues scale, key signatures, the circle of fifths), Intervals (counting, major/minor/perfect, the half-step table, hearing them with named song anchors, why the 5th is strong, tuning toms, **ear tasks**), Harmony and function (chords in a key, Roman numerals, tonic/subdominant/dominant, I–IV–V, I–V–vi–IV, ii–V–I, vi–IV–I–V, cadences, the 12-bar blues in depth), 7th chords (maj7, 7, m7, ø, why V7 resolves, chord symbols).
+- New diagram `c5` (circle of fifths; the sharps/flats ring only where there is room). Chord loops with a swung groove under them now swing too.
+- The shared synth reads ø / m7♭5 / dim7 names as plain major chords, so those cards play exact notes (`seq`); a test guards it.
+- **Tier B parts B9–B12** (37 cards): Song form 2 (verse–chorus, AABA, strophic, pre-chorus, post-chorus, breakdown/drop, the energy curve, how drums shape sections, fill size, endings, **tihai**), Styles 1 (rock, pop, funk, disco, Motown, reggae one drop, train beat, two-step, blues, the jazz ride pattern, each with Hear it and Try it), Listening 2 (section changes, major/minor chords, I→IV vs I→V, half-time vs normal, transcribing a groove), Playing with others 2 (lead sheets, Nashville numbers, transposing, the capo, locking with the bass, band dynamics, setlists and segues).
+- **Tier B = 12 parts, 153 cards; Theory = 323 cards.** Two-bar count grids wrap one bar per row on phones when the cells would be too small.
+- Style and form concepts link lessons to cards (disco, country, funk, blues feels, jazz ride, rock, lock with the bass, tihai…).
+- Tests: 80 theory tests.
 
 ## Drive library (S3, 11 Nov 2026, D-025)
 **Library** (More › Library, and a **Files** section on each song page) lists MIDI files, audio and documents from the

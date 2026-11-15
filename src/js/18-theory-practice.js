@@ -247,7 +247,10 @@ async function thT3Tests(){
 async function thT4Tests(){
   const out=[],T=(name,pass,det)=>out.push({name,pass:!!pass,det:det||''});
   const B=TH_ORDER.filter(k=>k.id[0]==='B');
-  T('Tier B content: B1–B4 loaded ('+B.length+' cards), ids unique and in plan order',B.length>=60&&new Set(B.map(k=>k.id)).size===B.length&&['B1','B2','B3','B4'].every(p=>THP.some(x=>x.id===p)),THP.map(p=>p.id).join());
+  const shipped=THP.filter(x=>x.tier==='B').map(x=>x.id);
+  T('Tier B content: '+shipped.join(' ')+' loaded ('+B.length+' cards), ids unique and in plan order',B.length>=60&&new Set(B.map(k=>k.id)).size===B.length&&['B1','B2','B3','B4'].every(p=>shipped.includes(p))&&shipped.every((p,i)=>i===0||TH_PLAN.findIndex(x=>x[0]===p)>TH_PLAN.findIndex(x=>x[0]===shipped[i-1])),THP.map(p=>p.id).join());
+  T('Circle of fifths: 12 major keys outside, relative minors inside, lit keys marked',(()=>{const h=TH_DG.c5({hi:['C','G']});return (h.match(/class="thtb/g)||[]).length===12&&(h.match(/thtb on/g)||[]).length===2&&/Am/.test(h)&&/F♯m/.test(h);})());
+  T('Chord names the synth can’t read are played as notes (ø, °7 cards use seq)',B.every(k=>thHearSpecs(k).concat((k.check||[]).map(q=>q.hear).filter(Boolean)).every(sp=>!sp.chords||sp.chords.every(c=>!/[ø°]|m7b5|dim7/.test(c)&&BacklineTone.voicing(c)))));
   // konnakol syllables
   const m4=ntMeters(TX('t',3,{S:'xxx'}))[0];
   T('Konnakol: tisra = ta ki ta; jathis 5 and 7 built from 2+3 and 3+4',[0,1,2].map(j=>thSylAt('kon',m4,j,j)).join(' ')==='ta ki ta'&&TH_KON[5].join(' ')==='ta ka ta ki ta'&&TH_KON[7].join(' ')==='ta ki ta ta ka di mi',[0,1,2].map(j=>thSylAt('kon',m4,j,j)).join(' '));
@@ -265,6 +268,7 @@ async function thT4Tests(){
   T('Every Tier B diagram draws',!badDg.length,badDg.join(' '));
   T('Every Tier B Hear it (incl. listening checks) builds a plan',!badHear.length,badHear.join(' '));
   T('Tala diagram: one dot per beat (Adi tala = 8), clap/wave marked',(()=>{const h=TH_DG.tala({g:['clap','1','2','3','clap','wave','clap','wave'],split:[4,6],name:'Adi tala'});return (h.match(/class="thtb/g)||[]).length===8&&(h.match(/thtb clap/g)||[]).length===3&&(h.match(/thtb wave/g)||[]).length===2;})());
+  T('Tihai (B9.05.1): three 5-note phrases with 1-step gaps; the last note lands on the next bar’s “1” with the crash',typeof B9_TIH==='undefined'||(()=>{const S=B9_TIH.S,notes=[...S].map((c,i)=>c!=='.'?i:-1).filter(i=>i>=0);return notes.length===15&&notes[notes.length-1]===16&&B9_TIH.C[16]==='x'&&[0,6,12].every(i=>S[i]==='X');})());
   // concept links: tags that were “later” now point at real cards
   const con=thCon(),later=['triplet','swing','compound','flam','drag','roll32'].filter(t=>!thCardsFor(t).length||con[t].later);
   T('Triplets, swing, 6/8–12/8, flams, drags and rolls now link to Tier B cards',!later.length,later.join());

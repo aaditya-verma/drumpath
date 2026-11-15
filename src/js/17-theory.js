@@ -115,15 +115,16 @@ const TH_DG={
     return `<div class="thnt">${lay.svg.replace(/^<svg([^>]*?) width="(\d+)" height="(\d+)"/,(m,a,ww,hh)=>`<svg${a} width="${Math.ceil(ww*zoom)}" height="${Math.ceil(hh*zoom)}"`)}</div>`;},
   count(dg,key){ // count grid: Western count over takadimi syllables, notes as dots
     const ex=dg.ex,sub=ex.sub,spb=ex.steps||4*sub,bars=ex.bars||1,n=spb*bars,mts=ntMeters(ex),W=thW();
-    const cw=Math.max(18,Math.min(54,(W-8)/n)),w=Math.ceil(cw*n+8),lanes=LANES.filter(v=>ex.v[v]&&/[^.]/.test(ex.v[v]));
-    const kon=dg.kon!==false,rowN=26,rowD=rowN+Math.max(16,lanes.length*9+8),h=rowD+(kon?22:4);let s='';
-    for(let i=0;i<n;i++){const b=Math.floor(i/spb),j=i%spb,x=4+i*cw,mt=mts[b],beat=j===mt.groups[mt.beatOf[j]][0];
-      s+=`<rect class="thcell${beat?' beat':''}" data-st="${i}" x="${x+1}" y="2" width="${cw-2}" height="${h-4}" rx="5"/>`;
-      if(j===0&&b>0)s+=`<line class="thbar" x1="${x}" x2="${x}" y1="0" y2="${h}"/>`;
-      const word=(mt.full||mt.count)[j]||'';s+=`<text class="thcw${beat?' b':''}" x="${x+cw/2}" y="18">${esc(word)}</text>`;
-      lanes.forEach((v,li)=>{const c=ex.v[v][i];if(!c||c==='.')return;const yy=rowN+6+li*9,r=c==='X'?4.6:c==='g'?2.4:3.4;
+    const wrapRows=bars===2&&(W-8)/n<18,per=wrapRows?spb:n,nr=Math.ceil(n/per); // phones: one bar per row when cells would be too small
+    const cw=Math.max(18,Math.min(54,(W-8)/per)),w=Math.ceil(cw*per+8),lanes=LANES.filter(v=>ex.v[v]&&/[^.]/.test(ex.v[v]));
+    const kon=dg.kon!==false,rowN=26,rowD=rowN+Math.max(16,lanes.length*9+8),rh=rowD+(kon?22:4),gap=wrapRows?8:0,h=nr*rh+(nr-1)*gap;let s='';
+    for(let i=0;i<n;i++){const b=Math.floor(i/spb),j=i%spb,ro=Math.floor(i/per),x=4+(i%per)*cw,y0=ro*(rh+gap),mt=mts[b],beat=j===mt.groups[mt.beatOf[j]][0];
+      s+=`<rect class="thcell${beat?' beat':''}" data-st="${i}" x="${x+1}" y="${y0+2}" width="${cw-2}" height="${rh-4}" rx="5"/>`;
+      if(j===0&&b>0&&!wrapRows)s+=`<line class="thbar" x1="${x}" x2="${x}" y1="0" y2="${h}"/>`;
+      const word=(mt.full||mt.count)[j]||'';s+=`<text class="thcw${beat?' b':''}" x="${x+cw/2}" y="${y0+18}">${esc(word)}</text>`;
+      lanes.forEach((v,li)=>{const c=ex.v[v][i];if(!c||c==='.')return;const yy=y0+rowN+6+li*9,r=c==='X'?4.6:c==='g'?2.4:3.4;
         s+=c==='o'?`<circle cx="${x+cw/2}" cy="${yy}" r="3.4" fill="none" stroke="${VOICES[v].c}" stroke-width="1.6"/>`:`<circle cx="${x+cw/2}" cy="${yy}" r="${r}" fill="${VOICES[v].c}"/>`;});
-      if(kon){const syl=thSylAt(dg.syl,mt,j,i);s+=`<text class="thkw" x="${x+cw/2}" y="${h-8}">${esc(syl)}</text>`;}}
+      if(kon){const syl=thSylAt(dg.syl,mt,j,i);s+=`<text class="thkw" x="${x+cw/2}" y="${y0+rh-8}">${esc(syl)}</text>`;}}
     if(lanes.length>1)s+='';
     return thSvg(w,h,s)+(lanes.length>1?`<div class="thleg">${lanes.map(v=>`<span><i style="background:${VOICES[v].c}"></i>${VOICES[v].n}</span>`).join('')}</div>`:'')+(kon?`<div class="thleg mut">top: count · bottom: ${dg.syl?'konnakol':'takadimi'} syllables</div>`:'');},
   tree(dg){ // note-value tree: each row splits the one above in two
@@ -213,6 +214,13 @@ const TH_DG={
     rows.forEach(([lb,f],r)=>{const y=r*34+22;s+=`<text class="thtl" x="0" y="${y+4}">${esc(lb)}</text>`;
       for(let b=0;b<2;b++){const x=78+b*bw;s+=`<rect class="thz z1" x="${x+2}" y="${y-8}" width="${f*bw-4}" height="16" rx="5"/><rect class="thz z0" x="${x+f*bw+2}" y="${y-8}" width="${(1-f)*bw-4}" height="16" rx="5"/><circle class="thmkc" cx="${x+3}" cy="${y}" r="4"/><circle class="thmkc" cx="${x+f*bw+3}" cy="${y}" r="4"/>`;}});
     return thSvg(W,h,s)+`<div class="thleg mut">dashed lines = the beat cut in three (triplets)</div>`;},
+  c5(dg){ // circle of fifths: majors outside, relative minors inside, sharps/flats count; dg.hi = major names to light
+    const M=['C','G','D','A','E','B','F♯','D♭','A♭','E♭','B♭','F'],m=['Am','Em','Bm','F♯m','C♯m','G♯m','D♯m','B♭m','Fm','Cm','Gm','Dm'],acc=['','1♯','2♯','3♯','4♯','5♯','6♯','5♭','4♭','3♭','2♭','1♭'];
+    const W=Math.min(thW(),thW()<600?(dg.small?170:214):(dg.small?240:290)),cx=W/2,cy=W/2,R=W/2-20,hi=new Set(dg.hi||[]);let s=`<circle class="thgl" cx="${cx}" cy="${cy}" r="${R*0.84}" fill="none"/><circle class="thgl" cx="${cx}" cy="${cy}" r="${R*0.5}" fill="none"/>`;
+    M.forEach((k,i)=>{const a=-Math.PI/2+i*Math.PI/6,px=cx+R*Math.cos(a),py=cy+R*Math.sin(a),qx=cx+R*0.66*Math.cos(a),qy=cy+R*0.66*Math.sin(a),on=hi.has(k);
+      s+=`<circle class="thtb${on?' on':''}" cx="${px}" cy="${py}" r="16"/><text class="thtl c b" x="${px}" y="${py+5}">${esc(k)}</text><text class="thsm c" x="${qx}" y="${qy+4}">${esc(m[i])}</text>`;
+      if(dg.acc!==false&&W>=240)s+=`<text class="thsm c" x="${cx+R*0.32*Math.cos(a)}" y="${cy+R*0.32*Math.sin(a)+4}" style="font-size:9.5px">${acc[i]}</text>`;});
+    return thSvg(W,W,s)+`<div class="thleg mut">outside: major keys · inside: relative minors${W>=240&&dg.acc!==false?' · centre ring: sharps/flats':''}</div>`;},
   road(dg){ // chart road map: the written order (boxes) and the order you actually play (letters below)
     const sec=dg.written,W=Math.min(thW(),620),cw=W/sec.length,h=96;let s='';
     sec.forEach((t,i)=>{const x=i*cw;s+=`<rect class="thsec s${i%4}" x="${x+2}" y="4" width="${cw-4}" height="30" rx="6"/><text class="${t.length*7.5>cw-8?'thsm':'thtl'} c" x="${x+cw/2}" y="24">${esc(t)}</text>`;});
@@ -315,7 +323,7 @@ async function thHearTone(k,sp,key){
   const P0=thTonePlan(sp),t0=a.currentTime+0.12,T=HEAR.tone;HEAR.on=key;
   if(sp.seq)P0.ev.forEach(e=>e.notes.forEach(n=>sp.voice==='pad'?T.pad([n],t0+e.t,e.d):T.keys(n,t0+e.t,e.d)));
   else{T.progression(sp.chords,t0,P0.beatS,sp.beats||4);
-    if(sp.ex){const ex=sp.ex,spb=ex.steps||4*ex.sub,n=spb*(ex.bars||1),stepS=P0.beatS/ex.sub;for(let i=0;i*stepS<P0.total-1e-6;i++){const j=i%n;for(const v in ex.v){const c=ex.v[v][j];if(c&&c!=='.')thVoice(v,t0+i*stepS,(c==='X'?1:c==='g'?0.22:0.55)*(sp.gain||0.8),c);}}}
+    if(sp.ex){const ex=sp.ex,spb=ex.steps||4*ex.sub,n=spb*(ex.bars||1),stepS=P0.beatS/ex.sub,swOff=((ex.swing||0.5)-0.5)*2*stepS;for(let i=0;i*stepS<P0.total-1e-6;i++){const j=i%n;for(const v in ex.v){const c=ex.v[v][j];if(c&&c!=='.')thVoice(v,t0+i*stepS+((j%spb)%2?swOff:0),(c==='X'?1:c==='g'?0.22:0.55)*(sp.gain||0.8),c);}}}
     if(sp.click)for(let b=0;b*P0.beatS<P0.total-1e-6;b++)click(t0+b*P0.beatS,b%(sp.beats||4)===0?'acc':'beat',HEAR.nodes);}
   const b=document.querySelector(`[data-thhear="${key}"]`);if(b){b.classList.add('on');b.innerHTML='■ Stop';}
   const wrap=document.querySelector(`[data-thdg="${k.id}"]`);let last=-1;

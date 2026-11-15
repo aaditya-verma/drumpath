@@ -7,7 +7,7 @@
 /* TX = X() for theory cards: a lane or sticking written for one bar is repeated to fill every bar (never changes the lesson helpers' objects) */
 var TX=(n,sub,v,o={})=>{const e=Object.assign({n,sub,bars:1},o,{v:Object.assign({},v)}),len=(e.steps||4*sub)*e.bars,fill=x=>x.length<len?x.repeat(Math.ceil(len/x.length)).slice(0,len):x;
   for(const k in e.v)e.v[k]=fill(e.v[k]);if(e.st)e.st=fill(e.st);return e;};
-/* Konnakol (Tier B on, D-035): syllables per jathi (group size). 2 = ta ka, 3 = tisra, 4 = chatusra, 5 = khanda, 7 = misra. */
+/* Konnakol (Tier B on, D-037): syllables per jathi (group size). 2 = ta ka, 3 = tisra, 4 = chatusra, 5 = khanda, 7 = misra. */
 var TH_KON={1:['ta'],2:['ta','ka'],3:['ta','ki','ta'],4:['ta','ka','di','mi'],5:['ta','ka','ta','ki','ta'],6:['ta','ka','di','mi','ta','ka'],7:['ta','ki','ta','ta','ka','di','mi'],8:['ta','ka','di','mi','ta','ka','ju','na']};
 // syllables for a run of groups, e.g. thKonRun([3,3,2]) → ta ki ta ta ki ta ta ka ; 0 = a one-step gap ('-')
 var thKonRun=gs=>gs.flatMap(g=>g?TH_KON[g]:['-']);
@@ -32,23 +32,25 @@ var DP_CONCEPTS={
   groove:{t:'Reading a groove',cards:['A2.08.1','A2.08.2','A4.01.1']},
   backbeat:{t:'The backbeat',cards:['A4.02.1']},
   rockbeat:{t:'The 8th-note rock beat',cards:['A4.04.1','A4.04.3']},
-  fill:{t:'Fills',cards:['A4.05.1','A4.05.2','A4.05.4']},
+  fill:{t:'Fills',cards:['A4.05.1','A4.05.2','A4.05.4','B9.04.1']},
   crash1:{t:'Crash on 1',cards:['A4.06.1']},
   sticking:{t:'Sticking letters',cards:['A3.03.1','A3.03.2']},
   accent:{t:'Accents',cards:['A3.04.1','A3.04.2']},
   ghost:{t:'Ghost notes',cards:['A3.05.1','A3.05.2']},
   openhh:{t:'Open and closed hi-hat',cards:['A3.06.1','A3.06.2']},
   rim:{t:'Rim and cross-stick',cards:['A3.07.1','A3.07.2']},
-  dynamics:{t:'Dynamics',cards:['A3.08.1','A3.08.3','A4.07.1']},
+  dynamics:{t:'Dynamics',cards:['A3.08.1','A3.08.3','A4.07.1','B12.05.1']},
   drumkey:{t:'The drum key',cards:['A2.01.1','A3.01.1']},
   repeat:{t:'Repeat signs',cards:['A2.09.1','A2.09.2']},
-  form:{t:'Song form',cards:['A8.01.1','A8.05.1','A4.05.2']},
+  form:{t:'Song form',cards:['A8.01.1','A8.05.1','A4.05.2','B9.01.1','B9.03.2']},
   phrase:{t:'Phrases',cards:['A8.03.1','A8.04.1']},
-  blues:{t:'12-bar blues',cards:['A7.05.3','A8.05.2']},
+  blues:{t:'12-bar blues',cards:['A7.05.3','A8.05.2','B7.05.1','B7.05.2','B5.05.1']},
+  progressions:{t:'Chord progressions and cadences',cards:['B7.01.2','B7.03.1','B7.03.3','B7.04.1']},
+  seventh:{t:'7th chords',cards:['B8.02.2','B8.04.1','B8.04.2']},
   chords:{t:'Chords and chord charts',cards:['A7.01.1','A7.04.2','A7.04.3']},
-  listen:{t:'Listening',cards:['A9.01.1','A9.01.2','A9.02.1']},
+  listen:{t:'Listening',cards:['A9.01.1','A9.01.2','A9.02.1','B11.01.1','B11.05.1']},
   countin:{t:'Count-ins',cards:['A10.01.1','A10.02.1']},
-  ending:{t:'Endings',cards:['A10.02.2','A4.07.3']},
+  ending:{t:'Endings',cards:['A10.02.2','A4.07.3','B9.04.2']},
   cues:{t:'Cues',cards:['A10.04.1','A10.04.2']},
   mistakes:{t:'Keeping going',cards:['A10.05.1','A10.05.3']},
   triplet:{t:'Triplets',cards:['B2.01.1','B2.01.2','B2.01.3','B2.02.1','B2.03.1']},
@@ -59,16 +61,21 @@ var DP_CONCEPTS={
   syncopation:{t:'Syncopation and pushes',cards:['B1.03.1','B1.03.2','B1.03.3']},
   shapes16:{t:'16th-note shapes',cards:['B1.04.2','B1.05.1','B1.05.3','B1.05.4']},
   twovoice:{t:'Two-voice drum music',cards:['B1.06.1','B1.06.2']},
-  konnakol:{t:'Konnakol',cards:['B1.07.1','B1.07.2','B1.07.3','B2.06.1','B3.07.1']},
+  konnakol:{t:'Konnakol',cards:['B1.07.1','B1.07.2','B1.07.3','B2.06.1','B3.07.1','B9.05.1']},
   groupings:{t:'Groupings (jathis)',cards:['B3.07.1','B3.07.2','B3.07.3']},
-  halftime:{t:'Half-time and double-time',cards:['B3.05.1','B3.05.2']},
+  halftime:{t:'Half-time and double-time',cards:['B3.05.1','B3.05.2','B11.04.1']},
   cuttime:{t:'2/4 and cut time',cards:['B3.04.1','B3.04.2']},pickup:{t:'Pick-ups',cards:['B3.06.1']},
   roadmap:{t:'Road maps (D.C., D.S., coda, endings)',cards:['B4.03.1','B4.03.2','B4.03.3','B4.03.4']},
   hits:{t:'Band hits',cards:['B4.06.1','B4.06.2']},rudiments:{t:'The rudiments',cards:['B4.01.3']},
+  tihai:{t:'Tihai',cards:['B9.05.1','B9.05.2']},
+  rock:{t:'Rock and pop',cards:['B10.01.1','B10.01.2']},funk:{t:'Funk',cards:['B10.02.1']},disco:{t:'Disco',cards:['B10.02.2']},
+  reggae:{t:'Reggae',cards:['B10.04.1']},country:{t:'Country',cards:['B10.05.1','B10.05.2']},
+  bluesfeel:{t:'Blues feels',cards:['B10.06.1','B2.05.2']},jazzride:{t:'The jazz ride pattern',cards:['B10.06.2','B2.04.2']},
+  leadsheet:{t:'Lead sheets and numbers',cards:['B12.01.1','B12.02.1']},lockbass:{t:'Locking with the bass',cards:['B12.04.1','B12.04.2']},
   chart:{t:'Reading a real chart',cards:['B4.04.1','B4.07.1','B4.07.2']},
   _lessons:{'0.1.01':['drumkey'],'2.1.01':['drumkey'],'1.2.02':['pulse','count'],'1.7.01':['click','timefeel'],'2.1.05':['bars','meter44'],'2.1.06':['tempo'],
-    '1.6.02':['bars','fill','phrase'],'1.6.04':['crash1','countin','ending','cues'],'2.1.07':['mixed'],'2.7.01':['count','listen'],'3.7.01':['listen'],'3.7.03':['form','phrase','roadmap','chart'],'4.7.02':['form','blues','chords'],'2.6.01':['phrase'],'4.5.02':['phrase','groupings'],'3.1.01':['wholehalf'],'3.1.04':['dynamics','accent','ghost'],'3.1.05':['repeat','chart'],
+    '1.6.02':['bars','fill','phrase'],'1.6.04':['crash1','countin','ending','cues'],'2.1.07':['mixed'],'2.7.01':['count','listen'],'3.7.01':['listen'],'3.7.03':['form','phrase','roadmap','chart'],'4.7.02':['form','blues','chords','progressions','seventh'],'2.6.01':['phrase'],'4.5.02':['phrase','groupings'],'3.1.01':['wholehalf'],'3.1.04':['dynamics','accent','ghost'],'3.1.05':['repeat','chart'],
     '3.4.05':['dynamics'],'3.7.02':['click24','timefeel'],'4.4.03':['dynamics'],'4.7.01':['click24','timefeel'],
-    '4.1.02':['dotted'],'2.4.05':['syncopation'],'3.6.02':['syncopation','groupings'],'4.5.03':['syncopation'],'4.5.01':['halftime'],
-    '3.4.01':['twovoice'],'3.4.03':['twovoice'],'3.8.01':['chart'],'4.1.01':['triplet'],'2.3.05':['rudiments'],'3.3.03':['rudiments']}
+    '4.1.02':['dotted'],'2.4.05':['syncopation','lockbass'],'3.6.02':['syncopation','groupings'],'4.5.03':['syncopation'],'4.5.01':['halftime'],
+    '3.4.01':['twovoice'],'3.4.03':['twovoice','lockbass'],'3.8.01':['chart'],'4.1.01':['triplet'],'4.7.03':['progressions','seventh','jazzride'],'2.3.05':['rudiments'],'3.3.03':['rudiments'],'3.5.06':['disco'],'3.5.03':['country'],'3.5.04':['country'],'3.5.02':['country'],'4.5.07':['jazzride'],'4.5.08':['bluesfeel'],'4.5.09':['bluesfeel'],'3.2.07':['funk'],'4.2.05':['funk'],'2.5.01':['rock'],'4.5.04':['rock']}
 };
