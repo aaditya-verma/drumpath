@@ -235,12 +235,12 @@ function p1NextBox(){
 }
 function p1Peek(){const pl=p1PlanBySlot(SES.slot);for(let i=SES.i+1;i<pl.items.length;i++)if(!p1Stat(pl.items[i],pl))return pl.items[i];return null;}
 // strip on the practice screen
-function p1PracSync(){if(typeof qlPracSync==='function')qlPracSync();const el=$('#sesbar');if(!el)return;const it=p1Cur();if(!it){el.classList.add('hidden');el.innerHTML='';return;}const pl=p1PlanBySlot(SES.slot);
+function p1PracSync(){if(typeof qlPracSync==='function')qlPracSync();if(typeof kpLegend==='function'){kpLegend();kpViewBtn();}const el=$('#sesbar');if(!el)return;const it=p1Cur();if(!it){el.classList.add('hidden');el.innerHTML='';return;}const pl=p1PlanBySlot(SES.slot);
   el.classList.remove('hidden');el.innerHTML=`<span class="p1sk">Session ${SES.i+1}/${pl.items.length} · ${p1PhaseOf(it)}</span><b>${esc(it.t)}</b>${P1_PRACTICE.includes(it.k)?`<span class="mut">${it.k==='mix'?'mix '+Math.min((SES.mixI||0)+1,it.ids.length)+'/'+it.ids.length:'run '+Math.min(SES.runs+1,it.reps)+'/'+it.reps}</span>`:''}<span class="sp"></span><button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button>`;}
 // strip at the top of every other page
 function p1Bar(){const it=p1Cur();if(!it||cur==='today')return;const pl=p1PlanBySlot(SES.slot),st=p1Stat(it,pl),pr=P1_PRACTICE.includes(it.k)||it.k==='tap';
   const auto=it.k==='deck'&&typeof thDue==='function'&&!thDue().length;
-  view.insertAdjacentHTML('afterbegin',`<div class="card p1bar"><div class="p1bt"><span class="note-k">Session ${SES.i+1} of ${pl.items.length} · ${p1PhaseOf(it)}</span><b>${esc(it.t)}</b>${st||auto?' <span class="chip ms">Done</span>':''}</div><div class="row">${pr&&!st?`<button class="sm pri" data-p1="resume">Continue ›</button>`:`<button class="sm pri" data-p1="next">Next ›</button>`}<button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button></div></div>`);}
+  view.insertAdjacentHTML('afterbegin',`<div class="card p1bar"><div class="p1bt"><span class="note-k">Session ${SES.i+1} of ${pl.items.length} · ${p1PhaseOf(it)}</span><b>${esc(it.t)}</b>${st||auto?' <span class="chip ms">Done</span>':''}</div><div class="row">${pr&&!st?`<button class="sm pri" data-p1="resume">Continue ›</button>`:`<button class="sm pri" data-p1="next">Next ›</button>`}<button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button></div>${typeof kpHint==='function'?kpHint('bar'):''}</div>`);}
 
 /* ---------- Today card (Home, Practise) ---------- */
 function p1PainNote(){const j=state.journal||{},t=p1Day(),y=dkey(new Date(p1Now()-DAY)),k=[t,y].find(x=>j[x]&&j[x].pain);
@@ -259,7 +259,7 @@ function p1TodayCard(){
    <div class="p1h"><div style="min-width:0"><div class="note-k">Today</div><div class="p1title">${mode==='go'?'On the go':'At the kit'} · about ${tot} min</div></div>
      <div class="seg" role="group" aria-label="Mode"><button class="${mode==='go'?'on':''}" data-p1mode="go">On the go</button><button class="${mode==='kit'?'on':''}" data-p1mode="kit">At the kit</button></div></div>
    ${mode==='kit'?`<div class="row p1opts"><div class="seg" role="group" aria-label="Length">${P1_MINS.map(m=>`<button class="${mins===m?'on':''}" data-p1mins="${m}">${m} min</button>`).join('')}</div>${p1Kit()?'<span class="chip ms">Kit connected</span>':'<span class="chip" data-nav="kit">Kit not connected</span>'}</div>`:`<div class="mut p1sub">Phone, no kit: theory, a tap drill on the screen pads, an ear game.</div>`}
-   <div class="p1streak">${p1StreakLine()}</div>${p1PainNote()}
+   <div class="p1streak">${p1StreakLine()}</div>${p1PainNote()}${mode==='kit'&&typeof kpHint==='function'?kpHint('today'):''}
    <ol class="p1list">${items.map(row).join('')}</ol>
    <div class="row p1go"><button class="pri" data-p1="${running?'resume':'start'}">${icon('play',16)} ${running?'Continue session':nDone?'Continue':'Start session'}</button>${running?'<button class="ghost" data-p1="end">End session</button>':''}<span class="mut">${nDone} of ${items.length} done</span></div>
    ${SANDBOX?'<p class="mut" style="font-size:13px;margin:8px 0 0">Testing mode: nothing here is saved.</p>':''}</section>`;

@@ -63,7 +63,7 @@ function buildRun(lesson,ex,bpmv,base,opts={}){
   let reps;
   if(lesson.loop===1||opts.calib)reps=1;
   else{const want=Math.max(state.set.bars,ex.bars);reps=Math.ceil(want/ex.bars);if(lesson.call&&reps%2)reps++;}
-  const cinBars=opts.calib?1:state.set.countin, cinMs=cinBars*barMs;
+  const cinBars=opts.calib?1:opts.cin!=null?opts.cin:state.set.countin, cinMs=cinBars*barMs;   // opts.cin (P2, opt-in): first-hit start has no count-in
   const evs=[];
   for(let r=0;r<reps;r++){
     const listen=lesson.call&&r%2===0;
@@ -130,28 +130,38 @@ function renderPads(ex){
   $('#pads').classList.toggle('hidden',!(state.set.pads||tap));
   $('#pads').innerHTML=vs.map(v=>`<button data-pad="${v}" style="border-color:${VOICES[v].c};color:${VOICES[v].c}">${VOICES[v].n}</button>`).join('');
 }
-function sizeCv(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d,0,0,d,0,0);}
+function sizeCv(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1,z=cv.clientWidth?r.width/cv.clientWidth:1;cv.width=Math.max(1,r.width*d);cv.height=Math.max(1,r.height*d);cx.setTransform(d*z,0,0,d*z,0,0);}   // z: CSS zoom (P2 at-the-kit view), 1 otherwise
 function makePreview(){preview=buildRun(L,L.ex[exI],bpm,0,{calib:L.calib});if(typeof notaRender==='function')notaRender();}
 
-async function startRun(){
+async function startRun(o){
   const a=audio(); if(a.state!=='running'){try{await a.resume();}catch(e){}}
-  const t0=a.currentTime+0.3; const pNow=performance.now(), cNow=a.currentTime;
+  let t0=a.currentTime+0.3; const pNow=performance.now(), cNow=a.currentTime;
   const outLat=((a.outputLatency||0)+(a.baseLatency||0))*1000;
-  const base=pNow+(t0-cNow)*1000+outLat;
-  run=buildRun(L,L.ex[exI],bpm,base,{calib:L.calib});
+  let base=pNow+(t0-cNow)*1000+outLat;
+  // P2 (opt-in, 21-atkit.js): o.base = a heard time for the count-in's first click (tap-in), or o.anchor = the player's
+  // first hit, which becomes the pattern's first note (no count-in; that note isn't scored). With no o, nothing changes.
+  if(o&&o.anchor){const R0=buildRun(L,L.ex[exI],bpm,0,{calib:L.calib,cin:0}),sc0=R0.evs.filter(e=>!e.listen),f=sc0.length?Math.min(...sc0.map(e=>e.t)):0;base=o.anchor.t-f;}
+  else if(o&&o.base!=null)base=o.base;
+  if(o)t0=cNow+(base-outLat-pNow)/1000;
+  run=buildRun(L,L.ex[exI],bpm,base,{calib:L.calib,cin:o&&o.anchor?0:undefined});
+  if(o&&o.anchor){const sc=run.evs.filter(e=>!e.listen),f=sc.length?Math.min(...sc.map(e=>e.t)):0,at=sc.filter(e=>e.t===f),e0=at.find(e=>e.v===o.anchor.v)||at[0];
+    if(e0){e0.anchor=true;e0.hitT=e0.t;e0.dt=0;e0.vel=o.anchor.vel||0;e0.hitArt=o.anchor.art;}run.firstHit=true;}
   run.stretch=!L.calib&&stretchMode&&canStretch(L.id)&&bpm>L.bpm[1];
   run.t0=t0; run.startPerf=performance.now();
-  run.clicks.forEach(c=>click(t0+c.t/1000,c.k,run.nodes));
-  run.evs.forEach(e=>{if(e.listen)drum(e.v,t0+(e.t-base)/1000,run.nodes);});
+  run.clicks.forEach(c=>{if(!o||t0+c.t/1000>=cNow)click(t0+c.t/1000,c.k,run.nodes);});
+  run.evs.forEach(e=>{if(e.listen&&(!o||t0+(e.t-base)/1000>=cNow))drum(e.v,t0+(e.t-base)/1000,run.nodes);});
   flashes={}; $('#pfeed').textContent=''; $('#go').textContent='Stop'; $('#result').classList.add('hidden');
   if(typeof thPanelSync==='function')thPanelSync();
   requestAnimationFrame(loop);
+  if(typeof kpRunState==='function')kpRunState();   // P2: kit remote off during the run
   try{if(navigator.wakeLock&&!wake)navigator.wakeLock.request('screen').then(w=>{wake=w;w.addEventListener('release',()=>{if(wake===w)wake=null;});}).catch(()=>{});}catch(e){}
 }
 function stopRun(save_=true){
+  if(typeof kpDisarm==='function')kpDisarm();   // P2: a waiting first-hit start is cancelled too
   if(!run)return; run.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
   if(save_&&!run.calib){if(L.theory||L.tap)thAddTime(performance.now()-run.startPerf);else addTime(L.id,performance.now()-run.startPerf);save();}
   run=null; $('#go').textContent='Start'; draw();
+  if(typeof kpRunState==='function')kpRunState();
   if(typeof thPanelSync==='function')thPanelSync();
 }
 function loop(){
@@ -174,7 +184,7 @@ function hit(v,vel,tp,art,src){
   if(t<start-state.set.win)return; // ignore count-in
   if(run.lesson.call){const repMs=run.barMs*run.ex.bars;const r=Math.floor((t-start)/repMs);if(r%2===0&&t<start+(r+1)*repMs-state.set.win)return;} // listening bars
   // grace notes: a later hit within 90 ms on a flam/drag note becomes the main stroke; the earlier one turns into a grace
-  for(const e of run.evs){if(e.listen||e.v!==v||!e.gr||e.hitT==null)continue;const gap=t-e.hitT;
+  for(const e of run.evs){if(e.listen||e.anchor||e.v!==v||!e.gr||e.hitT==null)continue;const gap=t-e.hitT;
     if(gap>=0&&gap<=90&&e.graces.length<e.gr&&Math.abs(t-e.t)<=state.set.win){e.graces.push({t:e.hitT,vel:e.vel});e.hitT=t;e.dt=t-e.t;e.vel=vel;e.hitArt=art;
       const g=e.graces[e.graces.length-1];feed(e.dt,state.set.graceMode==='lenient'?'':(t-g.t<12?'flat flam':g.vel>vel*0.8?'grace too loud':'grace ✓'));return;}}
   let best=null,bd=1e9;
@@ -231,7 +241,7 @@ function draw(){
   // lanes
   vs.forEach((v,i)=>{const y=top+i*lh;cx.fillStyle=i%2?TH.lane1:TH.lane2;cx.fillRect(0,y,W,lh);
     const fl=flashes[v]&&performance.now()-flashes[v]<140;
-    cx.fillStyle=fl?VOICES[v].c:TH.muted;cx.font='700 14px '+TH.body;cx.textBaseline='middle';cx.fillText(VOICES[v].n,10,y+lh/2);
+    cx.fillStyle=fl?VOICES[v].c:TH.muted;cx.font='700 '+(typeof KPV!=='undefined'&&KPV?19:14)+'px '+TH.body;cx.textBaseline='middle';cx.fillText(VOICES[v].n,10,y+lh/2);
     if(fl){cx.fillStyle=VOICES[v].c+'55';cx.fillRect(hitX-30,y,60,lh);}
   });
   // beat lines
@@ -259,7 +269,7 @@ function draw(){
     cx.globalAlpha=1;
   }
   // header info
-  cx.fillStyle=TH.muted;cx.font='600 13px '+TH.body;cx.textBaseline='middle';
+  cx.fillStyle=TH.muted;cx.font='600 '+(typeof KPV!=='undefined'&&KPV?17:13)+'px '+TH.body;cx.textBaseline='middle';
   if(run){
     const rel=now-R.base;
     if(rel>=0&&rel<R.cinMs){const c=R.clicks.filter(c=>c.cin&&c.t<=rel).pop();if(c){cx.fillStyle=TH.ink;cx.font='800 90px '+TH.display;cx.textAlign='center';cx.fillText(String(c.n),W/2,H/2);cx.textAlign='left';}}
@@ -276,7 +286,8 @@ function draw(){
 function finish(){
   const R=run; R.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
   const elapsed=performance.now()-R.startPerf; run=null; $('#go').textContent='Start';
-  const sc=R.evs.filter(e=>!e.listen);
+  if(typeof kpRunState==='function')kpRunState();
+  const sc=R.evs.filter(e=>!e.listen&&!e.anchor);   // P2: a first-hit start's anchor note isn't scored (opt-in)
   if(R.calib){
     const ds=sc.filter(e=>e.hitT!=null).map(e=>e.dt).sort((a,b)=>a-b);
     if(ds.length<8){showResult(`<h2>Not enough hits</h2><p class="mut">Hit the snare on every click (got ${ds.length} of ${sc.length}).</p>`);return;}

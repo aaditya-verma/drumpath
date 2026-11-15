@@ -13,6 +13,7 @@ function bindInputs(){
   inputs=[];midi.inputs.forEach(i=>{i.onmidimessage=onMidi;inputs.push(i);});
   setMidiStatus(inputs.length>0,inputs.length?inputs.map(i=>i.name).join(', '):'No kit found: check the USB cable');
   if(cur==='kit')render();
+  if(typeof kpViewSync==='function')kpViewSync();   // P2: at-the-kit view follows the kit connection (Auto)
 }
 function setMidiStatus(ok,txt){$('#mdot').classList.toggle('ok',ok);$('#mtxt').textContent=txt;}
 let kitLog=[], kitLast=0, hhCC=null, seenOpenNote=false;
@@ -69,6 +70,7 @@ function onMidi(e){
     save(); toast(VOICES[lv].n+(la?' ('+la+')':'')+' ← note '+n); learnVoice=null; render(); return;
   }
   if(velChk&&v==='S'){velHit(vel);return;}
+  if(typeof kpMidi==='function'&&kpMidi(n,vel,t,v,v?artOf(n,v):undefined))return;   // P2: kit remote (learn, first-hit start, shortcuts)
   if(v)hit(v,vel,t,artOf(n,v));
 }
 

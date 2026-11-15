@@ -79,7 +79,7 @@ function thPanelHtml(rail){
 }
 function thPanelSheet(){openSheet('Theory for this exercise',thPanelHtml(false));}
 function thLog(x){const t=thT3Fill();t.plog.push(x);if(t.plog.length>40)t.plog.splice(0,t.plog.length-40);}
-function thPanelStart(){closeSheets();TH_P.open=false;thPanelSync();if(L&&!run&&!$('#prac').classList.contains('hidden')){$('#result').classList.add('hidden');startRun();}}
+function thPanelStart(){closeSheets();TH_P.open=false;thPanelSync();if(L&&!run&&!$('#prac').classList.contains('hidden')){$('#result').classList.add('hidden');kpStart();}}
 // a card as a sheet (over the practice screen or anywhere); ✕ returns exactly where you were
 function thCardSheet(id,opts={}){
   const k=THC[id];if(!k)return;thMark(id,'r',true);save();thHearStop();

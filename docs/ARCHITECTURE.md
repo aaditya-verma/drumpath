@@ -25,6 +25,7 @@ script/style tag when files change so tablets pick up the new version.
 | `src/js/11-songs.js` | Songs screens: library (All / genre / artist / level / Ready now, filters, sort), song page, tap tempo, add/edit, Song × Lesson matrix |
 | `src/js/12-kit-settings.js` | Kit drawing (live lights, tap to learn), latency/velocity/kit check, Settings |
 | `src/js/16-notation.js` | Staff notation (Theory T1, D-028): own SVG renderer from the pattern format (drum key, beams, rests, tuplets, meters, count line, sticking), Grid / Notation / Both toggle (`state.set.nview`), playhead + note colours during a run, tap-a-note explanations, `validateNotation()`, `notationTests()` |
+| `src/js/21-atkit.js` | P2 at the kit, hands-free (D-040): kit remote (learned pad shortcuts, `state.remote`), start on your first hit (tap-in / first hit, per device), at-the-kit view (`html.atkit`, per device), `p2Tests()` |
 | `src/js/99-events.js` | Event delegation, dialogs, backup import/export, boot |
 
 ## Data per run (`state.sessions[]`)

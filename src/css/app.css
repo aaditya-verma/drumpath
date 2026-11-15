@@ -445,3 +445,54 @@ body:has(#prac.tapmode:not(.hidden)) .dock{display:none}
 .thgl{margin:12px 0 0;align-items:center;gap:8px}
 @media (max-height:449px){#qlpw{order:3}#qlpw .qli{min-height:26px;padding:2px 6px}}
 @media (max-width:460px){.p1btns{flex-direction:column;gap:4px}.p1btns .qli{min-height:28px}.qlbo{font-size:12px}.qlchip{font-size:12px;padding:0 7px}}
+
+/* ---------- P2 at the kit, hands-free (21-atkit.js) ---------- */
+.kplg{display:flex;align-items:center;gap:6px 14px;padding:4px 12px;font-size:13px;background:var(--L1);border-top:1px solid var(--line);white-space:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;flex:none}
+.kplg .kpi b{color:var(--ink)}.kplg .kpi{color:var(--muted)}
+.kpk{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);flex:none}
+.kplg .sm{padding:2px 10px;font-size:12.5px;min-height:0}
+.kparm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;width:min(560px,calc(100% - 24px));max-height:calc(100% - 16px);overflow:auto;background:var(--L1);border:2px solid var(--accent);border-radius:18px;padding:14px 18px;text-align:center;box-shadow:var(--edge)}
+.kpa1{font-family:var(--f-display);font-weight:800;font-size:24px}.kpa2{margin-top:4px}.kpa3{margin-top:8px;font-weight:700;color:var(--warn)}
+.kphint{font-size:13px;margin:8px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.kphint .sm{padding:2px 10px;font-size:12.5px}
+.kpcard .kptab{width:100%}.kpcard .kptab td{vertical-align:middle}.kpsug{font-size:12.5px}.kpnote{font-size:13.5px;margin:8px 0}.kpmeas{font-size:13px}
+#kvp.on,#kvbtn.on{border-color:var(--accent);color:var(--accent)}
+@media (max-height:449px){.kplg{padding:1px 8px;font-size:11.5px;gap:4px 10px}.kplg .kpk{font-size:10px}.kparm{padding:8px 12px}.kpa1{font-size:18px}.kpa2{font-size:13px}#kvp{order:6}}
+@media (max-width:620px){.kpcard .kptab td{display:block;text-align:left!important;padding:2px 0}.kpcard .kptab tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}}
+
+/* At-the-kit view: readable from about 1 m — big type, high contrast, larger targets, less chrome. On wide screens the page and
+   sheets are zoomed; the practice screen gets its own bigger controls (its canvas keeps its own sizing). */
+html.atkit{--muted:#2c3138;--line:#959ca6;--tile-line:#7f8792}
+html.atkit[data-theme="dark"]{--muted:#d3d8df;--line:#68707b;--tile-line:#7a838e}
+html.atkit body::before{display:none}
+@media (min-width:900px){html.atkit #view,html.atkit .modal>.sheet{zoom:1.2}}
+@media (min-width:700px) and (max-width:899px){html.atkit #view,html.atkit .modal>.sheet{zoom:1.1}}
+html.atkit #view button,html.atkit .modal button{min-height:44px}
+html.atkit .p1it .sm,html.atkit .p1bar .sm{min-height:44px;padding:8px 14px}
+html.atkit #subbtn{display:none}
+/* the practice screen's bigger controls need the room of a tablet (on phones the view keeps contrast and big page targets) */
+@media (min-width:700px) and (min-height:600px){
+html.atkit .ptop{padding:10px 14px;gap:10px}
+  html.atkit .ptitle{font-size:20px}html.atkit .ptitle .idx{font-size:17px}
+  html.atkit .ptop button{min-height:46px}
+  html.atkit .bpmc span{font-size:36px;min-width:72px}html.atkit .bpmc button{font-size:26px;padding:6px 20px}
+  html.atkit #go{font-size:26px;padding:12px 34px;min-width:170px}
+  html.atkit .passdots{font-size:15px}html.atkit .passdots i{width:16px;height:16px}
+  html.atkit .exsel button{font-size:16px;padding:8px 14px}
+  html.atkit .kplg{font-size:16px;padding:6px 14px}html.atkit .kplg .kpk{font-size:13px}
+  html.atkit #sesbar{font-size:16px}
+  html.atkit #result .score{font-size:86px}
+  html.atkit #result button{min-height:50px;font-size:18px}
+  html.atkit #pfeed{font-size:22px}
+  html.atkit .kparm{font-size:19px}html.atkit .kpa1{font-size:32px}
+}
+/* short tablet landscape (e.g. 1024×553): a lighter step up that still fits the screen */
+@media (min-width:900px) and (min-height:450px) and (max-height:599px){
+  html.atkit .ptitle{font-size:18px}
+  html.atkit .bpmc span{font-size:30px;min-width:62px}
+  html.atkit #go{font-size:22px;padding:10px 28px;min-width:150px}
+  html.atkit .kplg{font-size:14.5px}
+  html.atkit #result .score{font-size:76px}
+  html.atkit #pfeed{font-size:19px}
+  html.atkit .cvwrap{min-height:0}html.atkit .cvbox{min-height:80px}html.atkit #nota{max-height:56%}
+}

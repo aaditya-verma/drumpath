@@ -80,6 +80,20 @@ async function layoutSweep(){
     P1D().revise=JSON.parse(keepRv);
     try{thGo({mode:'glossary'});await wait();out.push(['A–Z glossary',layoutAudit(view)]);}catch(e){out.push(['A–Z glossary',[{kind:'error',what:e.message}]]);}
     closeSheets();EAR.qs=[];}
+  // P2: the kit remote (legend, waiting for a first hit, hints on Today / the session strip / sheets, the Kit card while learning)
+  if(typeof kpKitCard==='function'){const kr=JSON.stringify(state.remote),kf=KP.fakeKit,wait3=()=>new Promise(r=>setTimeout(r,90));KP.fakeKit=true;SES=null;closeSheets();
+    state.remote.on=true;[['start',[49]],['again',[37]],['next',[48]],['slower',[43]],['back',[36,44]]].forEach(([k,n])=>{state.remote.map[k]={n,at:1};});
+    const pr=async(n,f,o)=>{try{f();await wait3();out.push([n,layoutAudit(o?o():$('#prac'),o?undefined:{fit:1})]);}catch(e){out.push([n,[{kind:'error',what:e.message}]]);}};
+    await pr('Practice · kit legend',()=>{openPractice(lesson.id);kpLegend();});
+    await pr('Practice · kit legend on a result',()=>{showResult('<div class="row"><div class="score">91%</div></div><p class="mut">Run detail</p>');kpLegend();});
+    await pr('Practice · tap-in waiting',()=>{$('#result').classList.add('hidden');KP.arm={mode:'tapin',at:performance.now(),taps:[],bpmNow:96};kpArmUi();});
+    await pr('Practice · first-hit waiting',()=>{KP.arm={mode:'hit',at:performance.now(),taps:[]};kpArmUi();});
+    kpDisarm();$('#prac').classList.add('hidden');L=null;
+    await pr('Today · At the kit · kit hint',()=>{p1Dev('planMode','kit');go('home');},()=>view);
+    await pr('Session strip · kit hint',()=>{p1Dev('planMode','go');p1Start(1);p1ClosePrac();closeSheets();go('theory',null,{keep:true});},()=>view);
+    SES=null;await pr('Sheet · kit hint',()=>{closeSheets();openSheet('Quick look','<p>A short sheet.</p>');},()=>document.querySelector('.modal'));closeSheets();
+    await pr('Kit · remote card learning',()=>{KP.learn={k:'back',notes:[],t0:0,miss:true};go('kit');},()=>view);KP.learn=null;
+    state.remote=JSON.parse(kr);KP.fakeKit=kf;kpViewBtn();}
   SES=null;if(typeof p1PracSync==='function')p1PracSync();L=null;if(keepPM===undefined)delete P1_MEM.planMode;else P1_MEM.planMode=keepPM;
   $('#prac').classList.add('hidden');
   const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);if(v.theory)VP.theory=v.theory;go(keep.cur==='practise'?'settings':'settings');

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/css/app.css?v=31">
+<link rel="stylesheet" href="src/css/app.css?v=32">
 </head>
 <body>
 <header class="top"><div class="top-in">
@@ -17,6 +17,7 @@
     <span class="sync" data-nav="kit" title="Kit connection"><span class="dot" id="mdot"></span><span id="mtxt">Kit not connected</span></span>
     <span class="sync hidden" id="dchip" data-act="drivechip" title="Google Drive sync"><span class="dot" id="ddot"></span><span id="dtxt">Drive</span></span>
     <span class="sp"></span>
+    <button class="pbtn hidden" id="kvbtn" data-act="kitview" title="At-the-kit view"></button>
     <button class="pbtn" id="themebtn" data-act="theme" title="Theme"></button>
     <button class="pbtn" id="searchbtn" data-act="search" title="Search"></button>
   </div>
@@ -36,6 +37,7 @@
     <div class="exsel" id="exsel"></div>
     <div class="seg nvsel" id="nvsel" role="group" aria-label="View"><button data-nview="grid">Grid</button><button data-nview="notation">Notation</button><button data-nview="both">Both</button></div>
     <button class="sm ghost" id="subbtn" data-act="subclick">Sub-click: Off</button>
+    <button class="sm ghost hidden" id="kvp" data-act="kitview" title="At-the-kit view: big type, high contrast">Kit view</button>
     <span id="simwrap"></span>
     <span id="stretchwrap"></span>
     <div class="passdots" id="pdots"></div>
@@ -43,64 +45,66 @@
     <span id="thchipw"></span>
     <button class="pri" id="go" data-act="go">Start</button>
   </div>
+  <div id="kplg" class="kplg hidden" aria-label="Kit remote"></div>
   <div class="pbody"><div class="cvwrap"><div id="nota"><div id="nst"></div><div id="ntsv"></div></div><div class="cvbox"><canvas id="cv"></canvas></div><div id="nexp" class="hidden"></div><div id="pfeed"></div><div id="result" class="hidden"></div></div><aside id="thrail" class="hidden" aria-label="Theory for this exercise"></aside></div>
   <div id="pads"></div>
 </div>
 
-<script src="lessons/lib.js?v=31"></script>
-<script src="lessons/L0-2.js?v=31"></script>
-<script src="lessons/L3.js?v=31"></script>
-<script src="lessons/L4.js?v=31"></script>
-<script src="lessons/songs.js?v=31"></script>
-<script src="src/js/01-data.js?v=31"></script>
-<script src="src/js/02-state.js?v=31"></script>
-<script src="src/js/02b-storage.js?v=31"></script>
-<script src="src/js/02c-drive.js?v=31"></script>
-<script src="src/js/03-midi.js?v=31"></script>
-<script src="src/js/04-engine.js?v=31"></script>
-<script src="src/js/05-shell.js?v=31"></script>
-<script src="src/js/06-charts-agg.js?v=31"></script>
-<script src="src/js/07-home.js?v=31"></script>
-<script src="src/js/08-lessons.js?v=31"></script>
-<script src="src/js/09-progress.js?v=31"></script>
-<script src="src/js/10-compare.js?v=31"></script>
-<script src="src/js/midi-analyse.js?v=31"></script>
-<script src="src/js/11a-songs-model.js?v=31"></script>
-<script src="src/js/11-songs.js?v=31"></script>
-<script src="src/js/11b-analyse.js?v=31"></script>
-<script src="src/js/13-studio.js?v=31"></script>
-<script src="src/js/14-layout-check.js?v=31"></script>
-<script src="src/js/15-library.js?v=31"></script>
-<script src="src/js/16-notation.js?v=31"></script>
-<script src="lib/tone.0.1.0.js?v=31"></script>
-<script src="theory/concepts.js?v=31"></script>
-<script src="theory/A1.js?v=31"></script>
-<script src="theory/A2.js?v=31"></script>
-<script src="theory/A3.js?v=31"></script>
-<script src="theory/A4.js?v=31"></script>
-<script src="theory/A5.js?v=31"></script>
-<script src="theory/A6.js?v=31"></script>
-<script src="theory/A7.js?v=31"></script>
-<script src="theory/A8.js?v=31"></script>
-<script src="theory/A9.js?v=31"></script>
-<script src="theory/A10.js?v=31"></script>
-<script src="theory/B1.js?v=31"></script>
-<script src="theory/B2.js?v=31"></script>
-<script src="theory/B3.js?v=31"></script>
-<script src="theory/B4.js?v=31"></script>
-<script src="theory/B5.js?v=31"></script>
-<script src="theory/B6.js?v=31"></script>
-<script src="theory/B7.js?v=31"></script>
-<script src="theory/B8.js?v=31"></script>
-<script src="theory/B9.js?v=31"></script>
-<script src="theory/B10.js?v=31"></script>
-<script src="theory/B11.js?v=31"></script>
-<script src="theory/B12.js?v=31"></script>
-<script src="src/js/17-theory.js?v=31"></script>
-<script src="src/js/18-theory-practice.js?v=31"></script>
-<script src="src/js/19-today.js?v=31"></script>
-<script src="src/js/20-quicklook.js?v=31"></script>
-<script src="src/js/12-kit-settings.js?v=31"></script>
-<script src="src/js/99-events.js?v=31"></script>
+<script src="lessons/lib.js?v=32"></script>
+<script src="lessons/L0-2.js?v=32"></script>
+<script src="lessons/L3.js?v=32"></script>
+<script src="lessons/L4.js?v=32"></script>
+<script src="lessons/songs.js?v=32"></script>
+<script src="src/js/01-data.js?v=32"></script>
+<script src="src/js/02-state.js?v=32"></script>
+<script src="src/js/02b-storage.js?v=32"></script>
+<script src="src/js/02c-drive.js?v=32"></script>
+<script src="src/js/03-midi.js?v=32"></script>
+<script src="src/js/04-engine.js?v=32"></script>
+<script src="src/js/05-shell.js?v=32"></script>
+<script src="src/js/06-charts-agg.js?v=32"></script>
+<script src="src/js/07-home.js?v=32"></script>
+<script src="src/js/08-lessons.js?v=32"></script>
+<script src="src/js/09-progress.js?v=32"></script>
+<script src="src/js/10-compare.js?v=32"></script>
+<script src="src/js/midi-analyse.js?v=32"></script>
+<script src="src/js/11a-songs-model.js?v=32"></script>
+<script src="src/js/11-songs.js?v=32"></script>
+<script src="src/js/11b-analyse.js?v=32"></script>
+<script src="src/js/13-studio.js?v=32"></script>
+<script src="src/js/14-layout-check.js?v=32"></script>
+<script src="src/js/15-library.js?v=32"></script>
+<script src="src/js/16-notation.js?v=32"></script>
+<script src="lib/tone.0.1.0.js?v=32"></script>
+<script src="theory/concepts.js?v=32"></script>
+<script src="theory/A1.js?v=32"></script>
+<script src="theory/A2.js?v=32"></script>
+<script src="theory/A3.js?v=32"></script>
+<script src="theory/A4.js?v=32"></script>
+<script src="theory/A5.js?v=32"></script>
+<script src="theory/A6.js?v=32"></script>
+<script src="theory/A7.js?v=32"></script>
+<script src="theory/A8.js?v=32"></script>
+<script src="theory/A9.js?v=32"></script>
+<script src="theory/A10.js?v=32"></script>
+<script src="theory/B1.js?v=32"></script>
+<script src="theory/B2.js?v=32"></script>
+<script src="theory/B3.js?v=32"></script>
+<script src="theory/B4.js?v=32"></script>
+<script src="theory/B5.js?v=32"></script>
+<script src="theory/B6.js?v=32"></script>
+<script src="theory/B7.js?v=32"></script>
+<script src="theory/B8.js?v=32"></script>
+<script src="theory/B9.js?v=32"></script>
+<script src="theory/B10.js?v=32"></script>
+<script src="theory/B11.js?v=32"></script>
+<script src="theory/B12.js?v=32"></script>
+<script src="src/js/17-theory.js?v=32"></script>
+<script src="src/js/18-theory-practice.js?v=32"></script>
+<script src="src/js/19-today.js?v=32"></script>
+<script src="src/js/20-quicklook.js?v=32"></script>
+<script src="src/js/21-atkit.js?v=32"></script>
+<script src="src/js/12-kit-settings.js?v=32"></script>
+<script src="src/js/99-events.js?v=32"></script>
 </body>
 </html>

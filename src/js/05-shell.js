@@ -115,7 +115,7 @@ function closeMore(){const s=$('#msheet');if(s){s.classList.add('hidden');$('#sc
 function openSheet(title,html,opts={}){
   const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="card sheet"><div class="sheet-h"><h2>${title}</h2><span class="sp"></span><button class="icon ghost" data-close>${icon('close')}</button></div><div class="sbody">${html}</div></div>`;
   m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]')){m.remove();}});
-  document.body.appendChild(m);if(opts.mount)opts.mount(m);return m;
+  document.body.appendChild(m);if(opts.mount)opts.mount(m);if(typeof kpSheetHint==='function')kpSheetHint(m);return m;
 }
 function closeSheets(){document.querySelectorAll('.modal').forEach(m=>m.remove());}
 

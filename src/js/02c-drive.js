@@ -104,6 +104,7 @@ function mergeStates(A,B){
   m.theory=thMerge(a.theory,b.theory);
   // P1 daily plan + journal (D-035)
   m.plan=p1Merge(a.plan,b.plan);m.journal=p1JMerge(a.journal,b.journal);
+  m.remote=kpMerge(a.remote,b.remote);   // P2 kit remote
   m.lastBackup=Math.max(a.lastBackup||0,b.lastBackup||0)||undefined;
   m.rev=Math.max(a.rev||0,b.rev||0)+1;m.savedAt=Math.max(a.savedAt||0,b.savedAt||0);
   return m;
@@ -126,6 +127,10 @@ function thMerge(A,B){
   m.primed=Object.assign({},a.primed);Object.entries(b.primed).forEach(([k,v])=>{m.primed[k]=m.primed[k]?Math.min(m.primed[k],v):v;});
   return m;
 }
+/* P2 kit remote (D-040): per action the later learn/clear wins; the on/off switch follows its own time */
+function kpMerge(A,B){const a=kpFill({remote:JSON.parse(JSON.stringify(A||{}))}).remote,b=kpFill({remote:JSON.parse(JSON.stringify(B||{}))}).remote;
+  const m={on:(b.onAt||0)>(a.onAt||0)?b.on:a.on,onAt:Math.max(a.onAt||0,b.onAt||0),map:{}};
+  new Set([...Object.keys(a.map),...Object.keys(b.map)]).forEach(k=>{const x=a.map[k],y=b.map[k];m.map[k]=!x?y:!y?x:(y.at||0)>(x.at||0)?y:x;});return m;}
 /* P1: plans per day and slot (done/skipped items: union, earliest time), activity days (larger count), lesson review
    queue (the later review wins, like the Remember deck), journal (per day, the later edit wins) */
 function p1Merge(A,B){
