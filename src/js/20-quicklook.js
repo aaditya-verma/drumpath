@@ -70,6 +70,7 @@ function qlItemRefs(it){
   if(it.k==='ear'){const s=qlEarState();return [...s.un.map(x=>x.c),...(s.peek?[s.peek.c]:[])];}
   if(it.k==='tap')return LBY[it.src]?qlLessonRefs(it.src):/^th:/.test(it.src||'')&&THC[it.src.slice(3)]?[it.src.slice(3)]:[];
   if(it.k==='song')return qlSongRefs(it.song);
+  if(it.k==='time')return typeof tfRefs==='function'?tfRefs(it.drill):[];   // P3
   if(['deck','revise','journal','free'].includes(it.k))return [];
   return qlLessonRefs(p1ItemLesson(it));
 }

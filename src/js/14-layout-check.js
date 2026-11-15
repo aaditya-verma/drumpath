@@ -94,6 +94,22 @@ async function layoutSweep(){
     SES=null;await pr('Sheet · kit hint',()=>{closeSheets();openSheet('Quick look','<p>A short sheet.</p>');},()=>document.querySelector('.modal'));closeSheets();
     await pr('Kit · remote card learning',()=>{KP.learn={k:'back',notes:[],t0:0,miss:true};go('kit');},()=>view);KP.learn=null;
     state.remote=JSON.parse(kr);KP.fakeKit=kf;kpViewBtn();}
+  // P3 time feel: the page (kit and screen-pads ladders, with a drift test and pocket data), a gap drill on the kit and on the
+  // screen pads, a gap result with the pocket line, a drift result with its chart, the pocket sheet
+  if(typeof renderTime==='function'){const wait4=()=>new Promise(r=>setTimeout(r,90)),keepT=JSON.stringify(state.time),nS=state.sessions.length,now=Date.now();SES=null;closeSheets();
+    const pr=async(n,f,o)=>{try{f();await wait4();out.push([n,layoutAudit(o?o():$('#prac'),o?undefined:{fit:1})]);}catch(e){out.push([n,[{kind:'error',what:e.message}]]);}};
+    await pr('Time feel · fresh',()=>{VP.time.src='kit';go('time');},()=>view);
+    state.time.gap.kit={s:4,ok:1,bad:0,top:5,at:now};state.sessions.push({ts:now-DAY,id:'time:drift',kind:'time',src:'kit',bpm:70,score:72,tf:{pat:'groove',bars:[70,70.4,71,71.8,72,72.6,73,73.1,74,74.2,74.8,75,75.6,76,76.2,77],start:70.2,end:76.6,dev:9.7,st:52}},
+      {ts:now-DAY,id:'time:gap',kind:'time',src:'kit',bpm:60,score:94,tf:{step:4,ok:1,dr:[-12,24]}},{ts:now-DAY,id:lesson.id,bpm:60,score:92,hits:Array(40).fill(0).map((_,i)=>[i%3?2:7,(i%5)*6-14,80])});
+    await pr('Time feel · seeded',()=>{VP.time.src='kit';go('time');},()=>view);
+    await pr('Time feel · screen pads',()=>{VP.time.src='touch';go('time');},()=>view);VP.time.src=null;
+    await pr('Practice · gap drill (kit)',()=>tfOpen('gap',{src:'kit',step:2}));
+    await pr('Practice · gap drill (screen pads)',()=>tfOpen('gap',{src:'touch',step:0}));
+    await pr('Practice · gap result + pocket',()=>{tfOpen('gap',{src:'kit',step:2});const R=buildRun(L,L.ex[0],60,0,{cin:0});R.evs.forEach((e,i)=>{e.hitT=e.t+(i%4)*7-9;e.dt=e.hitT-e.t;});
+      showResult(`<div class="row"><div class="score">94%</div><div style="margin-left:18px"><div style="font-weight:700;font-size:20px">Clean ✓</div><div class="mut">Clean 1 of 2 at this step</div></div></div><p>When the click came back: <b>−12 ms · +24 ms · +3 ms</b> <span class="mut">(− = ahead, + = behind; clean = within ±40 ms)</span> · 100% of the gap notes played</p>${tfPocketHtml(R)}`);});
+    await pr('Practice · drift result',()=>{tfOpen('drift',{src:'kit'});const b=state.sessions[nS].tf.bars;showResult(`<div class="row"><div class="score">52</div><div style="margin-left:18px"><div style="font-weight:700;font-size:20px">Drifts a little</div><div class="mut">Steadiness · ${esc(tfDriftWords({start:70.2,end:76.6,ch:6.4,dev:9.7,set:70}).line)}</div></div></div><div class="tfchart">${tfDriftSvg(b,70)}</div>`);});
+    await pr('Pocket sheet',()=>{closeSheets();tfPocketSheet();},()=>document.querySelector('.modal'));closeSheets();
+    state.sessions=state.sessions.slice(0,nS);state.time=JSON.parse(keepT);tfFill(state);$('#prac').classList.add('hidden');L=null;}
   SES=null;if(typeof p1PracSync==='function')p1PracSync();L=null;if(keepPM===undefined)delete P1_MEM.planMode;else P1_MEM.planMode=keepPM;
   $('#prac').classList.add('hidden');
   const v=JSON.parse(keep.vp);Object.assign(VP.lessons,v.lessons);Object.assign(VP.songs,v.songs);Object.assign(VP.progress,v.progress);if(v.theory)VP.theory=v.theory;go(keep.cur==='practise'?'settings':'settings');

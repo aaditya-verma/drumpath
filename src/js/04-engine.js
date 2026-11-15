@@ -50,7 +50,7 @@ function routineAfter(passed){
 }
 /* Theory tries (T2) run on this screen as a lesson-like object with .theory set: they use a throwaway progress record,
    so nothing is written to lesson progress (state.prog). For every real lesson LP() is exactly P(L.id). */
-function LP(){return L&&(L.theory||L.tap)?(L._p||(L._p={bpm:L.bpm[0],streak:0,best:0,bestBpm:0,attempts:0,ms:0,status:'new',last:0,ex:0})):P(L.id);}
+function LP(){return L&&(L.theory||L.tap||L.time)?(L._p||(L._p={bpm:L.bpm[0],streak:0,best:0,bestBpm:0,attempts:0,ms:0,status:'new',last:0,ex:0})):P(L.id);}
 let stretchMode=false, lastRunTs=0, L=null, exI=0, bpm=60, run=null, preview=null, lastFeed=0, flashes={}, wake=null;
 const cv=$('#cv'), cx=cv.getContext('2d');
 
@@ -80,7 +80,8 @@ function buildRun(lesson,ex,bpmv,base,opts={}){
     Object.values(byV).forEach(a=>a.forEach((e,i)=>{const g=Math.min(i?e.t-a[i-1].t:1e9,i<a.length-1?a[i+1].t-e.t:1e9);e.win=Math.min(state.set.win,Math.max(20,g/2));}));}
   // clicks + grid lines (relative ms from base)
   const beats=beatStepsOf(ex), mode=ex.click||'all';
-  const play=mode==='24'?beats.filter((_,i)=>i===1||i===3):mode==='1'?[0]:beats;
+  // P3 (opt-in): '4' = beat 4 only, 'and' = the offbeats (displaced click); no lesson uses them
+  const play=mode==='24'?beats.filter((_,i)=>i===1||i===3):mode==='1'?[0]:mode==='4'?beats.filter((_,i)=>i===3):mode==='and'?beats.map(b=>b+sub/2):beats;
   const subOn=opts.subclick!=null?opts.subclick:state.set.subclick;
   const clicks=[], grid=[];
   for(let b=0;b<cinBars;b++)beats.forEach((st,i)=>{const t=b*barMs+st*stepMs;clicks.push({t,k:i===0?'acc':'beat',cin:true,n:i+1});grid.push({t,bar:false});});
@@ -114,6 +115,7 @@ function renderPracBar(){
   $('#bpmv').textContent=bpm;
   if(L.calib){$('#pdots').innerHTML='<span>Latency test</span>';return;}
   if(L.tap){$('#stretchwrap').innerHTML='';$('#pdots').innerHTML='<span>Tap drill · on-screen pads · counts for minutes and streak only</span>';return;}
+  if(L.time){$('#stretchwrap').innerHTML='';$('#pdots').innerHTML='<span>'+esc(tfBarLine())+'</span>';return;}   // P3 time drills
   if(L.theory){$('#stretchwrap').innerHTML='';$('#pdots').innerHTML='<span>Theory try · '+TH_PLAY+'% or more = Can play · counts for minutes and streak only</span>';return;}
   const p=P(L.id);
   const sx=stretchMax(L.id),cs=canStretch(L.id);
@@ -124,9 +126,9 @@ function renderPracBar(){
 }
 // stretch is offered once the lesson is passed at its goal (mastered, or 3 passing runs at the goal tempo)
 function canStretch(id){const l=LBY[id];if(!l||!l.bpm)return false;const p=state.prog[id];if(p&&p.status==='mastered')return true;try{return (songCtx().pass[id]||0)>=l.bpm[1];}catch(e){return false;}}
-function renderPads(ex){
+function renderPads(ex){   // P3: a time drill played on the screen pads (L.padsOn) shows them like a tap drill
   const vs=LANES.filter(v=>ex.v[v]);
-  const tap=!!(L&&L.tap);$('#prac').classList.toggle('tapmode',tap);
+  const tap=!!(L&&(L.tap||L.padsOn));$('#prac').classList.toggle('tapmode',tap);$('#prac').classList.toggle('tfmode',!!(L&&L.time));
   $('#pads').classList.toggle('hidden',!(state.set.pads||tap));
   $('#pads').innerHTML=vs.map(v=>`<button data-pad="${v}" style="border-color:${VOICES[v].c};color:${VOICES[v].c}">${VOICES[v].n}</button>`).join('');
 }
@@ -159,7 +161,7 @@ async function startRun(o){
 function stopRun(save_=true){
   if(typeof kpDisarm==='function')kpDisarm();   // P2: a waiting first-hit start is cancelled too
   if(!run)return; run.nodes.forEach(n=>{try{n.stop(0);}catch(e){}});
-  if(save_&&!run.calib){if(L.theory||L.tap)thAddTime(performance.now()-run.startPerf);else addTime(L.id,performance.now()-run.startPerf);save();}
+  if(save_&&!run.calib){if(L.theory||L.tap||L.time)thAddTime(performance.now()-run.startPerf);else addTime(L.id,performance.now()-run.startPerf);save();}
   run=null; $('#go').textContent='Start'; draw();
   if(typeof kpRunState==='function')kpRunState();
   if(typeof thPanelSync==='function')thPanelSync();
@@ -178,7 +180,7 @@ function hit(v,vel,tp,art,src){
   // screen tap delay (P1); lessons keep the kit latency exactly as before
   if(src==='touch')run.touchN=(run.touchN||0)+1;else run.kitN=(run.kitN||0)+1;
   const tl=typeof p1TouchLat==='function'?p1TouchLat():null;
-  const lat=run.calib?0:run.lesson.tap?(tl||0):run.lesson.theory&&src==='touch'&&tl!=null?tl:state.lat;
+  const lat=run.calib?0:run.lesson.tap?(tl||0):(run.lesson.theory||run.lesson.time)&&src==='touch'&&tl!=null?tl:state.lat;
   const t=tp-lat;
   const start=run.base+run.cinMs;
   if(t<start-state.set.win)return; // ignore count-in
@@ -306,7 +308,7 @@ function finish(){
   R.extras.forEach(x=>{const p=per[x.v]||(per[x.v]={n:0,on:0,hit:0,sum:0});p.ext=(p.ext||0)+1;});
   // ---- dynamics (step A) ----
   // a theory try or tap drill played only on the screen pads can't make accents/ghosts: timing only (lessons unchanged)
-  const screenOnly=!!(R.touchN&&!R.kitN&&(R.lesson.theory||R.lesson.tap));R.screenOnly=screenOnly;
+  const screenOnly=!!(R.touchN&&!R.kitN&&(R.lesson.theory||R.lesson.tap||R.lesson.time));R.screenOnly=screenOnly;
   const dynOn=isDyn(R.ex)&&!screenOnly; let dynScore=null;
   if(dynOn){
     let ok=0,tot=0;
@@ -334,6 +336,7 @@ function finish(){
     }
     dynScore=tot?Math.round(100*ok/tot):null;
   }
+  if(L.time){tfDone(R,{score,dynScore,on:on.length,n:sc.length,ext,miss,avg,elapsed});return;}   // P3 time drill: minutes + streak only
   if(L.tap){p1TapDone(R,{score,dynScore,on:on.length,n:sc.length,ext,miss,avg,elapsed});return;}   // P1 tap drill: minutes + streak only
   if(L.theory){thTryDone(R,{score,dynScore,on:on.length,n:sc.length,ext,miss,avg,elapsed});return;}   // Theory try: minutes + streak only
   const p=P(L.id); p.attempts++; p.last=Date.now(); p.ex=exI; addTime(L.id,elapsed);
@@ -374,7 +377,7 @@ function finish(){
    <table><tr><th>Pad</th><th>On time</th><th>Hits</th><th>Missed</th><th>Extra</th><th>Avg timing</th>${dynOn?'<th>Dynamics</th>':''}${grCol?'<th>Graces</th>':''}${sndCol?'<th>Sound</th>':''}</tr>${rows}</table>
    ${R.graceWarn?'<p style="color:var(--warn)">No grace notes arrived from the kit in this run. If you did play them, the module may be merging the two hits: set <b>Grace notes</b> to <b>Lenient</b> in Kit &amp; Settings, or lower the snare’s retrigger/mask time on the module.</p>':''}
    ${sndCol&&!R.evs.some(e=>e.hitArt)?'<p class="mut">Open/closed and rim/head weren’t reported for these hits (on-screen pads), so they weren’t checked.</p>':''}
-   ${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}${typeof thFixHtml==='function'?thFixHtml(R,{passed,score,dynScore,avg}):''}${routineAfter(passed)}`);
+   ${typeof tfPocketHtml==='function'?tfPocketHtml(R):''}${dynOn&&R.ex.dyn==='even'?'<p class="mut">Dynamics here = how even each double is (2nd stroke within 20% of the 1st).</p>':dynOn?'<p class="mut">Dynamics are judged against your own normal-note volume in this run: accents clearly louder, ghosts clearly softer.</p>':''}${typeof thFixHtml==='function'?thFixHtml(R,{passed,score,dynScore,avg}):''}${routineAfter(passed)}`);
   if(typeof p1AfterRun==='function')p1AfterRun(state.sessions[state.sessions.length-1],passed);   // P1: review queue + session (after scoring)
 }
 function showResult(html,calib){

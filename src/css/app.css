@@ -496,3 +496,17 @@ html.atkit .ptop{padding:10px 14px;gap:10px}
   html.atkit #pfeed{font-size:19px}
   html.atkit .cvwrap{min-height:0}html.atkit .cvbox{min-height:80px}html.atkit #nota{max-height:56%}
 }
+
+/* P3 time feel (22-timefeel.js) */
+.tfh{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-bottom:6px}
+.tfc{margin-top:12px}.tfc .row{margin:8px 0}
+.tfl{list-style:none;margin:10px 0 0;padding:0}
+.tfli{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.tfli .tfln{flex:1;min-width:0}.tfli.here .tfln{font-weight:700}.tfli.done .p1n{color:var(--good)}
+.tflk{font-size:13px}
+.tfpk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0;padding:8px 10px;border:1px solid var(--line);border-radius:12px}
+.tfpk b{font-size:22px;color:var(--accent)}.tfpk span{min-width:0}
+.tfpk-big b{font-size:34px}
+.tfchart{margin:10px 0;width:100%}.tfsvg{width:100%;height:150px;display:block}
+.tftab{width:100%;font-size:14px}.tftab td,.tftab th{padding:4px 6px;text-align:left}
+#prac.tfmode:has(#result:not(.hidden)) #pads{display:none}   /* P3: a time-drill result needs the room; Again is on the result */

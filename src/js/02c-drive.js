@@ -105,6 +105,7 @@ function mergeStates(A,B){
   // P1 daily plan + journal (D-035)
   m.plan=p1Merge(a.plan,b.plan);m.journal=p1JMerge(a.journal,b.journal);
   m.remote=kpMerge(a.remote,b.remote);   // P2 kit remote
+  if(typeof tfMerge==='function')m.time=tfMerge(a.time,b.time);   // P3 gap ladders
   m.lastBackup=Math.max(a.lastBackup||0,b.lastBackup||0)||undefined;
   m.rev=Math.max(a.rev||0,b.rev||0)+1;m.savedAt=Math.max(a.savedAt||0,b.savedAt||0);
   return m;

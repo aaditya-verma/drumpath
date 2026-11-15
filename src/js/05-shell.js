@@ -73,6 +73,7 @@ function viewLabel(){
   if(cur==='songs'&&VP.songs.id){const s=songById(VP.songs.id);if(s)return s.title;}
   if(cur==='theory'){const p=VP.theory||{};if(p.mode==='card'&&typeof THC!=='undefined'&&THC[p.card])return THC[p.card].t;if(p.mode==='part')return 'Theory · '+p.part;if(p.mode==='review')return 'Remember deck';return 'Theory';}
   if(cur==='today')return 'Today';
+  if(cur==='time')return 'Time feel';
   if(cur==='progress'){const p=VP.progress;return 'Progress'+(p.path.length?' · '+periodName(p.path[p.path.length-1]):'');}
   return NAVI[cur]?NAVI[cur][0]:cur;
 }
@@ -106,7 +107,7 @@ function syncNav(){
   bb.innerHTML=icon('back',22);bb.title=top?'Back to '+top.label:'Home';bb.classList.toggle('dim',!top&&cur==='home');
 }
 function openMore(){
-  const s=$('#msheet');s.innerHTML=`<div class="grip"><span></span></div><div class="h2" style="margin:0 0 12px">All sections</div><div class="mgrid">${[...ALLNAV.map(k=>`<button class="mtile" data-nav="${k}">${icon(k)}<b>${NAVI[k][0]}</b><span>${NAVI[k][1]}</span></button>`),`<button class="mtile" data-act="search">${icon('search')}<b>Search</b><span>Lessons, rudiments, songs</span></button>`].join('')}</div>`;
+  const s=$('#msheet');s.innerHTML=`<div class="grip"><span></span></div><div class="h2" style="margin:0 0 12px">All sections</div><div class="mgrid">${[...ALLNAV.map(k=>`<button class="mtile" data-nav="${k}">${icon(k)}<b>${NAVI[k][0]}</b><span>${NAVI[k][1]}</span></button>`),`<button class="mtile" data-tf="page">${icon('practise')}<b>Time feel</b><span>Gap click, drift test, pocket</span></button>`,`<button class="mtile" data-act="search">${icon('search')}<b>Search</b><span>Lessons, rudiments, songs</span></button>`].join('')}</div>`;
   s.classList.remove('hidden');$('#scrim').classList.remove('hidden');
 }
 function closeMore(){const s=$('#msheet');if(s){s.classList.add('hidden');$('#scrim').classList.add('hidden');}}
@@ -134,7 +135,7 @@ function openSearch(){
 /* ---------- render ---------- */
 const view=$('#view');
 function render(){
-  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,library:renderLibrary,theory:renderTheory,kit:renderKit,settings:renderSettings,today:renderToday}[cur]||renderHome;
+  const f={home:renderHome,practise:renderPractise,lessons:renderLessons,progress:renderProgress,songs:renderSongs,compare:renderCompare,studio:renderStudio,library:renderLibrary,theory:renderTheory,kit:renderKit,settings:renderSettings,today:renderToday,time:renderTime}[cur]||renderHome;
   try{f();}catch(e){console.error(e);view.innerHTML=`<div class="card"><b>Something went wrong drawing this page.</b><p class="mut">${esc(e.message)}</p></div>`;}
   if(typeof qlTerms==='function')qlTerms(view);   // P1b: dotted underline on known terms, first use per screen → Quick look
   if(typeof p1Bar==='function')p1Bar();   // P1 session strip at the top of the page while a session runs

@@ -116,15 +116,17 @@ function p1Music(){let st=[];try{st=allSongStats(songCtx());}catch(_){}
 function p1BuildKit(mins){
   const B=P1_BUDGET[mins]||P1_BUDGET[20],items=[];let spare=0;
   const w=p1WarmLesson();
-  items.push({k:'warm',key:'warm:'+w.l.id,id:w.l.id,bpm:w.l.bpm[0],reps:mins>=20?2:1,mins:B.warm,t:'Warm-up · '+w.l.t,why:(w.passed?'A rudiment you’ve passed, slow':'Slow and relaxed (no rudiment passed yet)')+' · open → close → open'});
+  items.push({k:'warm',key:'warm:'+w.l.id,id:w.l.id,bpm:w.l.bpm[0],reps:mins>=20?2:1,mins:B.warm-(typeof tfGapItem==='function'?1:0),t:'Warm-up · '+w.l.t,why:(w.passed?'A rudiment you’ve passed, slow':'Slow and relaxed (no rudiment passed yet)')+' · open → close → open'});
   const nx=nextLesson();if(nx&&nx.type!=='play'&&!nx.later)items.push({k:'lesson',key:'lesson:'+nx.id,id:nx.id,mins:0,t:nx.id+' · '+nx.t,why:'Your next lesson is a checklist: read it and tick it off'});
   const due=p1RevDue().slice(0,B.revMax);
   due.forEach(id=>{const l=LBY[id],r=P1D().rev[id];items.push({k:'review',key:'review:'+id,id,bpm:p1RevBpm(id),reps:1,mins:B.review/due.length,t:'Review · '+l.t,why:(r.step?'Passed lesson, review after '+p1Pl(P1_REV[Math.min(r.step,P1_REV.length-1)],'day'):'Passed lesson, first review')+' · at goal −10 BPM'});});
   if(!due.length)spare+=B.review;
   const mx=B.mixN?p1MixSet(B.mixN,mins>=40?2:1):null;
   if(mx)items.push({k:'mix',key:'mix:'+mx.sd,ids:mx.seq,sd:mx.sd,mins:B.mix,t:'Mix · '+STRANDS[mx.sd],why:mx.ids.length+' passed lessons in turn, one run each · interleaving helps them stick'});else spare+=B.mix;
-  const f=p1Focus(),fp=state.prog[f.id],fb=fp&&fp.bpm||f.bpm[0],fm=B.focus+spare;
+  const f=p1Focus(),fp=state.prog[f.id],fb=fp&&fp.bpm||f.bpm[0],dft=mins>=20&&typeof tfDriftDue==='function'&&tfDriftDue(),fm=B.focus+spare-(dft?1:0);   // P3: the drift test's minute comes from the focus
   items.splice(items[1]&&items[1].k==='lesson'?2:1,0,{k:'focus',key:'focus:'+f.id,id:f.id,reps:p1Reps(fm,f,fb),mins:fm,t:'Focus · '+f.t,why:'Your current lesson, the same exercise again and again · normal pass rules'});
+  if(typeof tfGapItem==='function')items.splice(1,0,tfGapItem('kit'));   // P3: gap click right after the warm-up
+  if(dft)items.push(tfDriftItem());   // P3: about once a week
   const mu=p1Music();
   if(mu.song)items.push({k:'song',key:'song:'+mu.song.id,song:mu.song.id,mins:B.music,t:'Song · '+mu.song.title,why:'Play along to your own recording, then log the play'});
   else items.push({k:'free',key:'free',mins:B.music,t:'Free play',why:'Play anything you like, no score (coach rule D7)'+(mu.near?' · or try '+mu.near.title:'')});
@@ -157,6 +159,7 @@ function p1BuildGo(){
   const items=[],due=typeof thDue==='function'?thDue().length:0;
   const c=p1NewCard();if(c)items.push({k:'card',key:'card:'+c.k.id,card:c.k.id,mins:2,t:'New card · '+c.k.t,why:c.why});
   const tp=p1TapSpec(c&&c.k);if(tp)items.push({k:'tap',key:'tap:'+tp.src,src:tp.src,ex:tp.ex,bpm:tp.bpm,mins:2,t:tp.t,why:tp.why});
+  if(typeof tfGapItem==='function')items.push(tfGapItem('touch'));   // P3: gap click on the screen pads
   items.push({k:'ear',key:'ear',mins:1,t:'Ear game',why:typeof qlEarWhy==='function'?qlEarWhy():'Straight or swing? How many bars? Which beat has the snare?'});
   const rv=typeof qlReviseItem==='function'&&qlReviseItem();if(rv)items.push(rv);
   if(due)items.push({k:'deck',key:'deck',mins:Math.max(1,Math.round(due*0.4)),t:'Remember deck',why:p1Pl(due,'card')+' due · say it, then check'});
@@ -188,10 +191,11 @@ function p1End(){const pl=SES&&p1PlanBySlot(SES.slot);if(!pl){SES=null;render();
   p1Finish();}
 function p1Practice(id,b){openPractice(id);stretchMode=false;bpm=b;$('#bpmv').textContent=bpm;renderPracBar();makePreview();draw();}
 function p1OpenItem(it){
-  closeSheets();if(!P1_PRACTICE.includes(it.k)&&it.k!=='tap')p1ClosePrac();
+  closeSheets();if(!P1_PRACTICE.includes(it.k)&&it.k!=='tap'&&it.k!=='time')p1ClosePrac();
   if(it.k==='mix'){const id=it.ids[SES.mixI||0];p1Practice(id,p1ItemBpm(it,id));p1Prime(it);return;}
   if(P1_PRACTICE.includes(it.k)){p1Practice(it.id,p1ItemBpm(it));p1Prime(it);return;}
   if(it.k==='tap'){if(p1TouchLat()==null)p1TouchCalib();else{p1OpenTap(it);p1Prime(it);}return;}
+  if(it.k==='time'){if(it.src==='touch'&&p1TouchLat()==null){p1TouchCalib();return;}tfOpen(it.drill,{src:it.src});p1Prime(it);return;}   // P3
   if(it.k==='lesson'){openLesson(it.id);p1Prime(it);return;}
   if(it.k==='deck'){TH_RV.list=[];thGo({mode:'review'});return;}
   if(it.k==='card'){thGo({mode:'card',card:it.card});return;}
@@ -211,7 +215,7 @@ function p1TapDone(R,res){
   const it=p1Cur();if(it&&it.k==='tap'&&('tap:'+it.src)===L.id)p1Mark(it,'done');save();renderPracBar();
   const g=R.evs.filter(e=>!e.listen&&R.ex.gap&&R.ex.gap.includes(e.bar%R.ex.bars)),gOn=g.filter(e=>e.hitT!=null&&Math.abs(e.dt)<=state.set.tol).length;
   showResult(`<div class="row"><div class="score" style="color:${res.score>=state.set.pass?'var(--good)':'var(--warn)'}">${res.score}%</div><div style="margin-left:18px"><div style="font-weight:700;font-size:20px">${res.score>=state.set.pass?'Steady ✓':res.score>=60?'Nearly':'Keep at it'}</div><div class="mut">${res.on} of ${res.n} taps on time (±${state.set.tol} ms)${g.length?` · in the gap bar: ${gOn} of ${g.length}`:''}</div></div></div>
-    <p class="mut" style="font-size:13px">Tap drills count for practice minutes and your streak, never for lesson progress or song readiness.</p>${p1NextBox()}`);
+    ${typeof tfPocketHtml==='function'?tfPocketHtml(R):''}<p class="mut" style="font-size:13px">Tap drills count for practice minutes and your streak, never for lesson progress or song readiness.</p>${p1NextBox()}`);
 }
 // after every scored lesson run (from finish(), after scoring): the review queue, new masters, and the running session
 function p1AfterRun(rec,passed){
@@ -238,7 +242,7 @@ function p1Peek(){const pl=p1PlanBySlot(SES.slot);for(let i=SES.i+1;i<pl.items.l
 function p1PracSync(){if(typeof qlPracSync==='function')qlPracSync();if(typeof kpLegend==='function'){kpLegend();kpViewBtn();}const el=$('#sesbar');if(!el)return;const it=p1Cur();if(!it){el.classList.add('hidden');el.innerHTML='';return;}const pl=p1PlanBySlot(SES.slot);
   el.classList.remove('hidden');el.innerHTML=`<span class="p1sk">Session ${SES.i+1}/${pl.items.length} · ${p1PhaseOf(it)}</span><b>${esc(it.t)}</b>${P1_PRACTICE.includes(it.k)?`<span class="mut">${it.k==='mix'?'mix '+Math.min((SES.mixI||0)+1,it.ids.length)+'/'+it.ids.length:'run '+Math.min(SES.runs+1,it.reps)+'/'+it.reps}</span>`:''}<span class="sp"></span><button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button>`;}
 // strip at the top of every other page
-function p1Bar(){const it=p1Cur();if(!it||cur==='today')return;const pl=p1PlanBySlot(SES.slot),st=p1Stat(it,pl),pr=P1_PRACTICE.includes(it.k)||it.k==='tap';
+function p1Bar(){const it=p1Cur();if(!it||cur==='today')return;const pl=p1PlanBySlot(SES.slot),st=p1Stat(it,pl),pr=P1_PRACTICE.includes(it.k)||it.k==='tap'||it.k==='time';
   const auto=it.k==='deck'&&typeof thDue==='function'&&!thDue().length;
   view.insertAdjacentHTML('afterbegin',`<div class="card p1bar"><div class="p1bt"><span class="note-k">Session ${SES.i+1} of ${pl.items.length} · ${p1PhaseOf(it)}</span><b>${esc(it.t)}</b>${st||auto?' <span class="chip ms">Done</span>':''}</div><div class="row">${pr&&!st?`<button class="sm pri" data-p1="resume">Continue ›</button>`:`<button class="sm pri" data-p1="next">Next ›</button>`}<button class="sm ghost" data-p1="skip">Skip item</button><button class="sm ghost" data-p1="end">End session</button></div>${typeof kpHint==='function'?kpHint('bar'):''}</div>`);}
 
@@ -249,7 +253,7 @@ function p1TodayCard(){
   const mode=p1Mode(),mins=p1Mins(),pl=p1Plan(mode,mins),items=pl.items,nDone=items.filter(x=>p1Stat(x,pl)).length,tot=Math.round(items.reduce((a,x)=>a+(+x.mins||0),0));
   const running=SES&&SES.slot===p1Slot(mode,mins)&&SES.day===p1Day();
   const row=(it,i)=>{const st=p1Stat(it,pl),lid=p1ItemLesson(it),here=running&&SES.i===i;
-    const meta=[it.mins?(it.mins<1?'under a minute':'~'+Math.round(it.mins)+' min'):'',P1_PRACTICE.includes(it.k)?(it.k==='mix'?it.ids.join(' · '):(it.k==='focus'?(pl.adapt?p1ItemBpm(it)+' BPM (−10 today)':p1ItemBpm(it)+' BPM'):p1ItemBpm(it)+' BPM')+(it.reps>1?' · '+it.reps+' runs':'')):'',it.k==='tap'?it.bpm+' BPM · screen pads':''].filter(Boolean).join(' · ');
+    const meta=[it.mins?(it.mins<1?'under a minute':'~'+Math.round(it.mins)+' min'):'',P1_PRACTICE.includes(it.k)?(it.k==='mix'?it.ids.join(' · '):(it.k==='focus'?(pl.adapt?p1ItemBpm(it)+' BPM (−10 today)':p1ItemBpm(it)+' BPM'):p1ItemBpm(it)+' BPM')+(it.reps>1?' · '+it.reps+' runs':'')):'',it.k==='tap'?it.bpm+' BPM · screen pads':'',it.k==='time'&&it.drill==='gap'&&typeof tfLad==='function'?TF_GAP[tfLad(it.src).s].bpm+' BPM':''].filter(Boolean).join(' · ');
     const maint=it.k==='review'?(()=>{const m=p1Maint(it.id),b=(state.prog[it.id]||{}).bestBpm;return `<div class="mut p1m">Best ever ${b||'–'} BPM · last 30 days ${m||'–'}</div>`;})():'';
     const rc=lid&&LBY[lid]&&typeof thPlanRecap==='function'&&it.k!=='card'?thPlanRecap(lid):'';
     const ph=p1PhaseOf(it),phH=ph&&ph!==p1PhaseOf(items[i-1])?`<li class="p1ph" aria-hidden="true">${ph}</li>`:'';
@@ -379,14 +383,14 @@ async function p1Tests(){
   const day0=new Date(2026,10,9,9).getTime();   // Mon 9 Nov 2026, 9:00 (local)
   try{
   // 1. plan building: On the go
-  {fresh();p1Clock=day0;const go=p1BuildGo().map(x=>x.k);T('On the go with nothing due: new card → tap drill → ear game → journal',go.join(' ')==='card tap ear journal',go.join(' '));
+  {fresh();p1Clock=day0;const go=p1BuildGo().map(x=>x.k);T('On the go with nothing due: new card → tap drill → gap click → ear game → journal',go.join(' ')==='card tap time ear journal',go.join(' '));
     const k=TH_ORDER.find(x=>x.rem);thMark(k.id,'r',true);state.theory.review[k.id].due=thNow()-1;const g2=p1BuildGo(),di=g2.findIndex(x=>x.k==='deck');T('…with Remember cards due, the deck is in Revise, after the ear game (P1b phases)',di>g2.findIndex(x=>x.k==='ear')&&/1 card due/.test(g2[di].why),g2.map(x=>x.k).join(' '));
     const tap=g2.find(x=>x.k==='tap'),lanes=Object.keys(tap.ex.v);T('Tap drill: from the current lesson, ≤ 2 lanes, 4 bars, 1-bar gap in the click, slow tempo',tap.src===p1Focus().id&&lanes.length<=2&&tap.ex.bars>=4&&JSON.stringify(tap.ex.gap)==='[2]'&&tap.bpm<=72&&tap.ex.dyn===false,tap.src+' '+lanes.join('+')+' '+tap.ex.bars+' bars @'+tap.bpm);
     const sum=g2.reduce((a,x)=>a+x.mins,0);T('On the go fits a break (5–10 min)',sum>=5&&sum<=10,sum+' min');
     // card-only fallback for the tap drill
     const ce=p1TapEx(thQuickTry(TH_ORDER.find(x=>x.try)).ex[0]);T('Tap pattern from a theory card works too',ce&&ce.bars>=4&&Object.keys(ce.v).length<=2,'');}
   // 2. plan building: At the kit, each length
-  {fresh();p1Clock=day0;const want={10:'warm lesson focus free journal',20:'warm lesson focus free journal',40:'warm lesson focus free journal'};
+  {fresh();p1Clock=day0;const want={10:'warm time lesson focus free journal',20:'warm time lesson focus time free journal',40:'warm time lesson focus time free journal'};   // P3: gap click after the warm-up, weekly drift test at 20/40
     for(const m of P1_MINS){const it=p1BuildKit(m),ks=it.map(x=>x.k).join(' '),sum=it.reduce((a,x)=>a+(+x.mins||0),0);T('At the kit '+m+' min, beginner (nothing passed): '+ks,ks===want[m]&&Math.abs(sum-m)<0.01,sum+' min');}
     ['2.3.01','2.3.02','2.3.03','2.3.04'].forEach((id,i)=>master(id,day0-(30-i)*DAY));master('1.2.02',day0-40*DAY);
     const k10=p1BuildKit(10),k20=p1BuildKit(20),k40=p1BuildKit(40);
@@ -394,7 +398,7 @@ async function p1Tests(){
     T('Warm-up = a passed rudiment at its slow start tempo',k20[0].k==='warm'&&LBY[k20[0].id].sd===3&&k20[0].bpm===LBY[k20[0].id].bpm[0],k20[0].id+' @'+k20[0].bpm);
     T('Review: due passed lessons at goal −10 BPM (10 min: 1, 20 min: 2, 40 min: 3)',k10.filter(x=>x.k==='review').length===1&&k20.filter(x=>x.k==='review').length===2&&k40.filter(x=>x.k==='review').length===3&&k20.filter(x=>x.k==='review').every(x=>x.bpm===LBY[x.id].bpm[1]-10),k20.filter(x=>x.k==='review').map(x=>x.id+'@'+x.bpm).join(' '));
     const mx=k20.find(x=>x.k==='mix'),mx40=k40.find(x=>x.k==='mix');T('Mix: only with 3+ passed in a strand; none at 10 min; 20 min = 3 lessons once, 40 min = 4 lessons twice, interleaved',!k10.some(x=>x.k==='mix')&&mx&&mx.ids.length===3&&mx40&&mx40.ids.length>=7&&mx40.ids.every((id,i)=>id!==mx40.ids[i-1]),mx&&mx.ids.join(',')+' | '+(mx40&&mx40.ids.join(',')));
-    T('Order: warm-up → (checklist) → focus → review → mix → song/free → journal',k40.map(x=>x.k).filter((k,i,a)=>k!==a[i-1]&&k!=='lesson').join(' ')==='warm focus review mix free journal',k40.map(x=>x.k).join(' '));
+    T('Order: warm-up → (checklist) → focus → review → mix → song/free → journal',k40.map(x=>x.k).filter((k,i,a)=>k!==a[i-1]&&k!=='lesson'&&k!=='time').join(' ')==='warm focus review mix free journal',k40.map(x=>x.k).join(' '));
     T('Every length adds up (10 / 20 / 40 min)',[k10,k20,k40].every((it,i)=>Math.abs(it.reduce((a,x)=>a+(+x.mins||0),0)-P1_MINS[i])<0.05),[k10,k20,k40].map(it=>it.reduce((a,x)=>a+(+x.mins||0),0).toFixed(1)).join(' / '));
     const f=k20.find(x=>x.k==='focus');T('Focus: current lesson, blocked reps sized to the time',f.id===p1Focus().id&&f.reps>=2&&k40.find(x=>x.k==='focus').reps>f.reps,f.id+' ×'+f.reps+' (40 min ×'+k40.find(x=>x.k==='focus').reps+')');
     for(const id of ['2.3.02','2.3.03','2.3.04','2.3.01'])master(id,day0-30*DAY);master('2.3.05',day0-30*DAY);
@@ -462,7 +466,7 @@ async function p1Tests(){
     T('The practice screen shows the session strip',!$('#sesbar').classList.contains('hidden')&&/Skip item/.test($('#sesbar').textContent),'');
     // a rough warm-up → slower focus
     await startRun();finish();T('A rough warm-up slows the focus by 10 BPM',!!pl.adapt&&p1ItemBpm(pl.items.find(x=>x.k==='focus'))===((state.prog[p1Focus().id]||{}).bpm||p1Focus().bpm[0])-10,JSON.stringify(pl.adapt));
-    document.querySelector('[data-p1="skip"]').click();const f=p1Cur();T('Skip item → the next item (focus)',f&&f.k==='focus'&&pl.skip[w.key]&&L.id===f.id,f&&f.k);
+    document.querySelector('[data-p1="skip"]').click();const g0=p1Cur();T('Skip item → the next item (P3 gap click)',g0&&g0.k==='time'&&L&&L.time==='gap',g0&&g0.k);document.querySelector('[data-p1="skip"]').click();const f=p1Cur();T('Skip again → the focus',f&&f.k==='focus'&&pl.skip[w.key]&&L.id===f.id,f&&f.k);
     const fb=bpm;T('…at the adapted tempo',fb===p1ItemBpm(f),fb+' BPM');
     for(let i=0;i<f.reps;i++){await startRun();const R=run;R.evs.forEach(e=>{if(!e.listen)hit(e.v,e.ch==='X'?118:e.ch==='g'?28:80,e.t+state.lat,e.art);});finish();}
     T('Blocked reps: the focus is done after its runs',!!pl.done[f.key]&&/Next:/.test($('#result').textContent),f.reps+' runs');
